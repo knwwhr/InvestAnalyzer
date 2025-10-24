@@ -55,37 +55,49 @@ class StockScreener {
   }
 
   /**
-   * 종합 점수 계산
+   * 종합 점수 계산 (개선된 배점)
    */
   calculateTotalScore(volumeAnalysis, advancedAnalysis) {
     let score = 0;
 
-    // 1. 창의적 지표 점수 (0-100)
-    score += advancedAnalysis.totalScore * 0.6; // 60% 가중치
+    // 1. 창의적 지표 점수 (0-40점) - 가중치 40%로 감소
+    score += advancedAnalysis.totalScore * 0.4;
 
-    // 2. MFI 점수 (0-20)
-    const mfi = volumeAnalysis.indicators.mfi;
-    if (mfi <= 30) score += 20; // 과매도 -> 매수 기회
-    else if (mfi >= 70) score -= 10; // 과매수 -> 감점
-
-    // 3. 거래량 급증 점수 (0-20)
+    // 2. 거래량 지표 (0-30점)
     if (volumeAnalysis.current.volumeMA20) {
       const volumeRatio = volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20;
-      if (volumeRatio >= 3) score += 20;
-      else if (volumeRatio >= 2) score += 10;
+      if (volumeRatio >= 5) score += 30;      // 5배 이상 초대량
+      else if (volumeRatio >= 3) score += 20; // 3배 이상 대량
+      else if (volumeRatio >= 2) score += 12; // 2배 이상 급증
+      else if (volumeRatio >= 1.5) score += 5; // 1.5배 이상 증가
     }
+
+    // 3. MFI (자금흐름지수) (0-15점)
+    const mfi = volumeAnalysis.indicators.mfi;
+    if (mfi <= 20) score += 15;      // 극과매도 -> 최대 기회
+    else if (mfi <= 30) score += 10; // 과매도 -> 매수 기회
+    else if (mfi >= 80) score += 8;  // 강한 상승세 인정
+    else if (mfi >= 70) score += 5;  // 상승세
+
+    // 4. OBV 추세 (0-10점)
+    const obvTrend = volumeAnalysis.signals.obvTrend;
+    if (obvTrend && obvTrend.includes('상승')) score += 10;
+    else if (obvTrend && obvTrend.includes('횡보')) score += 5;
+
+    // 5. 가격 모멘텀 (0-5점)
+    if (volumeAnalysis.signals.priceVsVWAP === '상승세') score += 5;
 
     return Math.min(Math.max(score, 0), 100); // 0-100 범위 제한
   }
 
   /**
-   * 추천 등급 산출
+   * 추천 등급 산출 (현실적 기준으로 조정)
    */
   getRecommendation(score) {
-    if (score >= 80) return { grade: 'S', text: '🔥 최우선 매수', color: '#ff4444' };
-    if (score >= 65) return { grade: 'A', text: '🟢 적극 매수', color: '#00cc00' };
-    if (score >= 50) return { grade: 'B', text: '🟡 매수 고려', color: '#ffaa00' };
-    if (score >= 35) return { grade: 'C', text: '⚪ 주목', color: '#888888' };
+    if (score >= 70) return { grade: 'S', text: '🔥 최우선 매수', color: '#ff4444' };
+    if (score >= 55) return { grade: 'A', text: '🟢 적극 매수', color: '#00cc00' };
+    if (score >= 40) return { grade: 'B', text: '🟡 매수 고려', color: '#ffaa00' };
+    if (score >= 30) return { grade: 'C', text: '⚪ 주목', color: '#888888' };
     return { grade: 'D', text: '⚫ 관망', color: '#cccccc' };
   }
 
