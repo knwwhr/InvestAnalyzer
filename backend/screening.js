@@ -13,7 +13,7 @@ class StockScreener {
   }
 
   /**
-   * 단일 종목 분석
+   * 단일 종목 분석 (Phase 4 통합)
    */
   async analyzeStock(stockCode) {
     try {
@@ -26,11 +26,26 @@ class StockScreener {
       // 거래량 지표 분석
       const volumeAnalysis = volumeIndicators.analyzeVolume(chartData);
 
-      // 창의적 지표 분석
+      // 창의적 지표 분석 (Phase 4 신규 지표 포함)
       const advancedAnalysis = advancedIndicators.analyzeAdvanced(chartData);
 
       // 종합 점수 계산
-      const totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis);
+      let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis);
+
+      // Phase 4C: 과열 감지 필터
+      const volumeRatio = volumeAnalysis.current.volumeMA20
+        ? volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20
+        : 1;
+      const overheating = advancedIndicators.checkOverheating(
+        chartData,
+        currentData.currentPrice,
+        volumeRatio,
+        volumeAnalysis.indicators.mfi
+      );
+
+      // 과열 페널티 적용
+      totalScore += overheating.scorePenalty;
+      totalScore = Math.min(Math.max(totalScore, 0), 100);
 
       // 랭킹 뱃지 가져오기
       const rankBadges = kisApi.getCachedRankBadges(stockCode);
@@ -44,9 +59,10 @@ class StockScreener {
         marketCap: currentData.marketCap,
         volumeAnalysis,
         advancedAnalysis,
+        overheating, // Phase 4C 과열 정보 추가
         totalScore,
-        recommendation: this.getRecommendation(totalScore),
-        rankBadges: rankBadges || {} // 랭킹 뱃지 추가
+        recommendation: this.getRecommendation(totalScore, advancedAnalysis.tier, overheating),
+        rankBadges: rankBadges || {}
       };
     } catch (error) {
       console.error(`❌ 종목 분석 실패 [${stockCode}]:`, error.message);
@@ -91,14 +107,52 @@ class StockScreener {
   }
 
   /**
-   * 추천 등급 산출 (현실적 기준으로 조정)
+   * 추천 등급 산출 (Phase 4 티어 시스템 반영)
    */
-  getRecommendation(score) {
-    if (score >= 70) return { grade: 'S', text: '🔥 최우선 매수', color: '#ff4444' };
-    if (score >= 55) return { grade: 'A', text: '🟢 적극 매수', color: '#00cc00' };
-    if (score >= 40) return { grade: 'B', text: '🟡 매수 고려', color: '#ffaa00' };
-    if (score >= 30) return { grade: 'C', text: '⚪ 주목', color: '#888888' };
-    return { grade: 'D', text: '⚫ 관망', color: '#cccccc' };
+  getRecommendation(score, tier, overheating) {
+    let grade, text, color;
+
+    // 기본 등급 산정
+    if (score >= 70) {
+      grade = 'S';
+      text = '🔥 최우선 매수';
+      color = '#ff4444';
+    } else if (score >= 55) {
+      grade = 'A';
+      text = '🟢 적극 매수';
+      color = '#00cc00';
+    } else if (score >= 40) {
+      grade = 'B';
+      text = '🟡 매수 고려';
+      color = '#ffaa00';
+    } else if (score >= 30) {
+      grade = 'C';
+      text = '⚪ 주목';
+      color = '#888888';
+    } else {
+      grade = 'D';
+      text = '⚫ 관망';
+      color = '#cccccc';
+    }
+
+    // Phase 4 티어 수정
+    if (tier === 'watch') {
+      text = '👁️ 관심종목 (선행지표)';
+      color = '#9966ff'; // 보라색
+    } else if (tier === 'buy' && score >= 60) {
+      text = '🚀 매수신호 (트리거 발동)';
+      color = '#ff6600'; // 주황색
+    }
+
+    // 과열 경고 덮어쓰기
+    if (overheating.warning) {
+      text = '⚠️ 과열 - 조정 대기';
+      color = '#ff9900'; // 경고 색상
+    } else if (overheating.heatScore > 50) {
+      text = `⚠️ ${text} (신중)`;
+    }
+
+    return { grade, text, color, tier, overheating: overheating.message };
   }
 
   /**
@@ -155,7 +209,7 @@ class StockScreener {
     let analyzed = 0;
     let found = 0;
 
-    // 카테고리별 필터 함수
+    // 카테고리별 필터 함수 (Phase 4 추가)
     const categoryFilters = {
       'whale': (analysis) => analysis.advancedAnalysis.indicators.whale.length > 0,
       'accumulation': (analysis) => analysis.advancedAnalysis.indicators.accumulation.detected,
@@ -163,7 +217,12 @@ class StockScreener {
       'drain': (analysis) => analysis.advancedAnalysis.indicators.drain.detected,
       'volume-surge': (analysis) =>
         analysis.volumeAnalysis.current.volumeMA20 &&
-        analysis.volumeAnalysis.current.volume / analysis.volumeAnalysis.current.volumeMA20 >= 2.5
+        analysis.volumeAnalysis.current.volume / analysis.volumeAnalysis.current.volumeMA20 >= 2.5,
+      // Phase 4 신규 카테고리
+      'gradual-accumulation': (analysis) => analysis.advancedAnalysis.indicators.gradualAccumulation.detected,
+      'smart-money': (analysis) => analysis.advancedAnalysis.indicators.smartMoney.detected,
+      'bottom-formation': (analysis) => analysis.advancedAnalysis.indicators.bottomFormation.detected,
+      'breakout-prep': (analysis) => analysis.advancedAnalysis.indicators.breakoutPrep.detected
     };
 
     const filterFn = categoryFilters[category] || (() => true);

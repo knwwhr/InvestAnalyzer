@@ -138,13 +138,22 @@
                   </h1>
                   <p className="text-gray-600 mt-2">거래량 AI가 추천하는 오늘의 종목</p>
                 </div>
-                <button
-                  onClick={() => activeTab === 'screening' ? fetchRecommendations(selectedCategory) : window.location.reload()}
-                  disabled={loading}
-                  className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 font-semibold shadow-lg"
-                >
-                  {loading ? '분석중...' : '🔄 새로고침'}
-                </button>
+                <div className="flex gap-3">
+                  <a
+                    href="/frontend/indicator-guide.html"
+                    target="_blank"
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold shadow-lg text-sm"
+                  >
+                    📚 지표 가이드
+                  </a>
+                  <button
+                    onClick={() => activeTab === 'screening' ? fetchRecommendations(selectedCategory) : window.location.reload()}
+                    disabled={loading}
+                    className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 font-semibold shadow-lg"
+                  >
+                    {loading ? '분석중...' : '🔄 새로고침'}
+                  </button>
+                </div>
               </div>
               {/* 탭 메뉴 */}
               <div className="flex gap-4 mt-6 border-b border-gray-200">

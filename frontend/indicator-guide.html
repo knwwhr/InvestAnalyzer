@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>지표 가이드 - Investar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold text-indigo-600 mb-8">📚 지표 완전 가이드</h1>
+
+    <!-- 거래량 비율 -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">📊 거래량 비율이란?</h2>
+
+      <div class="space-y-4">
+        <div class="bg-blue-50 p-4 rounded-lg">
+          <h3 class="font-bold text-blue-900 mb-2">✅ 정의</h3>
+          <p class="text-gray-700">
+            <strong>거래량 비율 = 오늘 거래량 ÷ 최근 20일 평균 거래량</strong>
+          </p>
+          <p class="text-sm text-gray-600 mt-2">
+            예: 오늘 거래량 100만주, 20일 평균 50만주 → 거래량 비율 = <span class="font-bold text-blue-700">2.0배</span>
+          </p>
+        </div>
+
+        <div class="bg-green-50 p-4 rounded-lg">
+          <h3 class="font-bold text-green-900 mb-2">🎯 해석 방법</h3>
+          <table class="w-full text-sm">
+            <tr class="border-b">
+              <td class="py-2 font-semibold">5.0배 이상</td>
+              <td class="py-2 text-green-700">🔥🔥🔥 초대량 거래 - 큰 이벤트 발생 (호재/악재)</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-semibold">3.0~5.0배</td>
+              <td class="py-2 text-green-600">🔥🔥 대량 거래 - 세력 움직임 가능성</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-semibold">2.0~3.0배</td>
+              <td class="py-2 text-blue-600">🔥 거래량 급증 - 관심 증가</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-semibold">1.5~2.0배</td>
+              <td class="py-2 text-gray-600">📈 거래량 증가 - 정상 범위</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-semibold">1.0배 이하</td>
+              <td class="py-2 text-gray-500">😴 거래량 감소 - 관심 저조</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+          <h3 class="font-bold text-yellow-900 mb-2">⚠️ 주의사항</h3>
+          <ul class="space-y-1 text-sm text-gray-700">
+            <li>• <strong>거래량 급증 ≠ 무조건 매수</strong>: 악재로 인한 급등락도 거래량이 폭증합니다</li>
+            <li>• <strong>가격 방향 확인 필수</strong>: 상승하면서 거래량 증가 = 좋은 신호 / 하락하면서 증가 = 나쁜 신호</li>
+            <li>• <strong>10배 이상은 위험</strong>: 과열 종목일 가능성 높음 → 조정 대기 권장</li>
+          </ul>
+        </div>
+
+        <div class="bg-indigo-50 p-4 rounded-lg">
+          <h3 class="font-bold text-indigo-900 mb-2">💡 실전 활용 팁</h3>
+          <div class="space-y-2 text-sm text-gray-700">
+            <div><strong>1. 급등 전 포착:</strong> 가격 횡보 + 거래량 2~3배 → 세력 매집 신호</div>
+            <div><strong>2. 돌파 확인:</strong> 저항선 돌파 + 거래량 3배 이상 → 신뢰도 높음</div>
+            <div><strong>3. 조정 타이밍:</strong> 급등 후 거래량 0.5배 이하 → 매수세 약화</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MFI (자금흐름지수) -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">💰 MFI (Money Flow Index)란?</h2>
+
+      <div class="space-y-4">
+        <div class="bg-purple-50 p-4 rounded-lg">
+          <h3 class="font-bold text-purple-900 mb-2">✅ 정의</h3>
+          <p class="text-gray-700">
+            <strong>거래량을 반영한 RSI (상대강도지수)</strong>
+          </p>
+          <p class="text-sm text-gray-600 mt-2">
+            RSI는 가격 변화만 보지만, MFI는 "거래량 × 가격"을 반영 → 더 정확한 자금 흐름 파악
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            계산식: 14일간 (상승일 거래대금) ÷ (하락일 거래대금) → 0~100 값
+          </p>
+        </div>
+
+        <div class="bg-green-50 p-4 rounded-lg">
+          <h3 class="font-bold text-green-900 mb-2">🎯 해석 방법</h3>
+          <table class="w-full text-sm">
+            <tr class="border-b">
+              <td class="py-2 font-semibold">90 이상</td>
+              <td class="py-2 text-red-600">🔴 극과매수 - 조정 임박 (위험)</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-semibold">80~90</td>
+              <td class="py-2 text-orange-600">🟠 과매수 - 신중 매수</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-semibold">70~80</td>
+              <td class="py-2 text-yellow-600">🟡 강한 상승세 - 추세 지속 가능</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-semibold">50~70</td>
+              <td class="py-2 text-green-600">🟢 정상 상승 - 매수 고려</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-semibold">30~50</td>
+              <td class="py-2 text-gray-600">⚪ 중립 - 관망</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-semibold">20~30</td>
+              <td class="py-2 text-blue-600">🔵 과매도 - 매수 기회</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-semibold">20 이하</td>
+              <td class="py-2 text-indigo-600">💙 극과매도 - 반등 기회 (최대 기회)</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+          <h3 class="font-bold text-yellow-900 mb-2">⚠️ 중요한 함정</h3>
+          <div class="space-y-2 text-sm text-gray-700">
+            <div><strong>🚫 과매수 ≠ 매도 신호</strong></div>
+            <p>강한 상승 추세에서는 MFI 80 이상이 <strong>수주~수개월</strong> 지속될 수 있습니다!</p>
+            <p class="mt-2 text-xs text-gray-600">
+              예: 삼성전자 상승장 때 MFI 80 이상을 3개월간 유지 → 이 기간에 팔면 큰 수익 놓침
+            </p>
+            <div class="mt-3"><strong>✅ 올바른 활용법</strong></div>
+            <p>• MFI 80+ = "조만간 조정 올 수 있으니 <strong>분할 매도 준비</strong>"</p>
+            <p>• MFI 20- = "바닥 근처이니 <strong>분할 매수 시작</strong>"</p>
+          </div>
+        </div>
+
+        <div class="bg-indigo-50 p-4 rounded-lg">
+          <h3 class="font-bold text-indigo-900 mb-2">💡 실전 활용 팁</h3>
+          <div class="space-y-2 text-sm text-gray-700">
+            <div><strong>1. 다이버전스 포착:</strong> 주가 신고가 + MFI 하락 → 상승 탄력 약화 (매도 신호)</div>
+            <div><strong>2. 바닥 확인:</strong> 주가 신저가 + MFI 상승 → 매수세 유입 시작 (매수 신호)</div>
+            <div><strong>3. 세력 확인:</strong> MFI 60+ 지속 = 강한 매수세 / MFI 40- 지속 = 강한 매도세</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 거래량 + MFI 조합 -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+      <h2 class="text-2xl font-bold text-gray-900 mb-4">🔥 거래량 비율 + MFI 황금 조합</h2>
+
+      <div class="space-y-4">
+        <div class="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border-2 border-green-300">
+          <h3 class="font-bold text-green-900 mb-2">🏆 최고의 매수 신호</h3>
+          <div class="space-y-1 text-sm">
+            <div>✅ 거래량 비율: <strong>2.5~5.0배</strong> (적당한 거래량 급증)</div>
+            <div>✅ MFI: <strong>20~40</strong> (과매도 or 중립)</div>
+            <div>✅ 가격: 횡보 or 소폭 상승</div>
+            <div class="mt-2 text-green-700 font-bold">→ 세력이 저점에서 물량 모으는 중 = 급등 전조!</div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-red-50 to-orange-50 p-4 rounded-lg border-2 border-red-300">
+          <h3 class="font-bold text-red-900 mb-2">⚠️ 최악의 매수 타이밍</h3>
+          <div class="space-y-1 text-sm">
+            <div>❌ 거래량 비율: <strong>10배 이상</strong> (극단적 거래량)</div>
+            <div>❌ MFI: <strong>90 이상</strong> (극과매수)</div>
+            <div>❌ 가격: 단기 30% 이상 급등</div>
+            <div class="mt-2 text-red-700 font-bold">→ 과열 종목 = 단기 조정 위험 매우 높음!</div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-yellow-50 to-purple-50 p-4 rounded-lg border-2 border-yellow-300">
+          <h3 class="font-bold text-purple-900 mb-2">👁️ 관심 종목 (선행 지표)</h3>
+          <div class="space-y-1 text-sm">
+            <div>✅ 거래량 비율: <strong>1.2~1.5배</strong> (점진적 증가)</div>
+            <div>✅ MFI: <strong>40~60</strong> (중립)</div>
+            <div>✅ 가격: 횡보 (변동폭 3% 이내)</div>
+            <div class="mt-2 text-purple-700 font-bold">→ 조용히 매집 중 = 7~14일 후 급등 가능성!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 뒤로 가기 버튼 -->
+    <div class="text-center mt-8">
+      <a href="/index.html" class="inline-block px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold shadow-lg">
+        ← 메인으로 돌아가기
+      </a>
+    </div>
+  </div>
+</body>
+</html>
