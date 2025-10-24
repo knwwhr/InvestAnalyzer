@@ -100,7 +100,7 @@ class StockScreener {
 
     console.log('🔍 전체 종목 스크리닝 시작...');
 
-    const stockList = await kisApi.getAllStockList(market);
+    const { codes: stockList } = await kisApi.getAllStockList(market);
     const results = [];
 
     // API 호출 제한 대응 (초당 5건 -> 200ms 간격)
