@@ -1,7 +1,7 @@
 // Vercel Serverless Function
 // GET /api/screening/recommend
 
-const screener = require('../../screening');
+const screener = require('../../backend/screening');
 
 export default async function handler(req, res) {
   // CORS 헤더
