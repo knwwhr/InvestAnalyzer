@@ -335,12 +335,28 @@
               <p className="text-sm font-semibold text-indigo-600 mb-2">
                 {stock.recommendation.text}
               </p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 mb-2">
                 {stock.advancedAnalysis.signals.slice(0, 3).map((signal, i) => (
                   <span key={i} className="text-xs bg-white px-2 py-1 rounded-full border border-gray-200">
                     {signal}
                   </span>
                 ))}
+              </div>
+              {/* 선정 기준 상세 */}
+              <div className="text-xs text-gray-600 mt-2 space-y-1">
+                {stock.advancedAnalysis.indicators.whale.length > 0 && (
+                  <div>🐋 고래감지: {stock.advancedAnalysis.indicators.whale.length}건 (최근 강도 {stock.advancedAnalysis.indicators.whale[stock.advancedAnalysis.indicators.whale.length - 1].intensity.toFixed(1)})</div>
+                )}
+                {stock.advancedAnalysis.indicators.accumulation.detected && (
+                  <div>🤫 조용한매집: 거래량↑{stock.advancedAnalysis.indicators.accumulation.volumeGrowth}% / 변동성↓{stock.advancedAnalysis.indicators.accumulation.priceVolatility}%</div>
+                )}
+                {stock.advancedAnalysis.indicators.escape.detected && (
+                  <div>🚀 탈출속도: 저항선 {stock.advancedAnalysis.indicators.escape.resistance.toLocaleString()}원 돌파 (+{stock.advancedAnalysis.indicators.escape.priceBreakout}%)</div>
+                )}
+                {stock.advancedAnalysis.indicators.drain.detected && (
+                  <div>💧 유동성고갈: 거래량↓{stock.advancedAnalysis.indicators.drain.volumeDecline}% / 변동성↓{stock.advancedAnalysis.indicators.drain.volatilityDecline}%</div>
+                )}
+                <div>📊 비대칭비율: {stock.advancedAnalysis.indicators.asymmetric.ratio} ({stock.advancedAnalysis.indicators.asymmetric.upDays}일 상승 vs {stock.advancedAnalysis.indicators.asymmetric.downDays}일 하락)</div>
               </div>
             </div>
 
@@ -432,9 +448,11 @@
                   <IndicatorBox
                     title="🐋 고래 감지"
                     detected={stock.advancedAnalysis.indicators.whale.length > 0}
-                    signal={stock.advancedAnalysis.indicators.whale[0]?.type || '없음'}
-                    detail={stock.advancedAnalysis.indicators.whale[0] ?
-                      `거래량 ${stock.advancedAnalysis.indicators.whale[0].volumeRatio}배, 가격 ${stock.advancedAnalysis.indicators.whale[0].priceChange}%` : ''}
+                    signal={stock.advancedAnalysis.indicators.whale.length > 0 ? `${stock.advancedAnalysis.indicators.whale.length}건 감지` : '없음'}
+                    detail={stock.advancedAnalysis.indicators.whale.length > 0 ?
+                      stock.advancedAnalysis.indicators.whale.map(w =>
+                        `${w.date.slice(4,6)}/${w.date.slice(6,8)}: 거래량 ${w.volumeRatio}배, 가격 +${w.priceChange}%, 강도 ${w.intensity.toFixed(1)}`
+                      ).join(' | ') : '거래량 급증 + 가격 상승 조합 미발견'}
                   />
 
                   {/* 조용한 매집 */}
@@ -442,7 +460,7 @@
                     title="🤫 조용한 매집"
                     detected={stock.advancedAnalysis.indicators.accumulation.detected}
                     signal={stock.advancedAnalysis.indicators.accumulation.signal}
-                    detail={`거래량 증가 ${stock.advancedAnalysis.indicators.accumulation.volumeGrowth}%`}
+                    detail={`거래량↑${stock.advancedAnalysis.indicators.accumulation.volumeGrowth}% / 변동성↓${stock.advancedAnalysis.indicators.accumulation.priceVolatility}% / 평균가 ${stock.advancedAnalysis.indicators.accumulation.avgPrice.toLocaleString()}원 / 점수 ${stock.advancedAnalysis.indicators.accumulation.score}`}
                   />
 
                   {/* 탈출 속도 */}
@@ -451,7 +469,8 @@
                     detected={stock.advancedAnalysis.indicators.escape.detected}
                     signal={stock.advancedAnalysis.indicators.escape.signal}
                     detail={stock.advancedAnalysis.indicators.escape.detected ?
-                      `저항선 ${stock.advancedAnalysis.indicators.escape.resistance.toLocaleString()}원 돌파` : ''}
+                      `저항선 ${stock.advancedAnalysis.indicators.escape.resistance.toLocaleString()}원 → 현재 ${stock.advancedAnalysis.indicators.escape.currentPrice.toLocaleString()}원 (+${stock.advancedAnalysis.indicators.escape.priceBreakout}%) / 거래량 ${stock.advancedAnalysis.indicators.escape.volumeRatio}배 / 모멘텀 ${stock.advancedAnalysis.indicators.escape.momentum} / 점수 ${stock.advancedAnalysis.indicators.escape.score.toFixed(1)}`
+                      : `저항선 돌파 실패 / 점수 ${stock.advancedAnalysis.indicators.escape.score}`}
                   />
 
                   {/* 유동성 고갈 */}
@@ -459,7 +478,7 @@
                     title="💧 유동성 고갈"
                     detected={stock.advancedAnalysis.indicators.drain.detected}
                     signal={stock.advancedAnalysis.indicators.drain.signal}
-                    detail={`거래량 ${stock.advancedAnalysis.indicators.drain.volumeDecline}%`}
+                    detail={`거래량↓${stock.advancedAnalysis.indicators.drain.volumeDecline}% / 변동성↓${stock.advancedAnalysis.indicators.drain.volatilityDecline}% / 최근평균 ${(stock.advancedAnalysis.indicators.drain.avgVolumeRecent / 1000).toFixed(0)}K / 점수 ${stock.advancedAnalysis.indicators.drain.score}`}
                   />
                 </div>
               </div>
@@ -532,7 +551,7 @@
           <p className={`font-semibold mb-1 ${detected ? 'text-green-700' : 'text-gray-500'}`}>
             {signal}
           </p>
-          {detail && <p className="text-xs text-gray-600">{detail}</p>}
+          {detail && <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap break-words">{detail}</p>}
         </div>
       );
     }

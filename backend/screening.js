@@ -143,7 +143,22 @@ class StockScreener {
    * 특정 카테고리 필터링
    */
   async screenByCategory(category, market = 'ALL') {
-    const allResults = await this.screenAllStocks(market, 100);
+    // 캐시가 있으면 캐시 사용, 없으면 스크리닝 시도 (타임아웃 가능)
+    let allResults;
+
+    if (this.cachedResults && this.cacheTimestamp) {
+      const cacheAge = Date.now() - this.cacheTimestamp;
+      if (cacheAge < this.cacheDuration) {
+        console.log('✅ 카테고리 필터링: 캐시된 결과 사용');
+        allResults = this.cachedResults;
+      } else {
+        console.log('⚠️ 캐시 만료, 새로운 스크리닝 시작...');
+        allResults = await this.screenAllStocks(market, 100);
+      }
+    } else {
+      console.log('⚠️ 캐시 없음, 새로운 스크리닝 시작...');
+      allResults = await this.screenAllStocks(market, 100);
+    }
 
     switch (category) {
       case 'whale': // 고래 감지
@@ -168,6 +183,7 @@ class StockScreener {
 
       case 'volume-surge': // 거래량 폭발
         return allResults.filter(r =>
+          r.volumeAnalysis.current.volumeMA20 &&
           r.volumeAnalysis.current.volume / r.volumeAnalysis.current.volumeMA20 >= 2.5
         ).slice(0, 10);
 
