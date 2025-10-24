@@ -185,49 +185,215 @@ class KISApi {
   }
 
   /**
-   * 전체 종목 리스트 조회
-   * @param {string} market - 시장구분 ('ALL', 'KOSPI', 'KOSDAQ')
+   * 거래량 급증 순위 조회
+   * @param {string} market - 시장구분 ('KOSPI', 'KOSDAQ')
+   * @param {number} limit - 조회 개수 (최대 30)
+   */
+  async getVolumeSurgeRank(market = 'KOSPI', limit = 30) {
+    try {
+      const token = await this.getAccessToken();
+      const marketCode = market === 'KOSPI' ? '0' : '1';
+
+      const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/quotations/volume-rank`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'appkey': this.appKey,
+          'appsecret': this.appSecret,
+          'tr_id': 'FHPST01730000'  // 거래량 급증 순위
+        },
+        params: {
+          FID_COND_MRKT_DIV_CODE: 'J',
+          FID_COND_SCR_DIV_CODE: '20173',
+          FID_INPUT_ISCD: '0000',
+          FID_DIV_CLS_CODE: marketCode,
+          FID_BLNG_CLS_CODE: '0',
+          FID_TRGT_CLS_CODE: '111111111',
+          FID_TRGT_EXLS_CLS_CODE: '000000',
+          FID_INPUT_PRICE_1: '',
+          FID_INPUT_PRICE_2: '',
+          FID_VOL_CNT: '',
+          FID_INPUT_DATE_1: ''
+        }
+      });
+
+      if (response.data.rt_cd === '0') {
+        return response.data.output.slice(0, limit).map(item => ({
+          code: item.mksc_shrn_iscd,
+          name: item.hts_kor_isnm,
+          currentPrice: parseInt(item.stck_prpr),
+          volume: parseInt(item.acml_vol),
+          volumeRate: parseFloat(item.prdy_vrss_vol_rate)  // 전일대비 거래량 증가율
+        }));
+      } else {
+        throw new Error(`API 오류: ${response.data.msg1}`);
+      }
+    } catch (error) {
+      console.error(`❌ 거래량 급증 순위 조회 실패 [${market}]:`, error.message);
+      return [];
+    }
+  }
+
+  /**
+   * 거래대금 순위 조회
+   * @param {string} market - 시장구분 ('KOSPI', 'KOSDAQ')
+   * @param {number} limit - 조회 개수 (최대 30)
+   */
+  async getTradingValueRank(market = 'KOSPI', limit = 30) {
+    try {
+      const token = await this.getAccessToken();
+      const marketCode = market === 'KOSPI' ? '0' : '1';
+
+      const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/quotations/volume-rank`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'appkey': this.appKey,
+          'appsecret': this.appSecret,
+          'tr_id': 'FHPST01720000'  // 거래대금 순위
+        },
+        params: {
+          FID_COND_MRKT_DIV_CODE: 'J',
+          FID_COND_SCR_DIV_CODE: '20172',
+          FID_INPUT_ISCD: '0000',
+          FID_DIV_CLS_CODE: marketCode,
+          FID_BLNG_CLS_CODE: '0',
+          FID_TRGT_CLS_CODE: '111111111',
+          FID_TRGT_EXLS_CLS_CODE: '000000',
+          FID_INPUT_PRICE_1: '',
+          FID_INPUT_PRICE_2: '',
+          FID_VOL_CNT: '',
+          FID_INPUT_DATE_1: ''
+        }
+      });
+
+      if (response.data.rt_cd === '0') {
+        return response.data.output.slice(0, limit).map(item => ({
+          code: item.mksc_shrn_iscd,
+          name: item.hts_kor_isnm,
+          currentPrice: parseInt(item.stck_prpr),
+          tradingValue: parseInt(item.acml_tr_pbmn)
+        }));
+      } else {
+        throw new Error(`API 오류: ${response.data.msg1}`);
+      }
+    } catch (error) {
+      console.error(`❌ 거래대금 순위 조회 실패 [${market}]:`, error.message);
+      return [];
+    }
+  }
+
+  /**
+   * 거래량 순위 조회
+   * @param {string} market - 시장구분 ('KOSPI', 'KOSDAQ')
+   * @param {number} limit - 조회 개수 (최대 30)
+   */
+  async getVolumeRank(market = 'KOSPI', limit = 30) {
+    try {
+      const token = await this.getAccessToken();
+      const marketCode = market === 'KOSPI' ? '0' : '1';
+
+      const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/quotations/volume-rank`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'appkey': this.appKey,
+          'appsecret': this.appSecret,
+          'tr_id': 'FHPST01710000'  // 거래량 순위
+        },
+        params: {
+          FID_COND_MRKT_DIV_CODE: 'J',
+          FID_COND_SCR_DIV_CODE: '20171',
+          FID_INPUT_ISCD: '0000',
+          FID_DIV_CLS_CODE: marketCode,
+          FID_BLNG_CLS_CODE: '0',
+          FID_TRGT_CLS_CODE: '111111111',
+          FID_TRGT_EXLS_CLS_CODE: '000000',
+          FID_INPUT_PRICE_1: '',
+          FID_INPUT_PRICE_2: '',
+          FID_VOL_CNT: '',
+          FID_INPUT_DATE_1: ''
+        }
+      });
+
+      if (response.data.rt_cd === '0') {
+        return response.data.output.slice(0, limit).map(item => ({
+          code: item.mksc_shrn_iscd,
+          name: item.hts_kor_isnm,
+          currentPrice: parseInt(item.stck_prpr),
+          volume: parseInt(item.acml_vol)
+        }));
+      } else {
+        throw new Error(`API 오류: ${response.data.msg1}`);
+      }
+    } catch (error) {
+      console.error(`❌ 거래량 순위 조회 실패 [${market}]:`, error.message);
+      return [];
+    }
+  }
+
+  /**
+   * 전체 종목 리스트 조회 (동적 API 기반)
+   * 거래량 급증 + 거래대금 + 거래량 순위를 조합하여 약 150개 종목 확보
    */
   async getAllStockList(market = 'ALL') {
-    // 한국투자증권 API에는 전체 종목 리스트 API가 없어서
-    // 주요 종목 리스트를 하드코딩합니다
-    // 실제 운영시에는 KRX 파일이나 별도 DB 사용 권장
+    console.log('📊 동적 종목 리스트 생성 시작...');
 
-    const kospiStocks = [
-      '005930', '000660', '051910', '006400', '005380', '000270', '035720', '035420',
-      '068270', '207940', '105560', '055550', '003670', '096770', '028260', '012330',
-      '017670', '066570', '034730', '018260', '003550', '009150', '033780', '015760',
-      '011200', '010950', '086790', '032830', '030200', '090430', '000100', '316140',
-      '010130', '003490', '009540', '086280', '011070', '047050', '001450', '034220',
-      '051900', '259960', '000720', '018880', '138040', '004020', '024110', '042700',
-      '011170', '009830', '036570', '009970', '010140', '021240', '005830', '006800',
-      '032640', '047810', '097950', '003230', '005490', '161390', '000810', '010120',
-      '011780', '078930', '002380', '006360', '329180', '267250', '004170', '071050',
-      '000880', '028050', '034020', '001040', '004990', '024110', '006280', '011790',
-      '023530', '014680', '029780', '012750', '004370', '002790', '008770', '001740',
-      '047040', '000150', '161890', '042660', '003230', '051915', '009420', '010620'
-    ];
+    const stockSet = new Set(); // 중복 제거용
+    const markets = market === 'ALL' ? ['KOSPI', 'KOSDAQ'] : [market];
 
-    const kosdaqStocks = [
-      '247540', '086520', '263750', '091990', '403870', '357780', '196170', '112040',
-      '293490', '095340', '365340', '058470', '214150', '137400', '067160', '348210',
-      '039030', '145020', '277810', '141080', '253450', '352820', '328130', '436440',
-      '036830', '120110', '121600', '041510', '053800', '131970', '095610', '214450',
-      '005290', '122870', '064760', '068760', '215600', '048410', '143160', '035760',
-      '357250', '194480', '225190', '357550', '298540', '290510', '196700', '237690',
-      '256840', '298690', '089970', '290650', '306200', '263860', '298380', '445680'
-    ];
+    try {
+      for (const mkt of markets) {
+        console.log(`\n🔍 ${mkt} 시장 분석 중...`);
 
-    let stocks = [];
-    if (market === 'ALL') {
-      stocks = [...kospiStocks, ...kosdaqStocks];
-    } else if (market === 'KOSPI') {
-      stocks = kospiStocks;
-    } else if (market === 'KOSDAQ') {
-      stocks = kosdaqStocks;
+        // 1. 거래량 급증 순위 (30개)
+        console.log(`  - 거래량 급증 순위 조회...`);
+        const volSurge = await this.getVolumeSurgeRank(mkt, 30);
+        volSurge.forEach(s => stockSet.add(s.code));
+        await new Promise(r => setTimeout(r, 200)); // API 제한 대응
+
+        // 2. 거래대금 순위 (30개)
+        console.log(`  - 거래대금 순위 조회...`);
+        const tradingValue = await this.getTradingValueRank(mkt, 30);
+        tradingValue.forEach(s => stockSet.add(s.code));
+        await new Promise(r => setTimeout(r, 200));
+
+        // 3. 거래량 순위 (20개)
+        console.log(`  - 거래량 순위 조회...`);
+        const volume = await this.getVolumeRank(mkt, 20);
+        volume.forEach(s => stockSet.add(s.code));
+        await new Promise(r => setTimeout(r, 200));
+      }
+
+      const stocks = Array.from(stockSet);
+      console.log(`\n✅ 총 ${stocks.length}개 유니크 종목 확보 완료!`);
+      return stocks;
+
+    } catch (error) {
+      console.error('❌ 동적 종목 리스트 생성 실패:', error.message);
+      console.log('⚠️  하드코딩된 기본 리스트 사용');
+
+      // 실패 시 기본 리스트 반환
+      const kospiStocks = [
+        '005930', '000660', '051910', '006400', '005380', '000270', '035720', '035420',
+        '068270', '207940', '105560', '055550', '003670', '096770', '028260', '012330',
+        '017670', '066570', '034730', '018260', '003550', '009150', '033780', '015760',
+        '011200', '010950', '086790', '032830', '030200', '090430', '000100', '316140'
+      ];
+
+      const kosdaqStocks = [
+        '247540', '086520', '263750', '091990', '403870', '357780', '196170', '112040',
+        '293490', '095340', '365340', '058470', '214150', '137400', '067160', '348210'
+      ];
+
+      if (market === 'ALL') {
+        return [...kospiStocks, ...kosdaqStocks];
+      } else if (market === 'KOSPI') {
+        return kospiStocks;
+      } else if (market === 'KOSDAQ') {
+        return kosdaqStocks;
+      }
     }
-
-    return stocks;
   }
 }
 
