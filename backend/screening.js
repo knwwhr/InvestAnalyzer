@@ -90,106 +90,104 @@ class StockScreener {
   }
 
   /**
-   * 전체 종목 스크리닝
+   * 전체 종목 스크리닝 (Vercel 60초 타임아웃 대응 - 부분 스크리닝)
    */
   async screenAllStocks(market = 'ALL', limit = 10) {
-    // 캐시 확인
-    if (this.cachedResults && this.cacheTimestamp) {
-      const cacheAge = Date.now() - this.cacheTimestamp;
-      if (cacheAge < this.cacheDuration) {
-        console.log('✅ 캐시된 결과 사용');
-        return this.cachedResults.slice(0, limit);
-      }
-    }
-
-    console.log('🔍 전체 종목 스크리닝 시작...');
+    console.log('🔍 종합 TOP 스크리닝 시작...');
 
     const { codes: stockList } = await kisApi.getAllStockList(market);
     const results = [];
+    let analyzed = 0;
 
-    // API 호출 제한 대응 (초당 5건 -> 200ms 간격)
-    for (let i = 0; i < stockList.length; i++) {
+    // 최소 점수 30점 이상인 종목을 limit개 찾을 때까지 분석
+    for (let i = 0; i < stockList.length && results.length < limit * 3; i++) {
       const stockCode = stockList[i];
-      console.log(`분석 중 [${i + 1}/${stockList.length}]: ${stockCode}`);
 
-      const analysis = await this.analyzeStock(stockCode);
+      try {
+        const analysis = await this.analyzeStock(stockCode);
+        analyzed++;
 
-      if (analysis && analysis.totalScore >= 30) { // 최소 점수 30점 이상만
-        results.push(analysis);
-      }
+        if (analysis && analysis.totalScore >= 30) {
+          results.push(analysis);
+          console.log(`✅ [${results.length}] ${analysis.stockName} - 점수: ${analysis.totalScore.toFixed(1)}`);
+        }
 
-      // API 호출 간격 (200ms)
-      await new Promise(resolve => setTimeout(resolve, 200));
+        // API 호출 간격 (200ms)
+        await new Promise(resolve => setTimeout(resolve, 200));
 
-      // 진행률 로그 (10% 단위)
-      if ((i + 1) % Math.ceil(stockList.length / 10) === 0) {
-        console.log(`📊 진행률: ${Math.round((i + 1) / stockList.length * 100)}%`);
+        // 진행률 로그
+        if (analyzed % 10 === 0) {
+          console.log(`📊 분석: ${analyzed}개, 발견: ${results.length}개`);
+        }
+      } catch (error) {
+        console.error(`❌ 분석 실패 [${stockCode}]:`, error.message);
       }
     }
 
     // 점수 기준 내림차순 정렬
     results.sort((a, b) => b.totalScore - a.totalScore);
 
-    // 캐시 저장
-    this.cachedResults = results;
-    this.cacheTimestamp = Date.now();
-
-    console.log(`✅ 스크리닝 완료! 총 ${results.length}개 종목 발견`);
+    console.log(`✅ 종합 스크리닝 완료! ${analyzed}개 분석, ${results.length}개 발견`);
 
     return results.slice(0, limit);
   }
 
   /**
-   * 특정 카테고리 필터링
+   * 특정 카테고리 필터링 (Vercel stateless 환경 대응)
    */
-  async screenByCategory(category, market = 'ALL') {
-    // 캐시가 있으면 캐시 사용, 없으면 스크리닝 시도 (타임아웃 가능)
-    let allResults;
+  async screenByCategory(category, market = 'ALL', limit = 10) {
+    console.log(`🔍 ${category} 카테고리 스크리닝 시작...`);
 
-    if (this.cachedResults && this.cacheTimestamp) {
-      const cacheAge = Date.now() - this.cacheTimestamp;
-      if (cacheAge < this.cacheDuration) {
-        console.log('✅ 카테고리 필터링: 캐시된 결과 사용');
-        allResults = this.cachedResults;
-      } else {
-        console.log('⚠️ 캐시 만료, 새로운 스크리닝 시작...');
-        allResults = await this.screenAllStocks(market, 100);
+    const { codes: stockList } = await kisApi.getAllStockList(market);
+    const results = [];
+    let analyzed = 0;
+    let found = 0;
+
+    // 카테고리별 필터 함수
+    const categoryFilters = {
+      'whale': (analysis) => analysis.advancedAnalysis.indicators.whale.length > 0,
+      'accumulation': (analysis) => analysis.advancedAnalysis.indicators.accumulation.detected,
+      'escape': (analysis) => analysis.advancedAnalysis.indicators.escape.detected,
+      'drain': (analysis) => analysis.advancedAnalysis.indicators.drain.detected,
+      'volume-surge': (analysis) =>
+        analysis.volumeAnalysis.current.volumeMA20 &&
+        analysis.volumeAnalysis.current.volume / analysis.volumeAnalysis.current.volumeMA20 >= 2.5
+    };
+
+    const filterFn = categoryFilters[category] || (() => true);
+
+    // 조건에 맞는 종목을 찾을 때까지 분석 (최대 전체 리스트)
+    for (let i = 0; i < stockList.length && found < limit; i++) {
+      const stockCode = stockList[i];
+
+      try {
+        const analysis = await this.analyzeStock(stockCode);
+        analyzed++;
+
+        if (analysis && filterFn(analysis)) {
+          results.push(analysis);
+          found++;
+          console.log(`✅ [${found}/${limit}] ${analysis.stockName} - ${category} 조건 충족`);
+        }
+
+        // API 호출 간격 (200ms)
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // 진행률 로그
+        if (analyzed % 10 === 0) {
+          console.log(`📊 분석: ${analyzed}개, 발견: ${found}/${limit}개`);
+        }
+      } catch (error) {
+        console.error(`❌ 분석 실패 [${stockCode}]:`, error.message);
       }
-    } else {
-      console.log('⚠️ 캐시 없음, 새로운 스크리닝 시작...');
-      allResults = await this.screenAllStocks(market, 100);
     }
 
-    switch (category) {
-      case 'whale': // 고래 감지
-        return allResults.filter(r =>
-          r.advancedAnalysis.indicators.whale.length > 0
-        ).slice(0, 10);
+    // 점수 기준 내림차순 정렬
+    results.sort((a, b) => b.totalScore - a.totalScore);
 
-      case 'accumulation': // 조용한 매집
-        return allResults.filter(r =>
-          r.advancedAnalysis.indicators.accumulation.detected
-        ).slice(0, 10);
+    console.log(`✅ ${category} 스크리닝 완료! ${analyzed}개 분석, ${found}개 발견`);
 
-      case 'escape': // 탈출 속도
-        return allResults.filter(r =>
-          r.advancedAnalysis.indicators.escape.detected
-        ).slice(0, 10);
-
-      case 'drain': // 유동성 고갈
-        return allResults.filter(r =>
-          r.advancedAnalysis.indicators.drain.detected
-        ).slice(0, 10);
-
-      case 'volume-surge': // 거래량 폭발
-        return allResults.filter(r =>
-          r.volumeAnalysis.current.volumeMA20 &&
-          r.volumeAnalysis.current.volume / r.volumeAnalysis.current.volumeMA20 >= 2.5
-        ).slice(0, 10);
-
-      default:
-        return allResults.slice(0, 10);
-    }
+    return results;
   }
 
   /**
