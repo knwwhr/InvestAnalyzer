@@ -32,6 +32,9 @@ class StockScreener {
       // 종합 점수 계산
       const totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis);
 
+      // 랭킹 뱃지 가져오기
+      const rankBadges = kisApi.getCachedRankBadges(stockCode);
+
       return {
         stockCode,
         stockName: currentData.stockName,
@@ -42,7 +45,8 @@ class StockScreener {
         volumeAnalysis,
         advancedAnalysis,
         totalScore,
-        recommendation: this.getRecommendation(totalScore)
+        recommendation: this.getRecommendation(totalScore),
+        rankBadges: rankBadges || {} // 랭킹 뱃지 추가
       };
     } catch (error) {
       console.error(`❌ 종목 분석 실패 [${stockCode}]:`, error.message);

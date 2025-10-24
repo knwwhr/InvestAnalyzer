@@ -82,7 +82,7 @@
 
           const url = category === 'all'
             ? `${API_BASE_URL}/screening/recommend?limit=10`
-            : `${API_BASE_URL}/screening/category/${category}`;
+            : `${API_BASE_URL}/screening/${category}`;
 
           const response = await fetch(url);
           const result = await response.json();
@@ -204,31 +204,69 @@
     // 카테고리 필터
     function CategoryFilter({ selected, onChange, loading }) {
       const categories = [
-        { id: 'all', name: '🏆 종합 TOP 10', icon: '🏆' },
-        { id: 'whale', name: '🐋 고래 감지', icon: '🐋' },
-        { id: 'accumulation', name: '🤫 조용한 매집', icon: '🤫' },
-        { id: 'escape', name: '🚀 탈출 속도', icon: '🚀' },
-        { id: 'drain', name: '💧 유동성 고갈', icon: '💧' },
-        { id: 'volume-surge', name: '🔥 거래량 폭발', icon: '🔥' }
+        {
+          id: 'all',
+          name: '🏆 종합 TOP 10',
+          icon: '🏆',
+          desc: '모든 지표를 종합하여 점수가 높은 상위 10개 종목'
+        },
+        {
+          id: 'whale',
+          name: '🐋 고래 감지',
+          icon: '🐋',
+          desc: '거래량 급증 + 가격 상승 = 큰손의 매수 신호 포착'
+        },
+        {
+          id: 'accumulation',
+          name: '🤫 조용한 매집',
+          icon: '🤫',
+          desc: '낮은 변동성 + 거래량 증가 = 물량 조용히 모으는 중'
+        },
+        {
+          id: 'escape',
+          name: '🚀 탈출 속도',
+          icon: '🚀',
+          desc: '저항선 돌파 + 폭발적 거래량 = 상승 탄력 발생'
+        },
+        {
+          id: 'drain',
+          name: '💧 유동성 고갈',
+          icon: '💧',
+          desc: '거래량 급감 + 변동성 하락 = 곧 큰 변동 가능성'
+        },
+        {
+          id: 'volume-surge',
+          name: '🔥 거래량 폭발',
+          icon: '🔥',
+          desc: '평균 대비 2.5배 이상 거래량 급증 종목'
+        }
       ];
 
       return (
         <div className="bg-white rounded-xl shadow-lg p-4">
           <div className="flex flex-wrap gap-3 justify-center">
             {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => onChange(cat.id)}
-                disabled={loading}
-                className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                  selected === cat.id
-                    ? 'bg-indigo-600 text-white shadow-lg scale-105'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <span className="text-xl mr-2">{cat.icon}</span>
-                {cat.name}
-              </button>
+              <div key={cat.id} className="relative group">
+                <button
+                  onClick={() => onChange(cat.id)}
+                  disabled={loading}
+                  className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                    selected === cat.id
+                      ? 'bg-indigo-600 text-white shadow-lg scale-105'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <span className="text-xl mr-2">{cat.icon}</span>
+                  {cat.name}
+                </button>
+                {/* 툴팁 */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10 shadow-xl">
+                  {cat.desc}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                    <div className="border-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -239,6 +277,19 @@
     function RecommendationCard({ stock, rank, onClick }) {
       const gradeClass = `grade-${stock.recommendation.grade}`;
       const isPositive = stock.changeRate >= 0;
+
+      // 거래량 비율 계산
+      const volumeRatio = stock.volumeAnalysis.current.volumeMA20
+        ? (stock.volume / stock.volumeAnalysis.current.volumeMA20).toFixed(1)
+        : null;
+
+      // 뱃지 데이터
+      const badges = [];
+      if (stock.rankBadges) {
+        if (stock.rankBadges.volumeSurge) badges.push({ text: '거래량급증', color: 'bg-red-500' });
+        if (stock.rankBadges.tradingValue) badges.push({ text: '거래대금', color: 'bg-orange-500' });
+        if (stock.rankBadges.volume) badges.push({ text: '거래량', color: 'bg-yellow-500' });
+      }
 
       return (
         <div
@@ -255,9 +306,19 @@
           {/* 종목 정보 */}
           <div className="p-5">
             <div className="flex justify-between items-start mb-4">
-              <div>
+              <div className="flex-1">
                 <h3 className="text-xl font-bold text-gray-900">{stock.stockName}</h3>
                 <p className="text-sm text-gray-500">{stock.stockCode}</p>
+                {/* 랭킹 뱃지 */}
+                {badges.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {badges.map((badge, i) => (
+                      <span key={i} className={`${badge.color} text-white text-xs px-2 py-1 rounded-full font-semibold`}>
+                        🏆 {badge.text}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-gray-900">
@@ -284,15 +345,21 @@
             </div>
 
             {/* 주요 지표 */}
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-3 gap-2 text-sm">
               <div className="bg-blue-50 p-2 rounded">
-                <p className="text-gray-600 text-xs">거래량</p>
-                <p className="font-bold text-blue-700">{(stock.volume / 1000).toFixed(0)}K</p>
+                <p className="text-gray-600 text-xs">거래량 비율</p>
+                <p className="font-bold text-blue-700">{volumeRatio ? `${volumeRatio}x` : 'N/A'}</p>
               </div>
               <div className="bg-purple-50 p-2 rounded">
                 <p className="text-gray-600 text-xs">MFI</p>
                 <p className="font-bold text-purple-700">
                   {stock.volumeAnalysis.indicators.mfi?.toFixed(1) || 'N/A'}
+                </p>
+              </div>
+              <div className="bg-green-50 p-2 rounded">
+                <p className="text-gray-600 text-xs">비대칭</p>
+                <p className="font-bold text-green-700">
+                  {stock.advancedAnalysis.indicators.asymmetric.ratio || 'N/A'}
                 </p>
               </div>
             </div>
@@ -400,11 +467,43 @@
               {/* 거래량 지표 */}
               <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
                 <h3 className="text-xl font-bold mb-4">📊 거래량 지표</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <StatBox label="MFI" value={stock.volumeAnalysis.indicators.mfi?.toFixed(1)} />
-                  <StatBox label="OBV" value={(stock.volumeAnalysis.indicators.obv / 1000000).toFixed(1) + 'M'} />
-                  <StatBox label="VWAP" value={stock.volumeAnalysis.indicators.vwap?.toLocaleString()} />
-                  <StatBox label="비대칭 비율" value={stock.advancedAnalysis.indicators.asymmetric.ratio} />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                  <StatBox
+                    label="MFI (자금흐름지수)"
+                    value={stock.volumeAnalysis.indicators.mfi?.toFixed(1)}
+                    desc={
+                      stock.volumeAnalysis.indicators.mfi >= 70 ? '과매수' :
+                      stock.volumeAnalysis.indicators.mfi <= 30 ? '과매도' : '중립'
+                    }
+                  />
+                  <StatBox
+                    label="OBV (거래량 추세)"
+                    value={(stock.volumeAnalysis.indicators.obv / 1000000).toFixed(1) + 'M'}
+                    desc={stock.volumeAnalysis.signals.obvTrend}
+                  />
+                  <StatBox
+                    label="VWAP (평균가)"
+                    value={stock.volumeAnalysis.indicators.vwap?.toLocaleString()}
+                    desc={stock.volumeAnalysis.signals.priceVsVWAP}
+                  />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <StatBox
+                    label="거래량 비율"
+                    value={stock.volumeAnalysis.current.volumeMA20 ?
+                      (stock.volume / stock.volumeAnalysis.current.volumeMA20).toFixed(1) + 'x' : 'N/A'}
+                    desc="vs 20일 평균"
+                  />
+                  <StatBox
+                    label="비대칭 비율"
+                    value={stock.advancedAnalysis.indicators.asymmetric.ratio}
+                    desc={stock.advancedAnalysis.indicators.asymmetric.signal}
+                  />
+                  <StatBox
+                    label="시가총액"
+                    value={(stock.marketCap / 100000000).toFixed(0) + '억'}
+                    desc="원"
+                  />
                 </div>
               </div>
 
@@ -439,11 +538,12 @@
     }
 
     // 통계 박스
-    function StatBox({ label, value }) {
+    function StatBox({ label, value, desc }) {
       return (
         <div className="bg-gray-50 p-3 rounded-lg">
           <p className="text-xs text-gray-600 mb-1">{label}</p>
           <p className="text-lg font-bold text-gray-900">{value || 'N/A'}</p>
+          {desc && <p className="text-xs text-gray-500 mt-1">{desc}</p>}
         </div>
       );
     }
