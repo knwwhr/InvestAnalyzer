@@ -356,7 +356,18 @@
                 {stock.advancedAnalysis.indicators.drain.detected && (
                   <div>💧 유동성고갈: 거래량↓{stock.advancedAnalysis.indicators.drain.volumeDecline}% / 변동성↓{stock.advancedAnalysis.indicators.drain.volatilityDecline}%</div>
                 )}
-                <div>📊 비대칭비율: {stock.advancedAnalysis.indicators.asymmetric.ratio} ({stock.advancedAnalysis.indicators.asymmetric.upDays}일 상승 vs {stock.advancedAnalysis.indicators.asymmetric.downDays}일 하락)</div>
+                <div className="relative group inline-block">
+                  <span className="cursor-help border-b border-dotted border-gray-400">
+                    📊 비대칭비율: {stock.advancedAnalysis.indicators.asymmetric.ratio} ({stock.advancedAnalysis.indicators.asymmetric.upDays}일 상승 vs {stock.advancedAnalysis.indicators.asymmetric.downDays}일 하락)
+                  </span>
+                  {/* 인라인 툴팁 */}
+                  <div className="absolute left-0 top-full mt-1 w-72 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    <div className="font-bold mb-1">💡 상승일 거래량이 {stock.advancedAnalysis.indicators.asymmetric.ratio}배 더 많음</div>
+                    <div>• 비율 &gt; 1.5: 세력이 강하게 매집 중 🔥</div>
+                    <div>• 비율 &lt; 0.7: 세력이 물량 던지는 중 ⚠️</div>
+                    <div className="mt-1 text-green-300">→ {stock.advancedAnalysis.indicators.asymmetric.signal}</div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -372,11 +383,25 @@
                   {stock.volumeAnalysis.indicators.mfi?.toFixed(1) || 'N/A'}
                 </p>
               </div>
-              <div className="bg-green-50 p-2 rounded">
-                <p className="text-gray-600 text-xs">비대칭</p>
+              <div className="bg-green-50 p-2 rounded relative group">
+                <p className="text-gray-600 text-xs">비대칭 ⓘ</p>
                 <p className="font-bold text-green-700">
                   {stock.advancedAnalysis.indicators.asymmetric.ratio || 'N/A'}
                 </p>
+                {/* 툴팁 */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                  <div className="font-bold mb-1">📊 비대칭 비율이란?</div>
+                  <div className="space-y-1">
+                    <div>"상승일 vs 하락일 거래량 비교"</div>
+                    <div className="text-yellow-300">• {stock.advancedAnalysis.indicators.asymmetric.ratio}배 = 상승일 거래량이 {stock.advancedAnalysis.indicators.asymmetric.ratio}배 더 많음</div>
+                    <div>• 상승: {stock.advancedAnalysis.indicators.asymmetric.upDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1)}M)</div>
+                    <div>• 하락: {stock.advancedAnalysis.indicators.asymmetric.downDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M)</div>
+                    <div className="text-green-300 mt-1">→ {stock.advancedAnalysis.indicators.asymmetric.signal}</div>
+                  </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                    <div className="border-4 border-transparent border-t-gray-900"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -480,6 +505,24 @@
                     signal={stock.advancedAnalysis.indicators.drain.signal}
                     detail={`거래량↓${stock.advancedAnalysis.indicators.drain.volumeDecline}% / 변동성↓${stock.advancedAnalysis.indicators.drain.volatilityDecline}% / 최근평균 ${(stock.advancedAnalysis.indicators.drain.avgVolumeRecent / 1000).toFixed(0)}K / 점수 ${stock.advancedAnalysis.indicators.drain.score}`}
                   />
+
+                  {/* 비대칭 거래량 */}
+                  <IndicatorBox
+                    title="📊 비대칭 거래량"
+                    detected={stock.advancedAnalysis.indicators.asymmetric.ratio >= 1.5}
+                    signal={stock.advancedAnalysis.indicators.asymmetric.signal}
+                    detail={`비율 ${stock.advancedAnalysis.indicators.asymmetric.ratio} | 상승 ${stock.advancedAnalysis.indicators.asymmetric.upDays}일 (${(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1)}M) vs 하락 ${stock.advancedAnalysis.indicators.asymmetric.downDays}일 (${(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M) | 상승일 거래량이 ${stock.advancedAnalysis.indicators.asymmetric.ratio}배 더 많음 → ${stock.advancedAnalysis.indicators.asymmetric.ratio >= 3 ? '세력 강력 매집 🔥🔥' : stock.advancedAnalysis.indicators.asymmetric.ratio >= 1.5 ? '세력 매집 중 🔥' : stock.advancedAnalysis.indicators.asymmetric.ratio <= 0.7 ? '세력 매도 중 ⚠️' : '중립 ⚖️'} / 점수 ${stock.advancedAnalysis.indicators.asymmetric.score.toFixed(1)}`}
+                  />
+                </div>
+
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h4 className="font-bold text-blue-900 mb-2">💡 비대칭 거래량 해석</h4>
+                  <div className="text-sm text-blue-800 space-y-1">
+                    <div>• 비율 &gt; 3.0: 세력이 강력하게 매집 중 (상승일 거래량이 3배 이상) 🔥🔥🔥</div>
+                    <div>• 비율 1.5~3.0: 세력이 매집 중 (상승일 거래량 우위) 🔥</div>
+                    <div>• 비율 0.7~1.5: 중립 (균형) ⚖️</div>
+                    <div>• 비율 &lt; 0.7: 세력이 매도 중 (하락일 거래량 더 많음) ⚠️</div>
+                  </div>
                 </div>
               </div>
 
@@ -514,9 +557,9 @@
                     desc="vs 20일 평균"
                   />
                   <StatBox
-                    label="비대칭 비율"
+                    label="비대칭 비율 (상승일/하락일)"
                     value={stock.advancedAnalysis.indicators.asymmetric.ratio}
-                    desc={stock.advancedAnalysis.indicators.asymmetric.signal}
+                    desc={`${stock.advancedAnalysis.indicators.asymmetric.signal} | 상승 ${stock.advancedAnalysis.indicators.asymmetric.upDays}일(${(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(0)}M) vs 하락 ${stock.advancedAnalysis.indicators.asymmetric.downDays}일(${(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(0)}M)`}
                   />
                   <StatBox
                     label="시가총액"
