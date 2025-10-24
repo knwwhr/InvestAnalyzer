@@ -73,6 +73,7 @@
       const [selectedStock, setSelectedStock] = useState(null);
       const [selectedCategory, setSelectedCategory] = useState('all');
       const [lastUpdate, setLastUpdate] = useState(null);
+      const [activeTab, setActiveTab] = useState('screening'); // screening or performance
 
       // 추천 종목 불러오기
       const fetchRecommendations = async (category = 'all') => {
@@ -138,11 +139,34 @@
                   <p className="text-gray-600 mt-2">거래량 AI가 추천하는 오늘의 종목</p>
                 </div>
                 <button
-                  onClick={() => fetchRecommendations(selectedCategory)}
+                  onClick={() => activeTab === 'screening' ? fetchRecommendations(selectedCategory) : window.location.reload()}
                   disabled={loading}
                   className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 font-semibold shadow-lg"
                 >
                   {loading ? '분석중...' : '🔄 새로고침'}
+                </button>
+              </div>
+              {/* 탭 메뉴 */}
+              <div className="flex gap-4 mt-6 border-b border-gray-200">
+                <button
+                  onClick={() => setActiveTab('screening')}
+                  className={`px-6 py-3 font-semibold transition-all ${
+                    activeTab === 'screening'
+                      ? 'text-indigo-600 border-b-4 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  📊 종목 스크리닝
+                </button>
+                <button
+                  onClick={() => setActiveTab('performance')}
+                  className={`px-6 py-3 font-semibold transition-all ${
+                    activeTab === 'performance'
+                      ? 'text-indigo-600 border-b-4 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  📈 성과 검증
                 </button>
               </div>
             </div>
@@ -159,42 +183,49 @@
               </div>
             )}
 
-            {/* 마지막 업데이트 시간 */}
-            {lastUpdate && (
-              <div className="text-sm text-gray-600 mb-4 text-center">
-                마지막 업데이트: {lastUpdate.toLocaleString('ko-KR')}
-              </div>
-            )}
+            {/* 탭별 콘텐츠 */}
+            {activeTab === 'screening' ? (
+              <>
+                {/* 마지막 업데이트 시간 */}
+                {lastUpdate && (
+                  <div className="text-sm text-gray-600 mb-4 text-center">
+                    마지막 업데이트: {lastUpdate.toLocaleString('ko-KR')}
+                  </div>
+                )}
 
-            {/* 카테고리 필터 */}
-            <CategoryFilter
-              selected={selectedCategory}
-              onChange={handleCategoryChange}
-              loading={loading}
-            />
+                {/* 카테고리 필터 */}
+                <CategoryFilter
+                  selected={selectedCategory}
+                  onChange={handleCategoryChange}
+                  loading={loading}
+                />
 
-            {/* 추천 종목 그리드 */}
-            {loading && recommendations.length === 0 ? (
-              <LoadingScreen />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                {recommendations.map((stock, index) => (
-                  <RecommendationCard
-                    key={stock.stockCode}
-                    stock={stock}
-                    rank={index + 1}
-                    onClick={() => fetchStockDetail(stock.stockCode)}
+                {/* 추천 종목 그리드 */}
+                {loading && recommendations.length === 0 ? (
+                  <LoadingScreen />
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                    {recommendations.map((stock, index) => (
+                      <RecommendationCard
+                        key={stock.stockCode}
+                        stock={stock}
+                        rank={index + 1}
+                        onClick={() => fetchStockDetail(stock.stockCode)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* 종목 상세 모달 */}
+                {selectedStock && (
+                  <StockDetailModal
+                    stock={selectedStock}
+                    onClose={() => setSelectedStock(null)}
                   />
-                ))}
-              </div>
-            )}
-
-            {/* 종목 상세 모달 */}
-            {selectedStock && (
-              <StockDetailModal
-                stock={selectedStock}
-                onClose={() => setSelectedStock(null)}
-              />
+                )}
+              </>
+            ) : (
+              <PerformanceVerification apiBaseUrl={API_BASE_URL} />
             )}
           </main>
         </div>
@@ -606,6 +637,369 @@
           <p className="text-xs text-gray-600 mb-1">{label}</p>
           <p className="text-lg font-bold text-gray-900">{value || 'N/A'}</p>
           {desc && <p className="text-xs text-gray-500 mt-1">{desc}</p>}
+        </div>
+      );
+    }
+
+    // 성과 검증 컴포넌트
+    function PerformanceVerification({ apiBaseUrl }) {
+      const [backtestData, setBacktestData] = useState(null);
+      const [trackerData, setTrackerData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [activeView, setActiveView] = useState('backtest'); // backtest or realtime
+
+      useEffect(() => {
+        fetchPerformanceData();
+      }, []);
+
+      const fetchPerformanceData = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+          // 백테스팅 데이터
+          const backtestRes = await fetch(`${apiBaseUrl}/backtest`);
+          const backtestResult = await backtestRes.json();
+
+          if (backtestResult.success) {
+            setBacktestData(backtestResult.data);
+          }
+
+          // 실시간 추적 데이터
+          const trackerRes = await fetch(`${apiBaseUrl}/tracker?action=performance`);
+          const trackerResult = await trackerRes.json();
+
+          if (trackerResult.success) {
+            setTrackerData(trackerResult.data);
+          }
+        } catch (err) {
+          setError('성과 데이터 로드 실패: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      if (loading) {
+        return (
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mb-4"></div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">성과 데이터 분석 중...</h3>
+            <p className="text-gray-600">과거 추천 종목의 수익률을 계산하고 있습니다</p>
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        );
+      }
+
+      const data = activeView === 'backtest' ? backtestData : trackerData;
+      const stats = data?.statistics?.overall;
+
+      if (!stats) {
+        return (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-4 py-3 rounded">
+            충분한 성과 데이터가 없습니다. 시스템이 종목을 추천하고 시간이 지나야 성과를 확인할 수 있습니다.
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-6">
+          {/* 뷰 선택 */}
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => setActiveView('backtest')}
+                className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                  activeView === 'backtest'
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                📊 과거 백테스팅
+              </button>
+              <button
+                onClick={() => setActiveView('realtime')}
+                className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+                  activeView === 'realtime'
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                ⏱️ 실시간 추적
+              </button>
+            </div>
+          </div>
+
+          {/* 전체 요약 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <SummaryCard
+              title="전체 승률"
+              value={`${stats.winRate}%`}
+              subtext={`${stats.winCount}/${stats.totalCount} 종목 상승`}
+              color="bg-gradient-to-br from-green-500 to-green-600"
+              icon="✅"
+            />
+            <SummaryCard
+              title="평균 수익률"
+              value={`${stats.avgReturn > 0 ? '+' : ''}${stats.avgReturn}%`}
+              subtext={`${data.parameters?.holdingDays || 7}일 보유 기준`}
+              color="bg-gradient-to-br from-blue-500 to-blue-600"
+              icon="📈"
+            />
+            <SummaryCard
+              title="최고 수익"
+              value={`+${stats.maxReturn}%`}
+              subtext={`손실 ${stats.minReturn}%`}
+              color="bg-gradient-to-br from-purple-500 to-purple-600"
+              icon="🔥"
+            />
+            <SummaryCard
+              title="분석 샘플"
+              value={`${stats.totalCount}개`}
+              subtext={`${data.parameters?.lookbackDays || 30}일 기간`}
+              color="bg-gradient-to-br from-orange-500 to-orange-600"
+              icon="📊"
+            />
+          </div>
+
+          {/* Phase 3: 고급 지표 */}
+          {data.statistics?.advanced && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                🎯 고급 성과 지표 (Phase 3)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <AdvancedMetricBox
+                  label="샤프 비율"
+                  value={data.statistics.advanced.sharpeRatio}
+                  desc="위험 대비 수익 (>1 양호)"
+                  good={data.statistics.advanced.sharpeRatio > 1}
+                />
+                <AdvancedMetricBox
+                  label="MDD (최대 낙폭)"
+                  value={`${data.statistics.advanced.maxDrawdown}%`}
+                  desc="최대 손실 폭 (<10% 안정)"
+                  good={data.statistics.advanced.maxDrawdown < 10}
+                />
+                <AdvancedMetricBox
+                  label="Profit Factor"
+                  value={data.statistics.advanced.profitFactor}
+                  desc="수익/손실 비율 (>1.5 우수)"
+                  good={data.statistics.advanced.profitFactor > 1.5}
+                />
+                <AdvancedMetricBox
+                  label="KOSPI 초과수익"
+                  value={`${data.statistics.advanced.excessReturn > 0 ? '+' : ''}${data.statistics.advanced.excessReturn}%`}
+                  desc="시장 대비 초과 성과"
+                  good={data.statistics.advanced.excessReturn > 0}
+                />
+              </div>
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-bold text-blue-900 mb-2">💡 종합 해석</h4>
+                <div className="space-y-1">
+                  {data.statistics.advanced.interpretation.map((interp, i) => (
+                    <div key={i} className="text-sm text-blue-800">{interp}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 등급별 성과 */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-2xl font-bold mb-6">📊 등급별 성과</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left">등급</th>
+                    <th className="px-4 py-3 text-left">샘플 수</th>
+                    <th className="px-4 py-3 text-left">승률</th>
+                    <th className="px-4 py-3 text-left">평균 수익률</th>
+                    <th className="px-4 py-3 text-left">최고 수익</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(data.statistics?.byGrade || {}).map(([grade, gstats]) => (
+                    <tr key={grade} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-3 py-1 rounded-full text-white font-bold grade-${grade}`}>
+                          {grade}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{gstats.count}개</td>
+                      <td className="px-4 py-3">
+                        <span className={gstats.winRate >= 70 ? 'text-green-600 font-bold' : gstats.winRate >= 50 ? 'text-blue-600' : 'text-gray-600'}>
+                          {gstats.winRate}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={gstats.avgReturn > 0 ? 'text-red-600 font-bold' : 'text-blue-600'}>
+                          {gstats.avgReturn > 0 ? '+' : ''}{gstats.avgReturn}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-green-600 font-semibold">+{gstats.maxReturn}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 카테고리별 성과 */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-2xl font-bold mb-6">🎯 카테고리별 성과</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left">카테고리</th>
+                    <th className="px-4 py-3 text-left">샘플 수</th>
+                    <th className="px-4 py-3 text-left">승률</th>
+                    <th className="px-4 py-3 text-left">평균 수익률</th>
+                    <th className="px-4 py-3 text-left">최고 수익</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(data.statistics?.byCategory || {}).map(([key, cstats]) => (
+                    <tr key={key} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-3 font-semibold">{cstats.label}</td>
+                      <td className="px-4 py-3">{cstats.count}개</td>
+                      <td className="px-4 py-3">
+                        <span className={cstats.winRate >= 70 ? 'text-green-600 font-bold' : cstats.winRate >= 50 ? 'text-blue-600' : 'text-gray-600'}>
+                          {cstats.winRate}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={cstats.avgReturn > 0 ? 'text-red-600 font-bold' : 'text-blue-600'}>
+                          {cstats.avgReturn > 0 ? '+' : ''}{cstats.avgReturn}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-green-600 font-semibold">+{cstats.maxReturn}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Phase 3: 포트폴리오 시뮬레이션 */}
+          {data.portfolio && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                💼 포트폴리오 시뮬레이션 (5종목 균등 분산)
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">포트폴리오 평균 수익률</p>
+                  <p className="text-2xl font-bold text-green-700">
+                    {data.portfolio.summary.avgReturn > 0 ? '+' : ''}{data.portfolio.summary.avgReturn}%
+                  </p>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">총 누적 수익</p>
+                  <p className="text-2xl font-bold text-blue-700">
+                    {data.portfolio.summary.totalProfit.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">포트폴리오 수</p>
+                  <p className="text-2xl font-bold text-purple-700">
+                    {data.portfolio.summary.portfolioCount}개
+                  </p>
+                </div>
+              </div>
+
+              {/* 최고/최저 포트폴리오 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
+                  <h4 className="font-bold text-green-900 mb-2">🏆 최고 성과 포트폴리오</h4>
+                  <p className="text-sm text-gray-600 mb-2">날짜: {data.portfolio.summary.bestPortfolio?.date}</p>
+                  <p className="text-2xl font-bold text-green-700 mb-2">
+                    +{data.portfolio.summary.bestPortfolio?.portfolioReturn}%
+                  </p>
+                  <div className="text-xs text-gray-700">
+                    {data.portfolio.summary.bestPortfolio?.stocks.map((s, i) => (
+                      <div key={i}>{s.name} ({s.return > 0 ? '+' : ''}{s.return}%)</div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+                  <h4 className="font-bold text-red-900 mb-2">⚠️ 최저 성과 포트폴리오</h4>
+                  <p className="text-sm text-gray-600 mb-2">날짜: {data.portfolio.summary.worstPortfolio?.date}</p>
+                  <p className="text-2xl font-bold text-red-700 mb-2">
+                    {data.portfolio.summary.worstPortfolio?.portfolioReturn}%
+                  </p>
+                  <div className="text-xs text-gray-700">
+                    {data.portfolio.summary.worstPortfolio?.stocks.map((s, i) => (
+                      <div key={i}>{s.name} ({s.return > 0 ? '+' : ''}{s.return}%)</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Phase 3: 시장 상황별 분석 */}
+          {data.byMarket && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold mb-6">📊 시장 상황별 성과</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {Object.entries(data.byMarket).map(([key, mstats]) => (
+                  <div key={key} className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
+                    <h4 className="font-bold text-gray-900 mb-2">{mstats.label}</h4>
+                    <div className="space-y-1 text-sm">
+                      <div>샘플: {mstats.count}개</div>
+                      <div className={mstats.winRate >= 60 ? 'text-green-600 font-bold' : 'text-gray-700'}>
+                        승률: {mstats.winRate}%
+                      </div>
+                      <div className={mstats.avgReturn > 0 ? 'text-red-600 font-bold' : 'text-blue-600'}>
+                        평균: {mstats.avgReturn > 0 ? '+' : ''}{mstats.avgReturn}%
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 데이터 생성 시간 */}
+          <div className="text-center text-sm text-gray-500">
+            데이터 생성: {new Date(data.generatedAt).toLocaleString('ko-KR')}
+          </div>
+        </div>
+      );
+    }
+
+    // 요약 카드
+    function SummaryCard({ title, value, subtext, color, icon }) {
+      return (
+        <div className={`${color} rounded-xl shadow-lg p-6 text-white`}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold opacity-90">{title}</h3>
+            <span className="text-2xl">{icon}</span>
+          </div>
+          <p className="text-3xl font-bold mb-1">{value}</p>
+          <p className="text-sm opacity-80">{subtext}</p>
+        </div>
+      );
+    }
+
+    // 고급 지표 박스
+    function AdvancedMetricBox({ label, value, desc, good }) {
+      return (
+        <div className={`p-4 rounded-lg border-2 ${good ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
+          <p className="text-xs text-gray-600 mb-1">{label}</p>
+          <p className={`text-2xl font-bold mb-1 ${good ? 'text-green-700' : 'text-gray-700'}`}>{value}</p>
+          <p className="text-xs text-gray-500">{desc}</p>
         </div>
       );
     }

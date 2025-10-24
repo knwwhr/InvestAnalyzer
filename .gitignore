@@ -20,3 +20,10 @@ Thumbs.db
 # 로그
 *.log
 logs/
+
+# 데이터 파일 (실시간 추적 데이터)
+data/*.json
+!data/.gitkeep
+
+# Vercel
+.vercel
