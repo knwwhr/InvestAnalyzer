@@ -199,8 +199,35 @@ function calculateAsymmetricVolume(chartData) {
 }
 
 /**
+ * 거래량 3일 연속 순증 체크
+ */
+function checkVolumeConsecutiveIncrease(chartData, days = 3) {
+  const recent = chartData.slice(-days - 1); // N+1일 데이터 필요
+
+  if (recent.length < days + 1) {
+    return { consecutive: false, days: 0 };
+  }
+
+  let consecutiveDays = 0;
+  for (let i = 1; i < recent.length; i++) {
+    if (recent[i].volume > recent[i - 1].volume) {
+      consecutiveDays++;
+    } else {
+      consecutiveDays = 0; // 연속 끊김
+    }
+  }
+
+  return {
+    consecutive: consecutiveDays >= days,
+    days: consecutiveDays,
+    volumes: recent.map(d => d.volume)
+  };
+}
+
+/**
  * Phase 4A-1: 조용한 거래량 누적 패턴
  * 급등 전에 거래량이 점진적으로 증가하는 패턴 감지
+ * + 거래량 3일 연속 순증 조건 추가
  */
 function detectGradualAccumulation(chartData) {
   const recent20 = chartData.slice(-20);
@@ -225,10 +252,14 @@ function detectGradualAccumulation(chartData) {
   const priceChange = Math.abs((lastPrice - firstPrice) / firstPrice);
   const priceStable = priceChange < 0.05;
 
+  // 거래량 3일 연속 순증 체크
+  const volumeCheck = checkVolumeConsecutiveIncrease(chartData, 3);
+
   // 증가율 계산
   const growthRate = ((volumeTrend[3] - volumeTrend[0]) / volumeTrend[0]) * 100;
 
-  const detected = isGradualIncrease && priceStable;
+  // 기존 조건 + 3일 연속 순증 조건
+  const detected = isGradualIncrease && priceStable && volumeCheck.consecutive;
 
   return {
     detected,
@@ -236,8 +267,14 @@ function detectGradualAccumulation(chartData) {
     volumeTrend: volumeTrend.map(v => Math.round(v)),
     growthRate: growthRate.toFixed(1),
     priceChange: (priceChange * 100).toFixed(2),
+    volumeConsecutive: volumeCheck.consecutive,
+    consecutiveDays: volumeCheck.days,
     score: detected ? Math.min(growthRate, 80) : 0,
-    interpretation: detected ? '세력이 가격 자극 없이 물량 모으는 중, 1~2주 후 급등 가능성' : '패턴 미발견',
+    interpretation: detected
+      ? `세력이 가격 자극 없이 물량 모으는 중 (${volumeCheck.days}일 연속 거래량 증가), 1~2주 후 급등 가능성`
+      : volumeCheck.consecutive
+      ? '거래량 연속 증가 중이나 가격 변동폭 큼'
+      : '패턴 미발견',
     readyIn: detected ? '7~14일' : null
   };
 }
@@ -556,6 +593,7 @@ module.exports = {
   detectEscapeVelocity,
   detectLiquidityDrain,
   calculateAsymmetricVolume,
+  checkVolumeConsecutiveIncrease,
   detectGradualAccumulation,
   detectSmartMoney,
   detectBottomFormation,
