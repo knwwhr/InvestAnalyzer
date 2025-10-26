@@ -20,22 +20,37 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { market = 'ALL', limit } = req.query;
+    const { market = 'ALL', limit, debug } = req.query;
     const limitNum = limit ? parseInt(limit) : undefined; // limit 없으면 전체 반환
     const result = await screener.screenAllStocks(market, limitNum);
 
-    res.status(200).json({
+    const response = {
       success: true,
       count: result.stocks.length,
       recommendations: result.stocks,
       metadata: result.metadata,
       timestamp: new Date().toISOString()
-    });
+    };
+
+    // 디버그 모드일 때 추가 정보 포함
+    if (debug === 'true') {
+      response.debug = {
+        envCheck: {
+          hasKisAppKey: !!process.env.KIS_APP_KEY,
+          hasKisAppSecret: !!process.env.KIS_APP_SECRET
+        },
+        marketRequested: market,
+        limitRequested: limitNum
+      };
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     console.error('Screening error:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 }
