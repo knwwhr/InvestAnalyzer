@@ -368,7 +368,6 @@ class PatternMiner {
       throw error;
     }
   }
-}
 
   /**
    * 현재 종목이 저장된 패턴과 매칭되는지 확인
