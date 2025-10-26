@@ -214,26 +214,15 @@ class StockScreener {
 
   /**
    * 전체 종목 스크리닝 (100개 풀 기반)
-   * 거래량 급증 40 + 거래량 30 + 거래대금 20 + 조용한누적 10 = 100개
+   * 거래량 급증 30 + 거래량 20 + 거래대금 10 = 60개 * 2시장 = 120개 (중복 제거 후 ~100개)
    */
   async screenAllStocks(market = 'ALL', limit) {
     console.log(`🔍 종합 TOP 스크리닝 시작 (100개 풀${limit ? `, 상위 ${limit}개 반환` : ', 전체 반환'})...\n`);
 
-    // 1단계: 거래량 기반 90개 확보
-    const { codes: volumeBasedStocks } = await kisApi.getAllStockList(market);
-    console.log(`✅ 1단계 완료: 거래량 기반 ${volumeBasedStocks.length}개 확보\n`);
+    // 종목 풀 생성 (KIS API 또는 fallback 하드코딩 리스트)
+    const { codes: finalStockList } = await kisApi.getAllStockList(market);
+    console.log(`✅ 종목 풀: ${finalStockList.length}개 확보\n`);
 
-    // 2단계: 조용한 누적 패턴 10개 추가
-    console.log('🐌 2단계: 조용한 누적 패턴 종목 추가 중...');
-    const gradualStocks = await this.findGradualAccumulationStocks(market, 10);
-
-    // 3단계: 100개 풀 생성 (중복 제거)
-    const stockSet = new Set([...volumeBasedStocks, ...gradualStocks]);
-    const finalStockList = Array.from(stockSet);
-
-    console.log(`\n✅ 최종 풀: ${finalStockList.length}개 종목 (목표 100개)`);
-    console.log(`  - 거래량 기반: ${volumeBasedStocks.length}개`);
-    console.log(`  - 조용한 누적: ${gradualStocks.length}개`);
     console.log(`\n📊 전체 종목 분석 시작...\n`);
 
     const results = [];
