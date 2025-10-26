@@ -358,6 +358,14 @@
         if (stock.rankBadges.volume) badges.push({ text: '거래량', color: 'bg-yellow-500' });
       }
 
+      // 패턴 뱃지 추가
+      if (stock.patternMatch && stock.patternMatch.matched) {
+        badges.push({
+          text: `급등패턴 +${stock.patternMatch.bonusScore.toFixed(0)}점`,
+          color: 'bg-purple-500'
+        });
+      }
+
       return (
         <div
           className="stock-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer slide-in"

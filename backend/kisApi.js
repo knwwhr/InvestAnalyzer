@@ -339,7 +339,8 @@ class KISApi {
 
   /**
    * 전체 종목 리스트 조회 (동적 API 기반)
-   * 거래량 급증 40 + 거래량 순위 30 + 거래대금 20 = 90개 + 조용한 누적 10개 = 100개
+   * [KOSPI + KOSDAQ 각각]
+   * 거래량 급증 30 + 거래량 순위 20 + 거래대금 10 = 60개 * 2시장 = 120개 (중복 제거 후 ~100개)
    * @returns {Object} - { codes: string[], nameMap: Map<code, name>, badgeMap: Map<code, badges> }
    */
   async getAllStockList(market = 'ALL') {
@@ -353,9 +354,9 @@ class KISApi {
       for (const mkt of markets) {
         console.log(`\n🔍 ${mkt} 시장 분석 중...`);
 
-        // 1. 거래량 급증 순위 (40개) - 가장 중요
-        console.log(`  - 거래량 급증 순위 조회 (40개)...`);
-        const volSurge = await this.getVolumeSurgeRank(mkt, 40);
+        // 1. 거래량 급증 순위 (30개 MAX) - KIS API 제한
+        console.log(`  - 거래량 급증 순위 조회 (30개)...`);
+        const volSurge = await this.getVolumeSurgeRank(mkt, 30);
         volSurge.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -364,9 +365,9 @@ class KISApi {
         });
         await new Promise(r => setTimeout(r, 200)); // API 제한 대응
 
-        // 2. 거래량 순위 (30개)
-        console.log(`  - 거래량 순위 조회 (30개)...`);
-        const volume = await this.getVolumeRank(mkt, 30);
+        // 2. 거래량 순위 (20개)
+        console.log(`  - 거래량 순위 조회 (20개)...`);
+        const volume = await this.getVolumeRank(mkt, 20);
         volume.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -375,9 +376,9 @@ class KISApi {
         });
         await new Promise(r => setTimeout(r, 200));
 
-        // 3. 거래대금 순위 (20개)
-        console.log(`  - 거래대금 순위 조회 (20개)...`);
-        const tradingValue = await this.getTradingValueRank(mkt, 20);
+        // 3. 거래대금 순위 (10개)
+        console.log(`  - 거래대금 순위 조회 (10개)...`);
+        const tradingValue = await this.getTradingValueRank(mkt, 10);
         tradingValue.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
