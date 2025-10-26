@@ -81,15 +81,16 @@
           setLoading(true);
           setError(null);
 
+          // limit 제거 - 전체 종목 표시
           const url = category === 'all'
-            ? `${API_BASE_URL}/screening/recommend?limit=10`
+            ? `${API_BASE_URL}/screening/recommend`
             : `${API_BASE_URL}/screening/${category}`;
 
           const response = await fetch(url);
           const result = await response.json();
 
           if (result.success) {
-            setRecommendations(result.recommendations);
+            setRecommendations(result.recommendations || []);
             setLastUpdate(new Date());
           } else {
             setError(result.error || '데이터 로드 실패');
@@ -203,6 +204,8 @@
                 {/* 추천 종목 그리드 */}
                 {loading && recommendations.length === 0 ? (
                   <LoadingScreen />
+                ) : recommendations.length === 0 ? (
+                  <EmptyState category={selectedCategory} />
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
                     {recommendations.map((stock, index) => (
@@ -647,6 +650,33 @@
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mb-4"></div>
           <h3 className="text-2xl font-bold text-gray-800 mb-2">AI가 종목을 분석하고 있습니다...</h3>
           <p className="text-gray-600">전체 종목 스크리닝 중 (수 분 소요)</p>
+        </div>
+      );
+    }
+
+    // 빈 상태 화면
+    function EmptyState({ category }) {
+      const categoryNames = {
+        'all': '종합 TOP',
+        'whale': '고래 감지',
+        'accumulation': '조용한 매집',
+        'escape': '탈출 속도',
+        'drain': '유동성 고갈',
+        'volume-surge': '거래량 폭발'
+      };
+
+      return (
+        <div className="text-center py-20">
+          <div className="text-6xl mb-4">📭</div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">
+            조회된 종목이 없습니다
+          </h3>
+          <p className="text-gray-600">
+            현재 <span className="font-semibold text-indigo-600">{categoryNames[category] || '선택된'}</span> 조건에 해당하는 종목이 없습니다.
+          </p>
+          <p className="text-gray-500 text-sm mt-2">
+            다른 카테고리를 선택하거나 잠시 후 다시 시도해주세요.
+          </p>
         </div>
       );
     }

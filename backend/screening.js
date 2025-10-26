@@ -205,8 +205,8 @@ class StockScreener {
    * 전체 종목 스크리닝 (100개 풀 기반)
    * 거래량 급증 40 + 거래량 30 + 거래대금 20 + 조용한누적 10 = 100개
    */
-  async screenAllStocks(market = 'ALL', limit = 10) {
-    console.log('🔍 종합 TOP 스크리닝 시작 (100개 풀)...\n');
+  async screenAllStocks(market = 'ALL', limit) {
+    console.log(`🔍 종합 TOP 스크리닝 시작 (100개 풀${limit ? `, 상위 ${limit}개 반환` : ', 전체 반환'})...\n`);
 
     // 1단계: 거래량 기반 90개 확보
     const { codes: volumeBasedStocks } = await kisApi.getAllStockList(market);
@@ -257,16 +257,16 @@ class StockScreener {
     console.log(`\n✅ 종합 스크리닝 완료!`);
     console.log(`  - 분석: ${analyzed}개`);
     console.log(`  - 발견: ${results.length}개 (30점 이상)`);
-    console.log(`  - 최종: 상위 ${limit}개 반환\n`);
+    console.log(`  - 최종: ${limit ? `상위 ${limit}개` : `전체 ${results.length}개`} 반환\n`);
 
-    return results.slice(0, limit);
+    return limit ? results.slice(0, limit) : results;
   }
 
   /**
    * 특정 카테고리 필터링 (Vercel stateless 환경 대응)
    */
-  async screenByCategory(category, market = 'ALL', limit = 10) {
-    console.log(`🔍 ${category} 카테고리 스크리닝 시작...`);
+  async screenByCategory(category, market = 'ALL', limit) {
+    console.log(`🔍 ${category} 카테고리 스크리닝 시작${limit ? ` (최대 ${limit}개)` : ' (전체 조회)'}...`);
 
     const { codes: stockList } = await kisApi.getAllStockList(market);
     const results = [];
@@ -292,7 +292,8 @@ class StockScreener {
     const filterFn = categoryFilters[category] || (() => true);
 
     // 조건에 맞는 종목을 찾을 때까지 분석 (최대 전체 리스트)
-    for (let i = 0; i < stockList.length && found < limit; i++) {
+    // limit이 없으면 전체 스캔, 있으면 limit 개수까지만
+    for (let i = 0; i < stockList.length && (limit ? found < limit : true); i++) {
       const stockCode = stockList[i];
 
       try {
@@ -302,7 +303,7 @@ class StockScreener {
         if (analysis && filterFn(analysis)) {
           results.push(analysis);
           found++;
-          console.log(`✅ [${found}/${limit}] ${analysis.stockName} - ${category} 조건 충족`);
+          console.log(`✅ [${found}${limit ? `/${limit}` : ''}] ${analysis.stockName} - ${category} 조건 충족`);
         }
 
         // API 호출 간격 (200ms)
@@ -310,7 +311,7 @@ class StockScreener {
 
         // 진행률 로그
         if (analyzed % 10 === 0) {
-          console.log(`📊 분석: ${analyzed}개, 발견: ${found}/${limit}개`);
+          console.log(`📊 분석: ${analyzed}개, 발견: ${found}${limit ? `/${limit}` : ''}개`);
         }
       } catch (error) {
         console.error(`❌ 분석 실패 [${stockCode}]:`, error.message);
