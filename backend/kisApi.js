@@ -234,7 +234,15 @@ class KISApi {
         throw new Error(`API 오류: ${response.data.msg1}`);
       }
     } catch (error) {
-      console.error(`❌ 거래량 급증 순위 조회 실패 [${market}]:`, error.message);
+      const errorMsg = error.response?.data || error.message;
+      console.error(`❌ 거래량 급증 순위 조회 실패 [${market}]:`, errorMsg);
+      // 에러 정보를 저장하여 디버그에 활용
+      if (!this._apiErrors) this._apiErrors = [];
+      this._apiErrors.push({
+        method: 'getVolumeSurgeRank',
+        market,
+        error: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg
+      });
       return [];
     }
   }
@@ -283,7 +291,15 @@ class KISApi {
         throw new Error(`API 오류: ${response.data.msg1}`);
       }
     } catch (error) {
-      console.error(`❌ 거래대금 순위 조회 실패 [${market}]:`, error.message);
+      const errorMsg = error.response?.data || error.message;
+      console.error(`❌ 거래대금 순위 조회 실패 [${market}]:`, errorMsg);
+      // 에러 정보를 저장하여 디버그에 활용
+      if (!this._apiErrors) this._apiErrors = [];
+      this._apiErrors.push({
+        method: 'getTradingValueRank',
+        market,
+        error: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg
+      });
       return [];
     }
   }
@@ -332,7 +348,15 @@ class KISApi {
         throw new Error(`API 오류: ${response.data.msg1}`);
       }
     } catch (error) {
-      console.error(`❌ 거래량 순위 조회 실패 [${market}]:`, error.message);
+      const errorMsg = error.response?.data || error.message;
+      console.error(`❌ 거래량 순위 조회 실패 [${market}]:`, errorMsg);
+      // 에러 정보를 저장하여 디버그에 활용
+      if (!this._apiErrors) this._apiErrors = [];
+      this._apiErrors.push({
+        method: 'getVolumeRank',
+        market,
+        error: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg
+      });
       return [];
     }
   }
@@ -350,6 +374,10 @@ class KISApi {
     const badgeMap = new Map(); // code -> { volumeSurge, tradingValue, volume } 뱃지 정보
     const markets = market === 'ALL' ? ['KOSPI', 'KOSDAQ'] : [market];
     const apiCallResults = []; // 각 API 호출 결과 추적
+    const apiErrors = []; // API 에러 추적
+
+    // 에러 수집을 위해 초기화
+    this._apiErrors = [];
 
     try {
       for (const mkt of markets) {
@@ -360,6 +388,9 @@ class KISApi {
         const volSurge = await this.getVolumeSurgeRank(mkt, 30);
         console.log(`    ✅ ${volSurge.length}개 확보`);
         apiCallResults.push({ market: mkt, type: 'volumeSurge', requested: 30, received: volSurge.length });
+        if (volSurge.length === 0) {
+          apiErrors.push({ market: mkt, type: 'volumeSurge', note: 'Returned empty array - check console logs' });
+        }
         volSurge.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -386,6 +417,9 @@ class KISApi {
         const tradingValue = await this.getTradingValueRank(mkt, 10);
         console.log(`    ✅ ${tradingValue.length}개 확보`);
         apiCallResults.push({ market: mkt, type: 'tradingValue', requested: 10, received: tradingValue.length });
+        if (tradingValue.length === 0) {
+          apiErrors.push({ market: mkt, type: 'tradingValue', note: 'Returned empty array - check console logs' });
+        }
         tradingValue.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -418,6 +452,7 @@ class KISApi {
         requestedMarket: market,
         sampleCodes: codes.slice(0, 10),
         apiCallResults: apiCallResults,
+        apiErrors: this._apiErrors.length > 0 ? this._apiErrors : [],
         stockMapSize: stockMap.size
       };
 
