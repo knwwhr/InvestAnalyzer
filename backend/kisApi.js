@@ -231,7 +231,13 @@ class KISApi {
           volumeRate: parseFloat(item.prdy_vrss_vol_rate)  // 전일대비 거래량 증가율
         }));
       } else {
-        throw new Error(`API 오류: ${response.data.msg1}`);
+        const errorDetail = {
+          rt_cd: response.data.rt_cd,
+          msg_cd: response.data.msg_cd,
+          msg1: response.data.msg1,
+          output_cnt: response.data.output?.length || 0
+        };
+        throw new Error(`API 오류: ${JSON.stringify(errorDetail)}`);
       }
     } catch (error) {
       const errorMsg = error.response?.data || error.message;
@@ -288,7 +294,13 @@ class KISApi {
           tradingValue: parseInt(item.acml_tr_pbmn)
         }));
       } else {
-        throw new Error(`API 오류: ${response.data.msg1}`);
+        const errorDetail = {
+          rt_cd: response.data.rt_cd,
+          msg_cd: response.data.msg_cd,
+          msg1: response.data.msg1,
+          output_cnt: response.data.output?.length || 0
+        };
+        throw new Error(`API 오류: ${JSON.stringify(errorDetail)}`);
       }
     } catch (error) {
       const errorMsg = error.response?.data || error.message;
