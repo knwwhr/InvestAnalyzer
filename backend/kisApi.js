@@ -349,6 +349,7 @@ class KISApi {
     const stockMap = new Map(); // code -> name 매핑 (중복 제거 + 이름 캐싱)
     const badgeMap = new Map(); // code -> { volumeSurge, tradingValue, volume } 뱃지 정보
     const markets = market === 'ALL' ? ['KOSPI', 'KOSDAQ'] : [market];
+    const apiCallResults = []; // 각 API 호출 결과 추적
 
     try {
       for (const mkt of markets) {
@@ -358,6 +359,7 @@ class KISApi {
         console.log(`  - 거래량 급증 순위 조회 (30개)...`);
         const volSurge = await this.getVolumeSurgeRank(mkt, 30);
         console.log(`    ✅ ${volSurge.length}개 확보`);
+        apiCallResults.push({ market: mkt, type: 'volumeSurge', requested: 30, received: volSurge.length });
         volSurge.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -370,6 +372,7 @@ class KISApi {
         console.log(`  - 거래량 순위 조회 (20개)...`);
         const volume = await this.getVolumeRank(mkt, 20);
         console.log(`    ✅ ${volume.length}개 확보`);
+        apiCallResults.push({ market: mkt, type: 'volume', requested: 20, received: volume.length });
         volume.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -382,6 +385,7 @@ class KISApi {
         console.log(`  - 거래대금 순위 조회 (10개)...`);
         const tradingValue = await this.getTradingValueRank(mkt, 10);
         console.log(`    ✅ ${tradingValue.length}개 확보`);
+        apiCallResults.push({ market: mkt, type: 'tradingValue', requested: 10, received: tradingValue.length });
         tradingValue.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -412,7 +416,9 @@ class KISApi {
         totalCodes: codes.length,
         markets: markets,
         requestedMarket: market,
-        sampleCodes: codes.slice(0, 10)
+        sampleCodes: codes.slice(0, 10),
+        apiCallResults: apiCallResults,
+        stockMapSize: stockMap.size
       };
 
       return { codes, nameMap: stockMap, badgeMap };
