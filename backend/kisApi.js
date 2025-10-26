@@ -408,6 +408,7 @@ class KISApi {
       console.log('⚠️  하드코딩된 기본 리스트 사용 (105개)');
 
       // 실패 시 기본 리스트 반환 (100개 목표)
+      console.log('📋 Fallback 리스트 로드 중...');
       const kospiStocks = [
         // 대형주 (30개)
         '005930', '000660', '051910', '006400', '005380', '000270', '035720', '035420',
@@ -422,6 +423,7 @@ class KISApi {
         '042700', '009420', '001040', '004370', '005850', '006360', '071050', '011070',
         '000150', '002790'
       ];
+      console.log(`  KOSPI: ${kospiStocks.length}개`);
 
       const kosdaqStocks = [
         // 대형주 (20개)
@@ -435,6 +437,7 @@ class KISApi {
         '298540', '900140', '237820', '066970', '041960', '060280', '036830', '053610',
         '048410', '220100'
       ];
+      console.log(`  KOSDAQ: ${kosdaqStocks.length}개`);
 
       let codes;
       if (market === 'ALL') {
@@ -444,6 +447,8 @@ class KISApi {
       } else if (market === 'KOSDAQ') {
         codes = kosdaqStocks;
       }
+
+      console.log(`  최종 Fallback 리스트: ${codes.length}개 (시장: ${market})`);
 
       // 빈 nameMap 및 badgeMap 반환
       this.stockNameCache = new Map();
