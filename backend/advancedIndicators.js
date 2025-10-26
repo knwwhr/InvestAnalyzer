@@ -10,6 +10,7 @@
  * 1. 고래 감지 지표 (Whale Detection)
  * 평소 대비 대량 거래 + 급격한 가격 변동 감지
  * 기관/외국인 등 큰 손의 매매 패턴 포착
+ * + 윗꼬리 필터링 추가 (30% 이상 시 점수 감점)
  */
 function detectWhale(chartData) {
   const recentData = chartData.slice(-10); // 최근 10일
@@ -22,6 +23,17 @@ function detectWhale(chartData) {
     const volumeRatio = data.volume / avgVolume;
     const priceChange = Math.abs((data.close - data.open) / data.open * 100);
 
+    // 윗꼬리 비율 계산
+    const range = data.high - data.low;
+    const upperShadow = range > 0
+      ? ((data.high - data.close) / range) * 100
+      : 0;
+
+    // 고가 대비 낙폭
+    const highDecline = data.high > 0
+      ? ((data.high - data.close) / data.high) * 100
+      : 0;
+
     // 고래 감지 조건:
     // 1. 거래량이 평균의 2.5배 이상
     // 2. 가격 변동률 3% 이상
@@ -29,13 +41,26 @@ function detectWhale(chartData) {
     if (volumeRatio >= 2.5 && priceChange >= 3) {
       const isUpWhale = data.close > data.open; // 상승 고래 vs 하락 고래
 
+      // 기본 강도 점수
+      let intensity = volumeRatio * priceChange / 10;
+
+      // 윗꼬리 페널티: 30% 이상이면 강도 50% 감소
+      let upperShadowPenalty = 0;
+      if (isUpWhale && upperShadow >= 30) {
+        intensity = intensity * 0.5; // 50% 감점
+        upperShadowPenalty = upperShadow;
+      }
+
       whaleSignals.push({
         date: data.date,
         type: isUpWhale ? '🐋 매수 고래' : '🐳 매도 고래',
         volumeRatio: volumeRatio.toFixed(2),
         priceChange: priceChange.toFixed(2),
         volume: data.volume,
-        intensity: volumeRatio * priceChange / 10 // 강도 점수
+        intensity: intensity,
+        upperShadow: upperShadow.toFixed(1),
+        highDecline: highDecline.toFixed(1),
+        warning: upperShadowPenalty > 0 ? `⚠️ 윗꼬리 ${upperShadow.toFixed(1)}% (되돌림 위험)` : null
       });
     }
   }
@@ -85,6 +110,7 @@ function detectSilentAccumulation(chartData) {
  * 3. 탈출 속도 지표 (Escape Velocity)
  * 저항선 돌파 + 거래량 폭발 조합
  * 모멘텀 시작 시점 포착
+ * + Closing Strength 검증 추가 (윗꼬리 필터)
  */
 function detectEscapeVelocity(chartData) {
   const recent = chartData.slice(-30);
@@ -97,19 +123,39 @@ function detectEscapeVelocity(chartData) {
   // 평균 거래량
   const avgVolume = recent.slice(0, -5).reduce((sum, d) => sum + d.volume, 0) / 25;
 
+  // Closing Strength: 종가가 당일 거래범위에서 차지하는 위치 (0~100%)
+  const range = latest.high - latest.low;
+  const closingStrength = range > 0
+    ? ((latest.close - latest.low) / range) * 100
+    : 50;
+
+  // 윗꼬리 비율: 고가 대비 종가 하락폭
+  const upperShadow = range > 0
+    ? ((latest.high - latest.close) / range) * 100
+    : 0;
+
+  // 고가 대비 낙폭 (%)
+  const highDecline = latest.high > 0
+    ? ((latest.high - latest.close) / latest.high) * 100
+    : 0;
+
   // 탈출 속도 조건:
   // 1. 현재 종가가 저항선 돌파
   // 2. 거래량이 평균의 2배 이상
   // 3. 상승 캔들 (종가 > 시가)
+  // 4. Closing Strength 70% 이상 (강한 마감)
+  // 5. 고가 대비 낙폭 10% 미만 (윗꼬리 제한)
   const breaksResistance = latest.close > resistance;
   const volumeSurge = latest.volume / avgVolume >= 2;
   const isGreenCandle = latest.close > latest.open;
+  const strongClosing = closingStrength >= 70;
+  const acceptableDecline = highDecline < 10;
 
-  const detected = breaksResistance && volumeSurge && isGreenCandle;
+  const detected = breaksResistance && volumeSurge && isGreenCandle && strongClosing && acceptableDecline;
 
-  // 모멘텀 강도 계산
+  // 모멘텀 강도 계산 (Closing Strength 반영)
   const momentum = detected ?
-    ((latest.close - resistance) / resistance * 100) * (latest.volume / avgVolume) : 0;
+    ((latest.close - resistance) / resistance * 100) * (latest.volume / avgVolume) * (closingStrength / 100) : 0;
 
   return {
     detected,
@@ -117,9 +163,15 @@ function detectEscapeVelocity(chartData) {
     currentPrice: latest.close,
     volumeRatio: (latest.volume / avgVolume).toFixed(2),
     priceBreakout: ((latest.close - resistance) / resistance * 100).toFixed(2),
-    signal: detected ? '🚀 탈출 속도 달성' : '없음',
+    closingStrength: closingStrength.toFixed(1),
+    upperShadow: upperShadow.toFixed(1),
+    highDecline: highDecline.toFixed(1),
+    signal: detected ? '🚀 탈출 속도 달성' :
+            !acceptableDecline ? `⚠️ 윗꼬리 과다 (고가대비 -${highDecline.toFixed(1)}%)` :
+            !strongClosing ? '⚠️ 약한 마감' : '없음',
     momentum: momentum.toFixed(2),
-    score: detected ? momentum : 0
+    score: detected ? momentum : 0,
+    warning: !acceptableDecline || !strongClosing ? '장중 급등 후 되돌림 - 추가 하락 위험' : null
   };
 }
 
@@ -422,9 +474,11 @@ function detectBreakoutPreparation(chartData) {
 /**
  * Phase 4C: 과열 감지 필터
  * 고점 매수 방지
+ * + 고가 대비 낙폭 체크 추가 (10% 이상 경고)
  */
 function checkOverheating(chartData, currentPrice, volumeRatio, mfi) {
   const recent10 = chartData.slice(-10);
+  const latest = chartData[chartData.length - 1];
 
   // 1. 최근 10일간 30% 이상 급등
   const firstPrice = recent10[0].close;
@@ -437,7 +491,21 @@ function checkOverheating(chartData, currentPrice, volumeRatio, mfi) {
   // 3. MFI 90 이상 (극과매수)
   const extremeOverbought = mfi > 90;
 
+  // 4. 고가 대비 낙폭 체크 (당일 고가 → 종가 하락)
+  const highDecline = latest.high > 0
+    ? ((latest.high - latest.close) / latest.high) * 100
+    : 0;
+  const significantDecline = highDecline >= 10; // 10% 이상 하락
+
+  // 5. Closing Strength (종가 위치)
+  const range = latest.high - latest.low;
+  const closingStrength = range > 0
+    ? ((latest.close - latest.low) / range) * 100
+    : 50;
+  const weakClosing = closingStrength < 50; // 하단 50% 이내 마감
+
   const warning = surge && extremeVolume && extremeOverbought;
+  const pullbackWarning = significantDecline || weakClosing; // 되돌림 경고
 
   // 과열도 점수 (0~100, 높을수록 위험)
   let heatScore = 0;
@@ -450,24 +518,35 @@ function checkOverheating(chartData, currentPrice, volumeRatio, mfi) {
   if (mfi > 95) heatScore += 25;
   else if (mfi > 90) heatScore += 15;
 
+  // 고가 대비 낙폭 페널티 추가
+  if (highDecline >= 15) heatScore += 30; // 15% 이상 급락
+  else if (highDecline >= 10) heatScore += 20; // 10% 이상 하락
+
   return {
     warning,
+    pullbackWarning,
     heatScore: Math.min(heatScore, 100),
     surge: surge,
     surgePercent: surgePercent.toFixed(1),
     extremeVolume: extremeVolume,
     extremeOverbought: extremeOverbought,
+    highDecline: highDecline.toFixed(1),
+    closingStrength: closingStrength.toFixed(1),
     message: warning
       ? '⚠️ 과열 종목 - 단기 조정 위험 높음'
+      : pullbackWarning && highDecline >= 10
+      ? `⚠️ 장중 되돌림 (고가대비 -${highDecline.toFixed(1)}%)`
       : heatScore > 50
       ? '⚠️ 과열 징후 - 신중 매수'
       : '✅ 정상 범위',
     recommendation: warning
       ? '매수 대기 (10~20% 조정 후 재진입 권장)'
+      : pullbackWarning && highDecline >= 10
+      ? `1일 급등 후 되돌림 - 익일 추가 하락 가능성 (고가 ${latest.high.toLocaleString()}원 돌파 대기)`
       : heatScore > 50
       ? '소량 분할 매수 권장'
       : '정상 매수 가능',
-    scorePenalty: warning ? -50 : heatScore > 50 ? -25 : 0
+    scorePenalty: warning ? -50 : pullbackWarning && highDecline >= 10 ? -40 : heatScore > 50 ? -25 : 0
   };
 }
 
