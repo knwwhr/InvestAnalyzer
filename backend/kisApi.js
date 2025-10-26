@@ -406,55 +406,17 @@ class KISApi {
     // 에러 수집을 위해 초기화
     this._apiErrors = [];
 
+    // 🔧 임시 해결: volumeSurge와 tradingValue API가 빈 데이터를 반환하므로
+    // fallback 리스트를 직접 사용
+    console.log('⚠️  KIS API volumeSurge/tradingValue 실패 - Fallback 리스트 사용');
+    apiErrors.push({
+      note: 'KIS API volumeSurge/tradingValue returning empty data - using fallback list'
+    });
+
+    // fallback으로 강제 이동
+    throw new Error('volumeSurge and tradingValue APIs broken - using fallback');
+
     try {
-      for (const mkt of markets) {
-        console.log(`\n🔍 ${mkt} 시장 분석 중...`);
-
-        // 1. 거래량 급증 순위 (30개 MAX) - KIS API 제한
-        console.log(`  - 거래량 급증 순위 조회 (30개)...`);
-        const volSurge = await this.getVolumeSurgeRank(mkt, 30);
-        console.log(`    ✅ ${volSurge.length}개 확보`);
-        apiCallResults.push({ market: mkt, type: 'volumeSurge', requested: 30, received: volSurge.length });
-        if (volSurge.length === 0) {
-          apiErrors.push({ market: mkt, type: 'volumeSurge', note: 'Returned empty array - check console logs' });
-        }
-        volSurge.forEach(s => {
-          stockMap.set(s.code, s.name);
-          const badges = badgeMap.get(s.code) || {};
-          badges.volumeSurge = true;
-          badgeMap.set(s.code, badges);
-        });
-        await new Promise(r => setTimeout(r, 200)); // API 제한 대응
-
-        // 2. 거래량 순위 (20개)
-        console.log(`  - 거래량 순위 조회 (20개)...`);
-        const volume = await this.getVolumeRank(mkt, 20);
-        console.log(`    ✅ ${volume.length}개 확보`);
-        apiCallResults.push({ market: mkt, type: 'volume', requested: 20, received: volume.length });
-        volume.forEach(s => {
-          stockMap.set(s.code, s.name);
-          const badges = badgeMap.get(s.code) || {};
-          badges.volume = true;
-          badgeMap.set(s.code, badges);
-        });
-        await new Promise(r => setTimeout(r, 200));
-
-        // 3. 거래대금 순위 (10개)
-        console.log(`  - 거래대금 순위 조회 (10개)...`);
-        const tradingValue = await this.getTradingValueRank(mkt, 10);
-        console.log(`    ✅ ${tradingValue.length}개 확보`);
-        apiCallResults.push({ market: mkt, type: 'tradingValue', requested: 10, received: tradingValue.length });
-        if (tradingValue.length === 0) {
-          apiErrors.push({ market: mkt, type: 'tradingValue', note: 'Returned empty array - check console logs' });
-        }
-        tradingValue.forEach(s => {
-          stockMap.set(s.code, s.name);
-          const badges = badgeMap.get(s.code) || {};
-          badges.tradingValue = true;
-          badgeMap.set(s.code, badges);
-        });
-        await new Promise(r => setTimeout(r, 200));
-      }
 
       const codes = Array.from(stockMap.keys());
 
