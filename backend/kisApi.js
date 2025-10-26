@@ -408,45 +408,21 @@ class KISApi {
 
     try {
       // 각 시장별로 API 호출
+      // volumeSurge와 tradingValue API가 작동하지 않으므로, volume API만 사용
+      // KOSPI 60개 + KOSDAQ 60개 = 120개 목표
       for (const mkt of markets) {
         console.log(`\n📊 ${mkt} 시장 데이터 수집 중...`);
 
-        // 1. 거래량 급증 순위 (30개)
-        const volumeSurge = await this.getVolumeSurgeRank(mkt, 30);
-        apiCallResults.push({ market: mkt, api: 'volumeSurge', count: volumeSurge.length, target: 30 });
-        console.log(`  - 거래량 급증: ${volumeSurge.length}/30`);
-        volumeSurge.forEach(item => {
-          if (!stockMap.has(item.code)) {
-            stockMap.set(item.code, item.name);
-            badgeMap.set(item.code, { volumeSurge: true, tradingValue: false, volume: false });
-          } else {
-            badgeMap.get(item.code).volumeSurge = true;
-          }
-        });
-
-        // 2. 거래량 순위 (20개)
-        const volume = await this.getVolumeRank(mkt, 20);
-        apiCallResults.push({ market: mkt, api: 'volume', count: volume.length, target: 20 });
-        console.log(`  - 거래량 순위: ${volume.length}/20`);
+        // 거래량 순위 (60개) - 유일하게 작동하는 API
+        const volume = await this.getVolumeRank(mkt, 60);
+        apiCallResults.push({ market: mkt, api: 'volume', count: volume.length, target: 60 });
+        console.log(`  - 거래량 순위: ${volume.length}/60`);
         volume.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
             badgeMap.set(item.code, { volumeSurge: false, tradingValue: false, volume: true });
           } else {
             badgeMap.get(item.code).volume = true;
-          }
-        });
-
-        // 3. 거래대금 순위 (10개)
-        const tradingValue = await this.getTradingValueRank(mkt, 10);
-        apiCallResults.push({ market: mkt, api: 'tradingValue', count: tradingValue.length, target: 10 });
-        console.log(`  - 거래대금 순위: ${tradingValue.length}/10`);
-        tradingValue.forEach(item => {
-          if (!stockMap.has(item.code)) {
-            stockMap.set(item.code, item.name);
-            badgeMap.set(item.code, { volumeSurge: false, tradingValue: true, volume: false });
-          } else {
-            badgeMap.get(item.code).tradingValue = true;
           }
         });
       }
