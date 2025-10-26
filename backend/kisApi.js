@@ -339,7 +339,6 @@ class KISApi {
   async getPriceChangeRank(market = 'KOSPI', limit = 30) {
     try {
       const token = await this.getAccessToken();
-      const marketCode = market === 'KOSPI' ? '0' : '1';
 
       const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/ranking/fluctuation`, {
         headers: {
@@ -347,20 +346,23 @@ class KISApi {
           'authorization': `Bearer ${token}`,
           'appkey': this.appKey,
           'appsecret': this.appSecret,
-          'tr_id': 'FHPST01700000'  // 등락률 순위 (화면 0170)
+          'tr_id': 'FHPST01700000'  // 등락률 순위
         },
         params: {
-          FID_COND_MRKT_DIV_CODE: 'J',
-          FID_COND_SCR_DIV_CODE: '20170',  // 화면번호 0170
-          FID_INPUT_ISCD: '0000',
-          FID_DIV_CLS_CODE: marketCode,
-          FID_BLNG_CLS_CODE: '0',
-          FID_TRGT_CLS_CODE: '111111111',
-          FID_TRGT_EXLS_CLS_CODE: '000000',
-          FID_INPUT_PRICE_1: '',
-          FID_INPUT_PRICE_2: '',
-          FID_VOL_CNT: '',
-          FID_INPUT_DATE_1: ''
+          FID_COND_MRKT_DIV_CODE: 'J',  // J:KRX
+          FID_COND_SCR_DIV_CODE: '20170',  // 등락률 화면
+          FID_INPUT_ISCD: '0000',  // 전체 종목
+          FID_RANK_SORT_CLS_CODE: '0',  // 0:상승률순
+          FID_INPUT_CNT_1: String(limit),  // 조회 개수
+          FID_PRC_CLS_CODE: '0',  // 전체 가격
+          FID_INPUT_PRICE_1: '0',  // 최저가
+          FID_INPUT_PRICE_2: '1000000',  // 최고가
+          FID_VOL_CNT: '0',  // 최소거래량
+          FID_TRGT_CLS_CODE: '0',  // 대상: 전체
+          FID_TRGT_EXLS_CLS_CODE: '0000000000',  // 10자리: 제외 없음
+          FID_DIV_CLS_CODE: '0',  // 시장: 전체
+          FID_RSFL_RATE1: '0',  // 하락률 하한
+          FID_RSFL_RATE2: '1000'  // 상승률 상한
         }
       });
 
@@ -466,25 +468,22 @@ class KISApi {
     const badgeMap = new Map(); // code -> { volumeSurge, tradingValue, volume } 뱃지 정보
     const markets = market === 'ALL' ? ['KOSPI', 'KOSDAQ'] : [market];
     const apiCallResults = []; // 각 API 호출 결과 추적
-    const apiErrors = []; // API 에러 추적
 
     // 에러 수집을 위해 초기화
     this._apiErrors = [];
 
     try {
-      // 각 시장별로 API 호출
-      // volumeSurge와 tradingValue API가 작동하지 않으므로
-      // 거래량 급등을 추산할 수 있는 API 조합 사용:
-      // 1. 등락률 상승 순위 (가격 급등 = 거래량 급증 가능성)
-      // 2. 거래량 순위 (순수 거래량 많은 종목)
-      // KOSPI/KOSDAQ 각 30+30 = 60개씩, 총 120개 목표
+      // 전략: 등락률 + 거래량 API 조합 (각 30개 제한)
+      // KOSPI/KOSDAQ 각각 등락률 30 + 거래량 30 = 60개씩
+      // 총 120개 (중복 제거 후 ~100개 목표)
       for (const mkt of markets) {
         console.log(`\n📊 ${mkt} 시장 데이터 수집 중...`);
 
-        // 1. 등락률 상승 순위 (30개) - 가격 급등 종목
+        // 1. 등락률 상승 순위 (30개) - GitHub 공식 파라미터 사용
         const priceChange = await this.getPriceChangeRank(mkt, 30);
         apiCallResults.push({ market: mkt, api: 'priceChange', count: priceChange.length, target: 30 });
         console.log(`  - 등락률 상승: ${priceChange.length}/30`);
+
         priceChange.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
@@ -494,10 +493,11 @@ class KISApi {
           }
         });
 
-        // 2. 거래량 순위 (30개) - 순수 거래량 많은 종목
+        // 2. 거래량 순위 (30개)
         const volume = await this.getVolumeRank(mkt, 30);
         apiCallResults.push({ market: mkt, api: 'volume', count: volume.length, target: 30 });
         console.log(`  - 거래량 순위: ${volume.length}/30`);
+
         volume.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
