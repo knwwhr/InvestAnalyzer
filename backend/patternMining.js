@@ -370,4 +370,78 @@ class PatternMiner {
   }
 }
 
+  /**
+   * 현재 종목이 저장된 패턴과 매칭되는지 확인
+   * @param {Object} stock - 종목 분석 결과 (screening.js의 analyzeStock 반환값)
+   * @param {Array} patterns - 저장된 패턴 목록
+   * @returns {Object} 매칭 결과 및 보너스 점수
+   */
+  checkPatternMatch(stock, patterns) {
+    if (!patterns || patterns.length === 0) {
+      return { matched: false, patterns: [], bonusScore: 0 };
+    }
+
+    const matchedPatterns = [];
+    let bonusScore = 0;
+
+    // 현재 종목의 지표를 패턴 형식으로 변환
+    const stockIndicators = {
+      whale: stock.advancedAnalysis.indicators.whale.length,
+      accumulation: stock.advancedAnalysis.indicators.accumulation.detected,
+      escape: stock.advancedAnalysis.indicators.escape.detected,
+      drain: stock.advancedAnalysis.indicators.drain.detected,
+      asymmetric: stock.advancedAnalysis.indicators.asymmetric.ratio,
+      volumeRatio: stock.volumeAnalysis.current.volumeMA20
+        ? stock.volume / stock.volumeAnalysis.current.volumeMA20
+        : 1,
+      mfi: stock.volumeAnalysis.indicators.mfi,
+      closingStrength: stock.advancedAnalysis.indicators.escape.closingStrength
+        ? parseFloat(stock.advancedAnalysis.indicators.escape.closingStrength)
+        : 50
+    };
+
+    // 각 패턴과 매칭 확인
+    for (const pattern of patterns) {
+      const mockStock = { indicators: stockIndicators };
+      if (this.matchesPattern(mockStock, pattern.key)) {
+        matchedPatterns.push({
+          name: pattern.name,
+          winRate: pattern.backtest?.winRate || 0,
+          avgReturn: pattern.backtest?.avgReturn || 0,
+          frequency: pattern.frequency
+        });
+
+        // 패턴 승률에 비례한 보너스 점수 (최대 15점)
+        const patternBonus = (pattern.backtest?.winRate || 0) / 100 * 15;
+        bonusScore += patternBonus;
+      }
+    }
+
+    return {
+      matched: matchedPatterns.length > 0,
+      patterns: matchedPatterns,
+      bonusScore: Math.min(bonusScore, 20) // 최대 20점
+    };
+  }
+
+  /**
+   * 저장된 패턴 로드
+   */
+  loadSavedPatterns() {
+    try {
+      const fs = require('fs');
+      const path = './data/patterns.json';
+
+      if (fs.existsSync(path)) {
+        const data = fs.readFileSync(path, 'utf8');
+        const parsed = JSON.parse(data);
+        return parsed.patterns || [];
+      }
+    } catch (error) {
+      console.log('⚠️ 저장된 패턴 로드 실패:', error.message);
+    }
+    return [];
+  }
+}
+
 module.exports = new PatternMiner();
