@@ -1,0 +1,19 @@
+{
+  "name": "investar",
+  "version": "2.0.0",
+  "description": "AI-powered stock screening system with pattern mining",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "knoww",
+  "license": "MIT"
+}
