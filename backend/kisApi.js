@@ -332,6 +332,71 @@ class KISApi {
   }
 
   /**
+   * 등락률 상승 순위 조회 (가격 급등 = 거래량 급등 가능성)
+   * @param {string} market - 시장구분 ('KOSPI', 'KOSDAQ')
+   * @param {number} limit - 조회 개수 (최대 30)
+   */
+  async getPriceChangeRank(market = 'KOSPI', limit = 30) {
+    try {
+      const token = await this.getAccessToken();
+      const marketCode = market === 'KOSPI' ? '0' : '1';
+
+      const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/quotations/volume-rank`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'authorization': `Bearer ${token}`,
+          'appkey': this.appKey,
+          'appsecret': this.appSecret,
+          'tr_id': 'FHPST01700000'  // 등락률 순위 (화면 0170)
+        },
+        params: {
+          FID_COND_MRKT_DIV_CODE: 'J',
+          FID_COND_SCR_DIV_CODE: '20170',  // 화면번호 0170
+          FID_INPUT_ISCD: '0000',
+          FID_DIV_CLS_CODE: marketCode,
+          FID_BLNG_CLS_CODE: '0',
+          FID_TRGT_CLS_CODE: '111111111',
+          FID_TRGT_EXLS_CLS_CODE: '000000',
+          FID_INPUT_PRICE_1: '',
+          FID_INPUT_PRICE_2: '',
+          FID_VOL_CNT: '',
+          FID_INPUT_DATE_1: ''
+        }
+      });
+
+      if (response.data.rt_cd === '0') {
+        return response.data.output.slice(0, limit).map(item => ({
+          code: item.mksc_shrn_iscd,
+          name: item.hts_kor_isnm,
+          currentPrice: parseInt(item.stck_prpr),
+          changeRate: parseFloat(item.prdy_ctrt),  // 등락률
+          volume: parseInt(item.acml_vol)
+        }));
+      } else {
+        const errorDetail = {
+          rt_cd: response.data.rt_cd,
+          msg_cd: response.data.msg_cd,
+          msg1: response.data.msg1,
+          output_cnt: response.data.output?.length || 0
+        };
+        throw new Error(`API 오류: ${JSON.stringify(errorDetail)}`);
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data || error.message;
+      console.error(`❌ 등락률 순위 조회 실패 [${market}]:`, errorMsg);
+      if (!this._apiErrors) this._apiErrors = [];
+      this._apiErrors.push({
+        method: 'getPriceChangeRank',
+        market,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        error: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg
+      });
+      return [];
+    }
+  }
+
+  /**
    * 거래량 순위 조회
    * @param {string} market - 시장구분 ('KOSPI', 'KOSDAQ')
    * @param {number} limit - 조회 개수 (최대 30)
@@ -408,19 +473,35 @@ class KISApi {
 
     try {
       // 각 시장별로 API 호출
-      // volumeSurge와 tradingValue API가 작동하지 않으므로, volume API만 사용
-      // KOSPI 60개 + KOSDAQ 60개 = 120개 목표
+      // volumeSurge와 tradingValue API가 작동하지 않으므로
+      // 거래량 급등을 추산할 수 있는 API 조합 사용:
+      // 1. 등락률 상승 순위 (가격 급등 = 거래량 급증 가능성)
+      // 2. 거래량 순위 (순수 거래량 많은 종목)
+      // KOSPI/KOSDAQ 각 30+30 = 60개씩, 총 120개 목표
       for (const mkt of markets) {
         console.log(`\n📊 ${mkt} 시장 데이터 수집 중...`);
 
-        // 거래량 순위 (60개) - 유일하게 작동하는 API
-        const volume = await this.getVolumeRank(mkt, 60);
-        apiCallResults.push({ market: mkt, api: 'volume', count: volume.length, target: 60 });
-        console.log(`  - 거래량 순위: ${volume.length}/60`);
+        // 1. 등락률 상승 순위 (30개) - 가격 급등 종목
+        const priceChange = await this.getPriceChangeRank(mkt, 30);
+        apiCallResults.push({ market: mkt, api: 'priceChange', count: priceChange.length, target: 30 });
+        console.log(`  - 등락률 상승: ${priceChange.length}/30`);
+        priceChange.forEach(item => {
+          if (!stockMap.has(item.code)) {
+            stockMap.set(item.code, item.name);
+            badgeMap.set(item.code, { priceChange: true, volume: false });
+          } else {
+            badgeMap.get(item.code).priceChange = true;
+          }
+        });
+
+        // 2. 거래량 순위 (30개) - 순수 거래량 많은 종목
+        const volume = await this.getVolumeRank(mkt, 30);
+        apiCallResults.push({ market: mkt, api: 'volume', count: volume.length, target: 30 });
+        console.log(`  - 거래량 순위: ${volume.length}/30`);
         volume.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
-            badgeMap.set(item.code, { volumeSurge: false, tradingValue: false, volume: true });
+            badgeMap.set(item.code, { priceChange: false, volume: true });
           } else {
             badgeMap.get(item.code).volume = true;
           }
