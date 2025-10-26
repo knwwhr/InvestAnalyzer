@@ -341,7 +341,7 @@ class KISApi {
       const token = await this.getAccessToken();
       const marketCode = market === 'KOSPI' ? '0' : '1';
 
-      const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/quotations/volume-rank`, {
+      const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/ranking/fluctuation`, {
         headers: {
           'Content-Type': 'application/json',
           'authorization': `Bearer ${token}`,
