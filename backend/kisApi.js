@@ -357,6 +357,7 @@ class KISApi {
         // 1. 거래량 급증 순위 (30개 MAX) - KIS API 제한
         console.log(`  - 거래량 급증 순위 조회 (30개)...`);
         const volSurge = await this.getVolumeSurgeRank(mkt, 30);
+        console.log(`    ✅ ${volSurge.length}개 확보`);
         volSurge.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -368,6 +369,7 @@ class KISApi {
         // 2. 거래량 순위 (20개)
         console.log(`  - 거래량 순위 조회 (20개)...`);
         const volume = await this.getVolumeRank(mkt, 20);
+        console.log(`    ✅ ${volume.length}개 확보`);
         volume.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -379,6 +381,7 @@ class KISApi {
         // 3. 거래대금 순위 (10개)
         console.log(`  - 거래대금 순위 조회 (10개)...`);
         const tradingValue = await this.getTradingValueRank(mkt, 10);
+        console.log(`    ✅ ${tradingValue.length}개 확보`);
         tradingValue.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -395,7 +398,10 @@ class KISApi {
         throw new Error('API 호출 성공했으나 종목 리스트가 비어있음 - fallback 사용');
       }
 
-      console.log(`\n✅ 1단계: ${codes.length}개 거래량 기반 종목 확보 완료!`);
+      console.log(`\n✅ 동적 API 종목 확보: ${codes.length}개`);
+      console.log(`  - 시장: ${market}`);
+      console.log(`  - 처리한 시장 수: ${markets.length}`);
+      console.log(`  - 종목 코드 샘플: ${codes.slice(0, 5).join(', ')}`);
 
       // 종목명 및 뱃지 캐싱
       this.stockNameCache = stockMap;
