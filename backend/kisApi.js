@@ -389,6 +389,12 @@ class KISApi {
       }
 
       const codes = Array.from(stockMap.keys());
+
+      // API 호출은 성공했지만 결과가 없는 경우 fallback 사용
+      if (codes.length === 0) {
+        throw new Error('API 호출 성공했으나 종목 리스트가 비어있음 - fallback 사용');
+      }
+
       console.log(`\n✅ 1단계: ${codes.length}개 거래량 기반 종목 확보 완료!`);
 
       // 종목명 및 뱃지 캐싱
@@ -399,7 +405,7 @@ class KISApi {
 
     } catch (error) {
       console.error('❌ 동적 종목 리스트 생성 실패:', error.message);
-      console.log('⚠️  하드코딩된 기본 리스트 사용');
+      console.log('⚠️  하드코딩된 기본 리스트 사용 (105개)');
 
       // 실패 시 기본 리스트 반환 (100개 목표)
       const kospiStocks = [
