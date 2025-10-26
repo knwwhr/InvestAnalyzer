@@ -20,13 +20,15 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { market = 'ALL', limit = '10' } = req.query;
-    const recommendations = await screener.screenAllStocks(market, parseInt(limit));
+    const { market = 'ALL', limit } = req.query;
+    const limitNum = limit ? parseInt(limit) : undefined; // limit 없으면 전체 반환
+    const result = await screener.screenAllStocks(market, limitNum);
 
     res.status(200).json({
       success: true,
-      count: recommendations.length,
-      recommendations,
+      count: result.stocks.length,
+      recommendations: result.stocks,
+      metadata: result.metadata,
       timestamp: new Date().toISOString()
     });
   } catch (error) {

@@ -74,6 +74,7 @@
       const [selectedCategory, setSelectedCategory] = useState('all');
       const [lastUpdate, setLastUpdate] = useState(null);
       const [activeTab, setActiveTab] = useState('screening'); // screening or performance
+      const [screeningMetadata, setScreeningMetadata] = useState(null); // 스크리닝 메타데이터
 
       // 추천 종목 불러오기
       const fetchRecommendations = async (category = 'all') => {
@@ -91,6 +92,7 @@
 
           if (result.success) {
             setRecommendations(result.recommendations || []);
+            setScreeningMetadata(result.metadata || null);
             setLastUpdate(new Date());
           } else {
             setError(result.error || '데이터 로드 실패');
@@ -191,6 +193,37 @@
                 {lastUpdate && (
                   <div className="text-sm text-gray-600 mb-4 text-center">
                     마지막 업데이트: {lastUpdate.toLocaleString('ko-KR')}
+                  </div>
+                )}
+
+                {/* 스크리닝 메타데이터 */}
+                {screeningMetadata && recommendations.length > 0 && (
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+                    <div className="flex items-center justify-center gap-6 text-sm">
+                      <div>
+                        <span className="text-gray-600">분석:</span>
+                        <span className="font-bold text-blue-900 ml-1">{screeningMetadata.totalAnalyzed}개</span>
+                      </div>
+                      <div className="text-gray-400">|</div>
+                      <div>
+                        <span className="text-gray-600">조건 충족:</span>
+                        <span className="font-bold text-green-700 ml-1">{screeningMetadata.totalFound}개</span>
+                      </div>
+                      <div className="text-gray-400">|</div>
+                      <div>
+                        <span className="text-gray-600">표시:</span>
+                        <span className="font-bold text-indigo-700 ml-1">{screeningMetadata.returned}개</span>
+                      </div>
+                      {screeningMetadata.poolSize && (
+                        <>
+                          <div className="text-gray-400">|</div>
+                          <div>
+                            <span className="text-gray-600">풀 크기:</span>
+                            <span className="font-bold text-purple-700 ml-1">{screeningMetadata.poolSize}개</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 

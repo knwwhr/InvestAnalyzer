@@ -21,14 +21,16 @@ module.exports = async function handler(req, res) {
   try {
     const { category } = req.query;
     const market = req.query.market || 'ALL';
+    const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
 
-    const recommendations = await screener.screenByCategory(category, market);
+    const result = await screener.screenByCategory(category, market, limit);
 
     res.status(200).json({
       success: true,
       category,
-      count: recommendations.length,
-      recommendations
+      count: result.stocks.length,
+      recommendations: result.stocks,
+      metadata: result.metadata
     });
   } catch (error) {
     console.error('Category screening error:', error);

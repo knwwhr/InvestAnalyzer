@@ -259,7 +259,17 @@ class StockScreener {
     console.log(`  - 발견: ${results.length}개 (30점 이상)`);
     console.log(`  - 최종: ${limit ? `상위 ${limit}개` : `전체 ${results.length}개`} 반환\n`);
 
-    return limit ? results.slice(0, limit) : results;
+    const finalResults = limit ? results.slice(0, limit) : results;
+
+    return {
+      stocks: finalResults,
+      metadata: {
+        totalAnalyzed: analyzed,
+        totalFound: results.length,
+        returned: finalResults.length,
+        poolSize: finalStockList.length
+      }
+    };
   }
 
   /**
@@ -323,7 +333,15 @@ class StockScreener {
 
     console.log(`✅ ${category} 스크리닝 완료! ${analyzed}개 분석, ${found}개 발견`);
 
-    return results;
+    return {
+      stocks: results,
+      metadata: {
+        category,
+        totalAnalyzed: analyzed,
+        totalFound: found,
+        returned: results.length
+      }
+    };
   }
 
   /**
