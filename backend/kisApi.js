@@ -242,11 +242,19 @@ class KISApi {
     } catch (error) {
       const errorMsg = error.response?.data || error.message;
       console.error(`❌ 거래량 급증 순위 조회 실패 [${market}]:`, errorMsg);
+      console.error(`Full error:`, JSON.stringify({
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        headers: error.response?.headers,
+        data: error.response?.data
+      }));
       // 에러 정보를 저장하여 디버그에 활용
       if (!this._apiErrors) this._apiErrors = [];
       this._apiErrors.push({
         method: 'getVolumeSurgeRank',
         market,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
         error: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg
       });
       return [];
@@ -305,11 +313,18 @@ class KISApi {
     } catch (error) {
       const errorMsg = error.response?.data || error.message;
       console.error(`❌ 거래대금 순위 조회 실패 [${market}]:`, errorMsg);
+      console.error(`Full error:`, JSON.stringify({
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      }));
       // 에러 정보를 저장하여 디버그에 활용
       if (!this._apiErrors) this._apiErrors = [];
       this._apiErrors.push({
         method: 'getTradingValueRank',
         market,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
         error: typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg
       });
       return [];
