@@ -407,6 +407,14 @@ class KISApi {
       this.stockNameCache = stockMap;
       this.rankBadgeCache = badgeMap;
 
+      // 디버그 정보 저장 (API 응답에 포함하기 위해)
+      this._lastPoolDebug = {
+        totalCodes: codes.length,
+        markets: markets,
+        requestedMarket: market,
+        sampleCodes: codes.slice(0, 10)
+      };
+
       return { codes, nameMap: stockMap, badgeMap };
 
     } catch (error) {

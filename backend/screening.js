@@ -223,6 +223,9 @@ class StockScreener {
     const { codes: finalStockList } = await kisApi.getAllStockList(market);
     console.log(`✅ 종목 풀: ${finalStockList.length}개 확보\n`);
 
+    // KIS API 디버그 정보 가져오기
+    const kisApiDebug = kisApi._lastPoolDebug || { note: 'No debug info available' };
+
     console.log(`\n📊 전체 종목 분석 시작...\n`);
 
     const results = [];
@@ -270,7 +273,8 @@ class StockScreener {
         poolSize: finalStockList.length,
         debug: {
           finalStockListSample: finalStockList.slice(0, 10),
-          finalStockListLength: finalStockList.length
+          finalStockListLength: finalStockList.length,
+          kisApiDebug: kisApiDebug
         }
       }
     };
