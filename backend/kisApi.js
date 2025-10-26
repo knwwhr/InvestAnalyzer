@@ -406,75 +406,52 @@ class KISApi {
     // 에러 수집을 위해 초기화
     this._apiErrors = [];
 
-    // 🔧 임시 해결: volumeSurge와 tradingValue API가 빈 데이터를 반환하므로
-    // fallback 리스트를 직접 사용
-    console.log('⚠️  KIS API volumeSurge/tradingValue 실패 - Fallback 리스트 직접 사용');
-    console.log('📋 Fallback 리스트 로드 중...');
-
-    const kospiStocks = [
-      // 대형주 (30개)
-      '005930', '000660', '051910', '006400', '005380', '000270', '035720', '035420',
-      '068270', '207940', '105560', '055550', '003670', '096770', '028260', '012330',
-      '017670', '066570', '034730', '018260', '003550', '009150', '033780', '015760',
-      '011200', '010950', '086790', '032830', '030200', '090430', '000100', '316140',
-      // 중형주 (20개)
-      '009540', '011170', '010130', '047050', '000720', '005490', '003490', '004020',
-      '011780', '000810', '016360', '139480', '018880', '006800', '036570', '047810',
-      '001450', '010140', '012450', '014680',
-      // 소형주 거래량 상위 (10개)
-      '042700', '009420', '001040', '004370', '005850', '006360', '071050', '011070',
-      '000150', '002790'
-    ];
-    console.log(`  KOSPI: ${kospiStocks.length}개`);
-
-    const kosdaqStocks = [
-      // 대형주 (20개)
-      '247540', '086520', '263750', '091990', '403870', '357780', '196170', '112040',
-      '293490', '095340', '365340', '058470', '214150', '137400', '067160', '348210',
-      '039030', '054620', '042670', '096530',
-      // 중형주 (15개)
-      '234080', '357780', '214150', '215000', '222800', '053800', '226400', '145020',
-      '083930', '038540', '298690', '035600', '317830', '265520', '950140',
-      // 소형주 거래량 상위 (10개)
-      '298540', '900140', '237820', '066970', '041960', '060280', '036830', '053610',
-      '048410', '220100'
-    ];
-    console.log(`  KOSDAQ: ${kosdaqStocks.length}개`);
-
-    let codes;
-    if (market === 'ALL') {
-      codes = [...kospiStocks, ...kosdaqStocks];
-    } else if (market === 'KOSPI') {
-      codes = kospiStocks;
-    } else if (market === 'KOSDAQ') {
-      codes = kosdaqStocks;
-    }
-
-    console.log(`  최종 Fallback 리스트: ${codes.length}개 (시장: ${market})`);
-
-    // 빈 nameMap 및 badgeMap 반환
-    this.stockNameCache = new Map();
-    this.rankBadgeCache = new Map();
-
-    // 디버그 정보 저장
-    this._lastPoolDebug = {
-      totalCodes: codes.length,
-      markets: markets,
-      requestedMarket: market,
-      sampleCodes: codes.slice(0, 10),
-      apiCallResults: [],
-      apiErrors: [{ note: 'KIS API volumeSurge/tradingValue returning empty data - using fallback list' }],
-      usingFallback: true
-    };
-
-    return { codes, nameMap: new Map(), badgeMap: new Map() };
-  }
-
-  // 아래 코드는 더 이상 도달하지 않음 (fallback이 항상 반환되므로)
-  _unusedCodeBlock() {
     try {
+      // 각 시장별로 API 호출
+      for (const mkt of markets) {
+        console.log(`\n📊 ${mkt} 시장 데이터 수집 중...`);
 
-      const codes = Array.from({});
+        // 1. 거래량 급증 순위 (30개)
+        const volumeSurge = await this.getVolumeSurgeRank(mkt, 30);
+        apiCallResults.push({ market: mkt, api: 'volumeSurge', count: volumeSurge.length, target: 30 });
+        console.log(`  - 거래량 급증: ${volumeSurge.length}/30`);
+        volumeSurge.forEach(item => {
+          if (!stockMap.has(item.code)) {
+            stockMap.set(item.code, item.name);
+            badgeMap.set(item.code, { volumeSurge: true, tradingValue: false, volume: false });
+          } else {
+            badgeMap.get(item.code).volumeSurge = true;
+          }
+        });
+
+        // 2. 거래량 순위 (20개)
+        const volume = await this.getVolumeRank(mkt, 20);
+        apiCallResults.push({ market: mkt, api: 'volume', count: volume.length, target: 20 });
+        console.log(`  - 거래량 순위: ${volume.length}/20`);
+        volume.forEach(item => {
+          if (!stockMap.has(item.code)) {
+            stockMap.set(item.code, item.name);
+            badgeMap.set(item.code, { volumeSurge: false, tradingValue: false, volume: true });
+          } else {
+            badgeMap.get(item.code).volume = true;
+          }
+        });
+
+        // 3. 거래대금 순위 (10개)
+        const tradingValue = await this.getTradingValueRank(mkt, 10);
+        apiCallResults.push({ market: mkt, api: 'tradingValue', count: tradingValue.length, target: 10 });
+        console.log(`  - 거래대금 순위: ${tradingValue.length}/10`);
+        tradingValue.forEach(item => {
+          if (!stockMap.has(item.code)) {
+            stockMap.set(item.code, item.name);
+            badgeMap.set(item.code, { volumeSurge: false, tradingValue: true, volume: false });
+          } else {
+            badgeMap.get(item.code).tradingValue = true;
+          }
+        });
+      }
+
+      const codes = Array.from(stockMap.keys());
 
       // API 호출은 성공했지만 결과가 없는 경우 fallback 사용
       if (codes.length === 0) {
@@ -553,6 +530,18 @@ class KISApi {
       // 빈 nameMap 및 badgeMap 반환
       this.stockNameCache = new Map();
       this.rankBadgeCache = new Map();
+
+      // 디버그 정보 저장
+      this._lastPoolDebug = {
+        totalCodes: codes.length,
+        markets: markets,
+        requestedMarket: market,
+        sampleCodes: codes.slice(0, 10),
+        apiCallResults: apiCallResults,
+        apiErrors: this._apiErrors.concat([{ note: 'Fallback used due to API failure' }]),
+        usingFallback: true
+      };
+
       return { codes, nameMap: new Map(), badgeMap: new Map() };
     }
   }
