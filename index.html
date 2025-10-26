@@ -380,7 +380,8 @@
                     <span className="cursor-help border-b border-dotted border-gray-400">
                       🐋 고래감지 (최근10일): {stock.advancedAnalysis.indicators.whale.length}건 | 강도 {stock.advancedAnalysis.indicators.whale[stock.advancedAnalysis.indicators.whale.length - 1].intensity.toFixed(1)}
                     </span>
-                    <div className="absolute left-0 top-full mt-1 w-80 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    {/* 툴팁 - 왼쪽 정렬 */}
+                    <div className="absolute left-0 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <div className="font-bold mb-1">🐋 고래 감지 [최근 10일 분석]</div>
                       <div className="space-y-1">
                         <div className="text-yellow-300">✅ 패턴 감지됨</div>
@@ -397,6 +398,10 @@
                         <div>기관/외국인 등 큰 손이 매수 중</div>
                         <div>단기 급등 가능성 높음</div>
                       </div>
+                      {/* 화살표 - 왼쪽 */}
+                      <div className="absolute top-full left-6 transform -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -405,7 +410,8 @@
                     <span className="cursor-help border-b border-dotted border-gray-400">
                       🤫 조용한매집 (20일): 후반10일 vs 전반10일 | 거래량 +{stock.advancedAnalysis.indicators.accumulation.volumeGrowth}% | 변동성 {stock.advancedAnalysis.indicators.accumulation.priceVolatility}%
                     </span>
-                    <div className="absolute left-0 top-full mt-1 w-80 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    {/* 툴팁 - 중앙 정렬 */}
+                    <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <div className="font-bold mb-1">🤫 조용한 매집 [20일 분석]</div>
                       <div className="space-y-1">
                         <div className="text-yellow-300">✅ 패턴 감지됨</div>
@@ -423,6 +429,10 @@
                         <div>세력이 가격 자극 없이 물량 모으는 중</div>
                         <div>1~2주 후 급등 가능성</div>
                       </div>
+                      {/* 화살표 - 중앙 */}
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -431,7 +441,8 @@
                     <span className="cursor-help border-b border-dotted border-gray-400">
                       🚀 탈출속도 (30일): 저항선 {stock.advancedAnalysis.indicators.escape.resistance.toLocaleString()}원 → 현재 +{stock.advancedAnalysis.indicators.escape.priceBreakout}% | 거래량 {stock.advancedAnalysis.indicators.escape.volumeRatio}x
                     </span>
-                    <div className="absolute left-0 top-full mt-1 w-80 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    {/* 툴팁 - 중앙 정렬 */}
+                    <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <div className="font-bold mb-1">🚀 탈출 속도 [30일 분석]</div>
                       <div className="space-y-1">
                         <div className="text-yellow-300">✅ 패턴 감지됨 - 돌파 성공!</div>
@@ -449,6 +460,10 @@
                         <div>저항선 돌파 + 거래량 폭발</div>
                         <div>모멘텀 시작 - 추격 매수 타이밍</div>
                       </div>
+                      {/* 화살표 - 중앙 */}
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -457,7 +472,8 @@
                     <span className="cursor-help border-b border-dotted border-gray-400">
                       💧 유동성고갈: 최근10일 vs 이전20일 | 거래량 {stock.advancedAnalysis.indicators.drain.volumeDecline}% | 변동성 {stock.advancedAnalysis.indicators.drain.volatilityDecline}%
                     </span>
-                    <div className="absolute left-0 top-full mt-1 w-80 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    {/* 툴팁 - 오른쪽 정렬 */}
+                    <div className="absolute right-0 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <div className="font-bold mb-1">💧 유동성 고갈 [30일 분석]</div>
                       <div className="space-y-1">
                         <div className="text-yellow-300">✅ 패턴 감지됨</div>
@@ -475,6 +491,10 @@
                         <div>거래량 급감 + 변동성 축소</div>
                         <div>곧 큰 움직임 전조 (상승/하락 불확실)</div>
                       </div>
+                      {/* 화살표 - 오른쪽 */}
+                      <div className="absolute top-full right-6 transform -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -482,8 +502,8 @@
                   <span className="cursor-help border-b border-dotted border-gray-400">
                     📊 비대칭비율 (최근20일): {stock.advancedAnalysis.indicators.asymmetric.ratio}배 (상승{stock.advancedAnalysis.indicators.asymmetric.upDays}일 vs 하락{stock.advancedAnalysis.indicators.asymmetric.downDays}일)
                   </span>
-                  {/* 인라인 툴팁 */}
-                  <div className="absolute left-0 top-full mt-1 w-80 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                  {/* 툴팁 - 중앙 정렬 (항상 표시되므로) */}
+                  <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                     <div className="font-bold mb-1">📊 비대칭 비율 [최근 20일 분석]</div>
                     <div className="space-y-1">
                       <div className="text-yellow-300">✅ 상승일 거래량이 {stock.advancedAnalysis.indicators.asymmetric.ratio}배 더 많음</div>
@@ -500,6 +520,10 @@
                       <div>• 비율 &gt; 1.5: 세력 매집 중 🔥</div>
                       <div>• 비율 &lt; 0.7: 세력 매도 중 ⚠️</div>
                       <div className="mt-1 text-green-300">→ {stock.advancedAnalysis.indicators.asymmetric.signal}</div>
+                    </div>
+                    {/* 화살표 - 중앙 */}
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                      <div className="border-4 border-transparent border-t-gray-900"></div>
                     </div>
                   </div>
                 </div>
