@@ -267,7 +267,11 @@ class StockScreener {
         totalAnalyzed: analyzed,
         totalFound: results.length,
         returned: finalResults.length,
-        poolSize: finalStockList.length
+        poolSize: finalStockList.length,
+        debug: {
+          finalStockListSample: finalStockList.slice(0, 10),
+          finalStockListLength: finalStockList.length
+        }
       }
     };
   }
