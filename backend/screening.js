@@ -156,19 +156,80 @@ class StockScreener {
   }
 
   /**
-   * 전체 종목 스크리닝 (Vercel 60초 타임아웃 대응 - 부분 스크리닝)
+   * 조용한 누적 패턴 종목 찾기 (거래량 점진 증가)
+   * 거래량 급증이 아닌 "서서히" 증가하는 패턴 - 급등 전조
+   */
+  async findGradualAccumulationStocks(market = 'ALL', targetCount = 10) {
+    console.log('🐌 조용한 누적 패턴 종목 탐색 시작...');
+
+    const { codes: allStocks } = await kisApi.getAllStockList(market);
+    const gradualStocks = [];
+    let scanned = 0;
+
+    // 전체 종목 중 랜덤하게 샘플링하여 효율성 높이기
+    const shuffled = [...allStocks].sort(() => Math.random() - 0.5);
+
+    for (const stockCode of shuffled) {
+      if (gradualStocks.length >= targetCount) break;
+      if (scanned >= 100) break; // 최대 100개만 스캔
+
+      try {
+        scanned++;
+        const chartData = await kisApi.getDailyChart(stockCode, 30);
+
+        // advancedIndicators에서 gradualAccumulation만 검사
+        const advancedIndicators = require('./advancedIndicators');
+        const gradualCheck = advancedIndicators.detectGradualAccumulation(chartData);
+
+        if (gradualCheck.detected) {
+          gradualStocks.push(stockCode);
+          console.log(`  ✅ [${gradualStocks.length}/${targetCount}] 조용한 누적 발견: ${stockCode}`);
+        }
+
+        // API 호출 간격
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        if (scanned % 10 === 0) {
+          console.log(`  📊 스캔: ${scanned}개, 발견: ${gradualStocks.length}/${targetCount}`);
+        }
+      } catch (error) {
+        // 에러 무시하고 계속 진행
+      }
+    }
+
+    console.log(`✅ 조용한 누적 ${gradualStocks.length}개 발견 (스캔: ${scanned}개)`);
+    return gradualStocks;
+  }
+
+  /**
+   * 전체 종목 스크리닝 (100개 풀 기반)
+   * 거래량 급증 40 + 거래량 30 + 거래대금 20 + 조용한누적 10 = 100개
    */
   async screenAllStocks(market = 'ALL', limit = 10) {
-    console.log('🔍 종합 TOP 스크리닝 시작...');
+    console.log('🔍 종합 TOP 스크리닝 시작 (100개 풀)...\n');
 
-    const { codes: stockList } = await kisApi.getAllStockList(market);
+    // 1단계: 거래량 기반 90개 확보
+    const { codes: volumeBasedStocks } = await kisApi.getAllStockList(market);
+    console.log(`✅ 1단계 완료: 거래량 기반 ${volumeBasedStocks.length}개 확보\n`);
+
+    // 2단계: 조용한 누적 패턴 10개 추가
+    console.log('🐌 2단계: 조용한 누적 패턴 종목 추가 중...');
+    const gradualStocks = await this.findGradualAccumulationStocks(market, 10);
+
+    // 3단계: 100개 풀 생성 (중복 제거)
+    const stockSet = new Set([...volumeBasedStocks, ...gradualStocks]);
+    const finalStockList = Array.from(stockSet);
+
+    console.log(`\n✅ 최종 풀: ${finalStockList.length}개 종목 (목표 100개)`);
+    console.log(`  - 거래량 기반: ${volumeBasedStocks.length}개`);
+    console.log(`  - 조용한 누적: ${gradualStocks.length}개`);
+    console.log(`\n📊 전체 종목 분석 시작...\n`);
+
     const results = [];
     let analyzed = 0;
 
-    // 최소 점수 30점 이상인 종목을 limit개 찾을 때까지 분석
-    for (let i = 0; i < stockList.length && results.length < limit * 3; i++) {
-      const stockCode = stockList[i];
-
+    // 전체 100개 분석
+    for (const stockCode of finalStockList) {
       try {
         const analysis = await this.analyzeStock(stockCode);
         analyzed++;
@@ -183,7 +244,7 @@ class StockScreener {
 
         // 진행률 로그
         if (analyzed % 10 === 0) {
-          console.log(`📊 분석: ${analyzed}개, 발견: ${results.length}개`);
+          console.log(`📊 분석: ${analyzed}/${finalStockList.length}, 발견: ${results.length}개`);
         }
       } catch (error) {
         console.error(`❌ 분석 실패 [${stockCode}]:`, error.message);
@@ -193,7 +254,10 @@ class StockScreener {
     // 점수 기준 내림차순 정렬
     results.sort((a, b) => b.totalScore - a.totalScore);
 
-    console.log(`✅ 종합 스크리닝 완료! ${analyzed}개 분석, ${results.length}개 발견`);
+    console.log(`\n✅ 종합 스크리닝 완료!`);
+    console.log(`  - 분석: ${analyzed}개`);
+    console.log(`  - 발견: ${results.length}개 (30점 이상)`);
+    console.log(`  - 최종: 상위 ${limit}개 반환\n`);
 
     return results.slice(0, limit);
   }

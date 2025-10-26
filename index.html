@@ -407,8 +407,8 @@
               <div className="bg-blue-50 p-2 rounded relative group">
                 <p className="text-gray-600 text-xs">거래량 비율 ⓘ</p>
                 <p className="font-bold text-blue-700">{volumeRatio ? `${volumeRatio}x` : 'N/A'}</p>
-                {/* 툴팁 */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                {/* 툴팁 - 왼쪽 정렬 */}
+                <div className="absolute bottom-full left-0 mb-2 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                   <div className="font-bold mb-1">📊 거래량 비율이란?</div>
                   <div className="space-y-1">
                     <div>"오늘 거래량 ÷ 20일 평균"</div>
@@ -419,7 +419,7 @@
                     <div>• 1.5배-: 📈 정상</div>
                     <div className="text-red-300 mt-1">⚠️ 10배+ = 과열 위험</div>
                   </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                  <div className="absolute top-full left-6 transform -mt-1">
                     <div className="border-4 border-transparent border-t-gray-900"></div>
                   </div>
                 </div>
@@ -429,7 +429,7 @@
                 <p className="font-bold text-purple-700">
                   {stock.volumeAnalysis.indicators.mfi?.toFixed(1) || 'N/A'}
                 </p>
-                {/* 툴팁 */}
+                {/* 툴팁 - 중앙 정렬 */}
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                   <div className="font-bold mb-1">💰 MFI (자금흐름지수)</div>
                   <div className="space-y-1">
@@ -452,8 +452,8 @@
                 <p className="font-bold text-green-700">
                   {stock.advancedAnalysis.indicators.asymmetric.ratio || 'N/A'}
                 </p>
-                {/* 툴팁 */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                {/* 툴팁 - 오른쪽 정렬 */}
+                <div className="absolute bottom-full right-0 mb-2 w-64 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                   <div className="font-bold mb-1">📊 비대칭 비율이란?</div>
                   <div className="space-y-1">
                     <div>"상승일 vs 하락일 거래량 비교"</div>
@@ -462,7 +462,7 @@
                     <div>• 하락: {stock.advancedAnalysis.indicators.asymmetric.downDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M)</div>
                     <div className="text-green-300 mt-1">→ {stock.advancedAnalysis.indicators.asymmetric.signal}</div>
                   </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                  <div className="absolute top-full right-6 transform -mt-1">
                     <div className="border-4 border-transparent border-t-gray-900"></div>
                   </div>
                 </div>

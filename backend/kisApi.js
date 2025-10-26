@@ -339,11 +339,11 @@ class KISApi {
 
   /**
    * 전체 종목 리스트 조회 (동적 API 기반)
-   * 거래량 급증 + 거래대금 + 거래량 순위를 조합하여 약 150개 종목 확보
+   * 거래량 급증 40 + 거래량 순위 30 + 거래대금 20 = 90개 + 조용한 누적 10개 = 100개
    * @returns {Object} - { codes: string[], nameMap: Map<code, name>, badgeMap: Map<code, badges> }
    */
   async getAllStockList(market = 'ALL') {
-    console.log('📊 동적 종목 리스트 생성 시작...');
+    console.log('📊 동적 종목 리스트 생성 시작 (100개 목표)...');
 
     const stockMap = new Map(); // code -> name 매핑 (중복 제거 + 이름 캐싱)
     const badgeMap = new Map(); // code -> { volumeSurge, tradingValue, volume } 뱃지 정보
@@ -353,9 +353,9 @@ class KISApi {
       for (const mkt of markets) {
         console.log(`\n🔍 ${mkt} 시장 분석 중...`);
 
-        // 1. 거래량 급증 순위 (30개)
-        console.log(`  - 거래량 급증 순위 조회...`);
-        const volSurge = await this.getVolumeSurgeRank(mkt, 30);
+        // 1. 거래량 급증 순위 (40개) - 가장 중요
+        console.log(`  - 거래량 급증 순위 조회 (40개)...`);
+        const volSurge = await this.getVolumeSurgeRank(mkt, 40);
         volSurge.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -364,20 +364,9 @@ class KISApi {
         });
         await new Promise(r => setTimeout(r, 200)); // API 제한 대응
 
-        // 2. 거래대금 순위 (30개)
-        console.log(`  - 거래대금 순위 조회...`);
-        const tradingValue = await this.getTradingValueRank(mkt, 30);
-        tradingValue.forEach(s => {
-          stockMap.set(s.code, s.name);
-          const badges = badgeMap.get(s.code) || {};
-          badges.tradingValue = true;
-          badgeMap.set(s.code, badges);
-        });
-        await new Promise(r => setTimeout(r, 200));
-
-        // 3. 거래량 순위 (20개)
-        console.log(`  - 거래량 순위 조회...`);
-        const volume = await this.getVolumeRank(mkt, 20);
+        // 2. 거래량 순위 (30개)
+        console.log(`  - 거래량 순위 조회 (30개)...`);
+        const volume = await this.getVolumeRank(mkt, 30);
         volume.forEach(s => {
           stockMap.set(s.code, s.name);
           const badges = badgeMap.get(s.code) || {};
@@ -385,10 +374,21 @@ class KISApi {
           badgeMap.set(s.code, badges);
         });
         await new Promise(r => setTimeout(r, 200));
+
+        // 3. 거래대금 순위 (20개)
+        console.log(`  - 거래대금 순위 조회 (20개)...`);
+        const tradingValue = await this.getTradingValueRank(mkt, 20);
+        tradingValue.forEach(s => {
+          stockMap.set(s.code, s.name);
+          const badges = badgeMap.get(s.code) || {};
+          badges.tradingValue = true;
+          badgeMap.set(s.code, badges);
+        });
+        await new Promise(r => setTimeout(r, 200));
       }
 
       const codes = Array.from(stockMap.keys());
-      console.log(`\n✅ 총 ${codes.length}개 유니크 종목 확보 완료!`);
+      console.log(`\n✅ 1단계: ${codes.length}개 거래량 기반 종목 확보 완료!`);
 
       // 종목명 및 뱃지 캐싱
       this.stockNameCache = stockMap;
