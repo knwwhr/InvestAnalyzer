@@ -74,8 +74,9 @@ class SmartPatternMiner {
   /**
    * Phase 2 + Phase 3: 10거래일 수익률 15% 이상 + 되돌림 필터링
    * @param {Array} stockCodes - Phase 1에서 선별된 종목 코드
+   * @param {Map} nameMap - 종목 코드 -> 종목명 매핑
    */
-  async filterBySurgeAndPullback(stockCodes) {
+  async filterBySurgeAndPullback(stockCodes, nameMap) {
     console.log('🔍 Phase 2 + 3: 급등 조건 + 되돌림 필터링...');
     console.log(`  - 대상: ${stockCodes.length}개 종목`);
     console.log(`  - 조건: 10거래일 대비 +15% 이상 상승`);
@@ -136,7 +137,7 @@ class SmartPatternMiner {
 
         qualified.push({
           stockCode,
-          stockName: today.stockName || stockCode,
+          stockName: nameMap.get(stockCode) || stockCode,  // nameMap에서 실제 종목명 가져오기
           surgeDate: today.date,
           returnRate: returnRate.toFixed(2),
           pullbackRate: pullbackRate.toFixed(2),
@@ -368,7 +369,7 @@ class SmartPatternMiner {
       console.log(`${'='.repeat(60)}\n`);
 
       // Phase 1: 거래량 증가율 상위 종목 선별
-      const { codes: candidateCodes } = await this.getHighVolumeSurgeStocks();
+      const { codes: candidateCodes, nameMap } = await this.getHighVolumeSurgeStocks();
 
       if (candidateCodes.length === 0) {
         console.log('⚠️ Phase 1에서 종목을 찾지 못했습니다.');
@@ -376,7 +377,7 @@ class SmartPatternMiner {
       }
 
       // Phase 2+3: 급등 조건 + 되돌림 필터링
-      const qualifiedStocks = await this.filterBySurgeAndPullback(candidateCodes);
+      const qualifiedStocks = await this.filterBySurgeAndPullback(candidateCodes, nameMap);
 
       if (qualifiedStocks.length < 3) {
         console.log(`⚠️ 필터링 후 종목이 너무 적습니다 (${qualifiedStocks.length}개). 조건을 완화하세요.`);
