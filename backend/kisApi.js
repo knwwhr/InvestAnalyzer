@@ -456,18 +456,40 @@ class KISApi {
   }
 
   /**
+   * ETF/ETN/리츠 등 제외 필터 (개별 종목만)
+   * @param {string} name - 종목명
+   * @returns {boolean} - true면 제외 대상
+   */
+  isNonStockItem(name) {
+    if (!name) return true; // 종목명 없으면 제외
+
+    const excludeKeywords = [
+      'ETF', 'ETN', 'KODEX', 'TIGER', 'KBSTAR', 'ARIRANG', 'KOSEF',
+      'HANARO', 'TREX', 'KINDEX', 'TIMEFOLIO', 'SOL', 'ACE',
+      '리츠', 'REIT', '스팩', 'SPAC',
+      '1호', '2호', '3호', '4호', '5호', '6호', '7호', '8호', '9호', // 스팩
+      '인버스', 'Inverse', '레버리지', 'Leverage',
+      'WTI', 'S&P', 'MSCI', 'Russell', 'Nasdaq', 'NYSE',
+      '합병', '전환사채', 'CB', 'BW'
+    ];
+
+    return excludeKeywords.some(keyword => name.includes(keyword));
+  }
+
+  /**
    * 전체 종목 리스트 조회 (동적 API 기반)
    * [KOSPI + KOSDAQ 각각]
    * 거래량 급증 30 + 거래량 순위 20 + 거래대금 10 = 60개 * 2시장 = 120개 (중복 제거 후 ~100개)
    * @returns {Object} - { codes: string[], nameMap: Map<code, name>, badgeMap: Map<code, badges> }
    */
   async getAllStockList(market = 'ALL') {
-    console.log('📊 동적 종목 리스트 생성 시작 (100개 목표)...');
+    console.log('📊 동적 종목 리스트 생성 시작 (100개 목표, ETF/ETN 제외)...');
 
     const stockMap = new Map(); // code -> name 매핑 (중복 제거 + 이름 캐싱)
     const badgeMap = new Map(); // code -> { volumeSurge, tradingValue, volume } 뱃지 정보
     const markets = market === 'ALL' ? ['KOSPI', 'KOSDAQ'] : [market];
     const apiCallResults = []; // 각 API 호출 결과 추적
+    let filteredCount = 0; // ETF/ETN 필터링 카운트
 
     // 에러 수집을 위해 초기화
     this._apiErrors = [];
@@ -485,10 +507,17 @@ class KISApi {
 
         // 1. 등락률 상승 순위 (30개) - 가격 급등
         const priceChange = await this.getPriceChangeRank(mkt, 30);
-        apiCallResults.push({ market: mkt, api: 'priceChange', count: priceChange.length, target: 30 });
-        console.log(`  - 등락률 상승: ${priceChange.length}/30`);
+        const filteredPriceChange = priceChange.filter(item => {
+          if (this.isNonStockItem(item.name)) {
+            filteredCount++;
+            return false;
+          }
+          return true;
+        });
+        apiCallResults.push({ market: mkt, api: 'priceChange', count: filteredPriceChange.length, target: 30, filtered: priceChange.length - filteredPriceChange.length });
+        console.log(`  - 등락률 상승: ${filteredPriceChange.length}/30 (${priceChange.length - filteredPriceChange.length}개 필터링)`);
 
-        priceChange.forEach(item => {
+        filteredPriceChange.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
             badgeMap.set(item.code, { priceChange: true, volumeSurge: false, volume: false, tradingValue: false });
@@ -499,10 +528,17 @@ class KISApi {
 
         // 2. 거래량 증가율 순위 (30개) - 거래량 급증
         const volumeSurge = await this.getVolumeSurgeRank(mkt, 30);
-        apiCallResults.push({ market: mkt, api: 'volumeSurge', count: volumeSurge.length, target: 30 });
-        console.log(`  - 거래량 증가율: ${volumeSurge.length}/30`);
+        const filteredVolumeSurge = volumeSurge.filter(item => {
+          if (this.isNonStockItem(item.name)) {
+            filteredCount++;
+            return false;
+          }
+          return true;
+        });
+        apiCallResults.push({ market: mkt, api: 'volumeSurge', count: filteredVolumeSurge.length, target: 30, filtered: volumeSurge.length - filteredVolumeSurge.length });
+        console.log(`  - 거래량 증가율: ${filteredVolumeSurge.length}/30 (${volumeSurge.length - filteredVolumeSurge.length}개 필터링)`);
 
-        volumeSurge.forEach(item => {
+        filteredVolumeSurge.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
             badgeMap.set(item.code, { priceChange: false, volumeSurge: true, volume: false, tradingValue: false });
@@ -513,10 +549,17 @@ class KISApi {
 
         // 3. 거래량 순위 (30개) - 절대 거래량
         const volume = await this.getVolumeRank(mkt, 30);
-        apiCallResults.push({ market: mkt, api: 'volume', count: volume.length, target: 30 });
-        console.log(`  - 거래량 순위: ${volume.length}/30`);
+        const filteredVolume = volume.filter(item => {
+          if (this.isNonStockItem(item.name)) {
+            filteredCount++;
+            return false;
+          }
+          return true;
+        });
+        apiCallResults.push({ market: mkt, api: 'volume', count: filteredVolume.length, target: 30, filtered: volume.length - filteredVolume.length });
+        console.log(`  - 거래량 순위: ${filteredVolume.length}/30 (${volume.length - filteredVolume.length}개 필터링)`);
 
-        volume.forEach(item => {
+        filteredVolume.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
             badgeMap.set(item.code, { priceChange: false, volumeSurge: false, volume: true, tradingValue: false });
@@ -527,10 +570,17 @@ class KISApi {
 
         // 4. 거래대금 순위 (30개) - 대형주 활동성
         const tradingValue = await this.getTradingValueRank(mkt, 30);
-        apiCallResults.push({ market: mkt, api: 'tradingValue', count: tradingValue.length, target: 30 });
-        console.log(`  - 거래대금 순위: ${tradingValue.length}/30`);
+        const filteredTradingValue = tradingValue.filter(item => {
+          if (this.isNonStockItem(item.name)) {
+            filteredCount++;
+            return false;
+          }
+          return true;
+        });
+        apiCallResults.push({ market: mkt, api: 'tradingValue', count: filteredTradingValue.length, target: 30, filtered: tradingValue.length - filteredTradingValue.length });
+        console.log(`  - 거래대금 순위: ${filteredTradingValue.length}/30 (${tradingValue.length - filteredTradingValue.length}개 필터링)`);
 
-        tradingValue.forEach(item => {
+        filteredTradingValue.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
             badgeMap.set(item.code, { priceChange: false, volumeSurge: false, volume: false, tradingValue: true });
@@ -550,6 +600,7 @@ class KISApi {
       console.log(`\n✅ 동적 API 종목 확보: ${codes.length}개`);
       console.log(`  - 시장: ${market}`);
       console.log(`  - 처리한 시장 수: ${markets.length}`);
+      console.log(`  - ETF/ETN 제외: ${filteredCount}개`);
       console.log(`  - 종목 코드 샘플: ${codes.slice(0, 5).join(', ')}`);
 
       // 종목명 및 뱃지 캐싱
@@ -564,7 +615,8 @@ class KISApi {
         sampleCodes: codes.slice(0, 10),
         apiCallResults: apiCallResults,
         apiErrors: this._apiErrors.length > 0 ? this._apiErrors : [],
-        stockMapSize: stockMap.size
+        stockMapSize: stockMap.size,
+        filteredOutCount: filteredCount // ETF/ETN 제외 개수
       };
 
       return { codes, nameMap: stockMap, badgeMap };
