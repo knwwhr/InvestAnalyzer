@@ -661,6 +661,21 @@ CRON_SECRET=<선택사항: Cron 보안용>
 
 ### Phase 5 (계획)
 
+- [ ] **Supabase 연동** (High Priority)
+  - [ ] 패턴 데이터 영구 저장소 구축
+  - [ ] 패턴 테이블 생성 (patterns, backtest_history, matched_stocks_log)
+  - [ ] patternCache.js를 Supabase 클라이언트로 수정
+  - [ ] Vercel 환경변수 설정 (SUPABASE_URL, SUPABASE_ANON_KEY)
+  - **이유**: Vercel Serverless 함수 간 메모리 공유 불가 해결
+  - **효과**: 패턴 매칭 종목 조회 정상화
+
+- [ ] **로직 개선** (High Priority - LOGIC_REVIEW.md 참조)
+  - [ ] Phase 2 수익률 기준: 5% → 10% 상향
+  - [ ] Phase 3 되돌림 기준: 15% → 10% 강화
+  - [ ] 패턴 최소 샘플: 2개 → 10개 상향
+  - [ ] 당일 등락률 페널티 추가
+  - [ ] 거래량 배점: 30점 → 20점 하향
+
 - [ ] **종목 풀 확대**: 추가 API 발견 시 100개 확보
 - [ ] **WebSocket 연동**: 실시간 시세 반영
 - [ ] **패턴 UI 개선**: 프론트엔드 패턴 시각화
@@ -671,7 +686,6 @@ CRON_SECRET=<선택사항: Cron 보안용>
 
 - [ ] 순위 API 중복 제거 최적화
 - [ ] 에러 핸들링 고도화
-- [ ] 캐싱 시스템 도입
 - [ ] 테스트 코드 작성
 
 ---
