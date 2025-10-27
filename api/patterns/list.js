@@ -20,6 +20,10 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // 패턴 캐시 정보 가져오기
+    const patternCache = require('../../backend/patternCache');
+    const cacheInfo = patternCache.getCacheInfo();
+
     const patterns = smartPatternMiner.loadSavedPatterns();
 
     if (!patterns || patterns.length === 0) {
@@ -30,10 +34,16 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // 전체 캐시 데이터에서 메타데이터 가져오기
+    const fullCache = patternCache.loadPatterns();
+
     res.status(200).json({
       success: true,
       count: patterns.length,
-      patterns
+      patterns,
+      generatedAt: fullCache?.generatedAt || null,
+      parameters: fullCache?.parameters || null,
+      cacheInfo: cacheInfo
     });
 
   } catch (error) {

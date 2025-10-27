@@ -238,11 +238,13 @@ class SmartPatternMiner {
               name: pattern.name,
               count: 0,
               stocks: [],
+              stockNames: [], // 종목 이름 추가
               totalReturn: 0
             };
           }
           patternFrequency[pattern.key].count++;
           patternFrequency[pattern.key].stocks.push(stock.stockCode);
+          patternFrequency[pattern.key].stockNames.push(stock.stockName); // 종목 이름 저장
           patternFrequency[pattern.key].totalReturn += parseFloat(stock.returnRate);
         }
       }
@@ -256,7 +258,8 @@ class SmartPatternMiner {
         count: data.count,
         frequency: (data.count / qualifiedStocks.length * 100).toFixed(1),
         avgReturn: (data.totalReturn / data.count).toFixed(2),
-        sampleStocks: data.stocks.slice(0, 5) // 샘플 5개만
+        sampleStocks: data.stocks.slice(0, 5), // 샘플 5개만 (코드)
+        sampleStockNames: data.stockNames.slice(0, 5) // 샘플 종목 이름 5개
       }))
       .sort((a, b) => b.count - a.count);
 
@@ -267,7 +270,7 @@ class SmartPatternMiner {
       console.log(`${i + 1}. ${pattern.name}`);
       console.log(`   출현: ${pattern.count}회 (${pattern.frequency}%)`);
       console.log(`   평균 10일 수익률: +${pattern.avgReturn}%`);
-      console.log(`   샘플: ${pattern.sampleStocks.join(', ')}\n`);
+      console.log(`   샘플: ${pattern.sampleStockNames.join(', ')}\n`);
     });
 
     return rankedPatterns;
