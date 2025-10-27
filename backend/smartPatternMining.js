@@ -18,35 +18,50 @@ class SmartPatternMiner {
   }
 
   /**
-   * Phase 1: 거래량 증가율 상위 50개 종목 선별
+   * Phase 1: 거래량 증가율 상위 50개 종목 선별 (ETF/ETN 제외)
    * KIS API의 거래량 증가율 순위 활용 (양쪽 시장 각 50개)
    */
   async getHighVolumeSurgeStocks() {
-    console.log('\n🔍 Phase 1: 거래량 증가율 상위 종목 선별...');
-    console.log('  - KOSPI 상위 50개');
-    console.log('  - KOSDAQ 상위 50개\n');
+    console.log('\n🔍 Phase 1: 거래량 증가율 상위 종목 선별 (ETF/ETN 제외)...');
+    console.log('  - KOSPI 상위 30개');
+    console.log('  - KOSDAQ 상위 30개\n');
 
     const candidates = new Map(); // code -> name
+    let filteredCount = 0;
 
     try {
-      // KOSPI 상위 50개 (API 제한 30개씩 × 2번 불가능 → 30개만)
+      // KOSPI 상위 30개 (API 제한)
       const kospiSurge = await kisApi.getVolumeSurgeRank('KOSPI', 30);
-      console.log(`  ✅ KOSPI 거래량 증가율 상위: ${kospiSurge.length}개`);
+      const kospiFiltered = kospiSurge.filter(item => {
+        if (kisApi.isNonStockItem(item.name)) {
+          filteredCount++;
+          return false;
+        }
+        return true;
+      });
+      console.log(`  ✅ KOSPI 거래량 증가율: ${kospiFiltered.length}개 (${kospiSurge.length - kospiFiltered.length}개 ETF/ETN 제외)`);
 
-      kospiSurge.forEach(item => {
+      kospiFiltered.forEach(item => {
         candidates.set(item.code, item.name);
       });
 
-      // KOSDAQ 상위 50개 (API 제한 30개씩 × 2번 불가능 → 30개만)
+      // KOSDAQ 상위 30개 (API 제한)
       const kosdaqSurge = await kisApi.getVolumeSurgeRank('KOSDAQ', 30);
-      console.log(`  ✅ KOSDAQ 거래량 증가율 상위: ${kosdaqSurge.length}개`);
+      const kosdaqFiltered = kosdaqSurge.filter(item => {
+        if (kisApi.isNonStockItem(item.name)) {
+          filteredCount++;
+          return false;
+        }
+        return true;
+      });
+      console.log(`  ✅ KOSDAQ 거래량 증가율: ${kosdaqFiltered.length}개 (${kosdaqSurge.length - kosdaqFiltered.length}개 ETF/ETN 제외)`);
 
-      kosdaqSurge.forEach(item => {
+      kosdaqFiltered.forEach(item => {
         candidates.set(item.code, item.name);
       });
 
       const codes = Array.from(candidates.keys());
-      console.log(`\n✅ Phase 1 완료: ${codes.length}개 종목 선별\n`);
+      console.log(`\n✅ Phase 1 완료: ${codes.length}개 종목 선별 (총 ${filteredCount}개 ETF/ETN 제외)\n`);
 
       return { codes, nameMap: candidates };
 
