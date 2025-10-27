@@ -1360,7 +1360,12 @@
           const result = await response.json();
 
           if (result.success) {
-            setMatchedStocks(result.stocks || []);
+            // 완전 매칭 + 부분 매칭 종목을 합쳐서 저장
+            const allMatches = [
+              ...(result.stocks || []).map(s => ({ ...s, matchType: 'complete' })),
+              ...(result.partialStocks || []).map(s => ({ ...s, matchType: 'partial' }))
+            ];
+            setMatchedStocks(allMatches);
           } else {
             setError(result.error || '매칭 종목을 불러올 수 없습니다.');
             setMatchedStocks([]);
@@ -1503,27 +1508,116 @@
                 </div>
               ) : (
                 <>
+                  {/* 매칭 통계 */}
                   <div className="bg-purple-50 border-l-4 border-purple-500 p-4 mb-4 rounded">
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm flex-wrap gap-2">
                       <div>
                         <span className="text-gray-700 font-semibold">총 {matchedStocks.length}개 종목 감지</span>
                         <span className="text-gray-600 ml-3">
                           (승률 {selectedPattern.backtest.winRate}% 기준, 평균 수익률 +{selectedPattern.backtest.avgReturn}%)
                         </span>
                       </div>
+                      <div className="flex gap-2">
+                        <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                          완전일치: {matchedStocks.filter(s => s.matchType === 'complete').length}개
+                        </span>
+                        <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                          부분일치: {matchedStocks.filter(s => s.matchType === 'partial').length}개
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {matchedStocks.map((stock, index) => (
-                      <RecommendationCard
-                        key={stock.stockCode}
-                        stock={stock}
-                        rank={index + 1}
-                        onClick={() => {}}
-                      />
-                    ))}
-                  </div>
+                  {/* 완전 매칭 종목 */}
+                  {matchedStocks.filter(s => s.matchType === 'complete').length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="text-lg font-bold mb-3 flex items-center gap-2">
+                        <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm">완전일치</span>
+                        <span className="text-gray-700">패턴 100% 매칭</span>
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {matchedStocks.filter(s => s.matchType === 'complete').map((stock, index) => (
+                          <div key={stock.stockCode} className="relative">
+                            <div className="absolute top-2 right-2 z-10 bg-green-600 text-white text-xs px-2 py-1 rounded-full font-bold">
+                              100%
+                            </div>
+                            <RecommendationCard
+                              stock={stock}
+                              rank={index + 1}
+                              onClick={() => {}}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 부분 매칭 종목 */}
+                  {matchedStocks.filter(s => s.matchType === 'partial').length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-bold mb-3 flex items-center gap-2">
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">부분일치</span>
+                        <span className="text-gray-700">패턴 60% 이상 매칭</span>
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {matchedStocks.filter(s => s.matchType === 'partial').map((stock, index) => {
+                          // 부분 매칭 정보 추출
+                          const partialMatch = stock.patternMatch?.partialMatches?.find(p =>
+                            p.key === selectedPattern.key || p.name === selectedPattern.name
+                          );
+                          const matchLevel = partialMatch?.matchLevel || '중';
+                          const matchScore = partialMatch?.matchScore || 0;
+                          const matchedConditions = partialMatch?.matchedConditions || [];
+                          const missingConditions = partialMatch?.missingConditions || [];
+
+                          return (
+                            <div key={stock.stockCode} className="relative">
+                              {/* 매칭도 뱃지 */}
+                              <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+                                <div className={`text-white text-xs px-2 py-1 rounded-full font-bold ${
+                                  matchLevel === '상' ? 'bg-orange-500' :
+                                  matchLevel === '중' ? 'bg-blue-500' : 'bg-gray-500'
+                                }`}>
+                                  {matchLevel} ({Math.round(matchScore * 100)}%)
+                                </div>
+                              </div>
+                              <div className="relative group">
+                                <RecommendationCard
+                                  stock={stock}
+                                  rank={matchedStocks.filter(s => s.matchType === 'complete').length + index + 1}
+                                  onClick={() => {}}
+                                />
+                                {/* 매칭 상세 정보 툴팁 */}
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                                  <div className="font-bold mb-1">🎯 패턴 매칭 상세</div>
+                                  <div className="space-y-1">
+                                    <div className="text-green-300">✅ 충족 조건 ({matchedConditions.length}개)</div>
+                                    {matchedConditions.slice(0, 3).map((cond, i) => (
+                                      <div key={i} className="text-xs pl-2">• {cond}</div>
+                                    ))}
+                                    {matchedConditions.length > 3 && (
+                                      <div className="text-xs pl-2 text-gray-400">... 외 {matchedConditions.length - 3}개</div>
+                                    )}
+                                    <div className="border-t border-gray-700 my-1"></div>
+                                    <div className="text-orange-300">❌ 미충족 조건 ({missingConditions.length}개)</div>
+                                    {missingConditions.slice(0, 3).map((cond, i) => (
+                                      <div key={i} className="text-xs pl-2">• {cond}</div>
+                                    ))}
+                                    {missingConditions.length > 3 && (
+                                      <div className="text-xs pl-2 text-gray-400">... 외 {missingConditions.length - 3}개</div>
+                                    )}
+                                  </div>
+                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                                    <div className="border-4 border-transparent border-t-gray-900"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>

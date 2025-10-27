@@ -12,8 +12,8 @@ const volumeIndicators = require('./volumeIndicators');
  */
 class SmartPatternMiner {
   constructor() {
-    this.minReturnThreshold = 15; // 최소 급등 기준: 15%
-    this.pullbackThreshold = 10; // 되돌림 필터: 고가 대비 10%
+    this.minReturnThreshold = 5; // 최소 급등 기준: 5% (완화)
+    this.pullbackThreshold = 15; // 되돌림 필터: 고가 대비 15% (완화)
     this.lookbackDays = 10; // 비교 기간: 10거래일
   }
 
@@ -418,17 +418,18 @@ class SmartPatternMiner {
   }
 
   /**
-   * 현재 종목이 저장된 패턴과 매칭되는지 확인
+   * 현재 종목이 저장된 패턴과 매칭되는지 확인 (부분 매칭 포함)
    * @param {Object} stock - 종목 분석 결과 (screening.js의 analyzeStock 반환값)
    * @param {Array} patterns - 저장된 패턴 목록
    * @returns {Object} 매칭 결과 및 보너스 점수
    */
   checkPatternMatch(stock, patterns) {
     if (!patterns || patterns.length === 0) {
-      return { matched: false, patterns: [], bonusScore: 0 };
+      return { matched: false, patterns: [], bonusScore: 0, partialMatches: [] };
     }
 
     const matchedPatterns = [];
+    const partialMatches = [];
     let bonusScore = 0;
 
     // 현재 종목의 지표를 패턴 형식으로 변환
@@ -450,24 +451,106 @@ class SmartPatternMiner {
     // 각 패턴과 매칭 확인
     for (const pattern of patterns) {
       const mockStock = { indicators: stockIndicators };
-      if (this.matchesPattern(mockStock, pattern.key)) {
+      const matchScore = this.calculateMatchScore(mockStock, pattern.key);
+
+      // 완전 매칭 (100%)
+      if (matchScore.score === 1.0) {
         matchedPatterns.push({
           name: pattern.name,
           winRate: pattern.backtest?.winRate || 0,
           avgReturn: pattern.backtest?.avgReturn || 0,
-          frequency: pattern.frequency
+          frequency: pattern.frequency,
+          matchScore: 1.0,
+          matchLevel: '완전일치'
         });
 
         // 패턴 승률에 비례한 보너스 점수 (최대 15점)
         const patternBonus = (pattern.backtest?.winRate || 0) / 100 * 15;
         bonusScore += patternBonus;
       }
+      // 부분 매칭 (60% 이상)
+      else if (matchScore.score >= 0.6) {
+        const matchLevel = matchScore.score >= 0.8 ? '상' : matchScore.score >= 0.7 ? '중' : '하';
+        partialMatches.push({
+          name: pattern.name,
+          winRate: pattern.backtest?.winRate || 0,
+          avgReturn: pattern.backtest?.avgReturn || 0,
+          frequency: pattern.frequency,
+          matchScore: matchScore.score,
+          matchLevel: matchLevel,
+          matchedConditions: matchScore.matched,
+          totalConditions: matchScore.total,
+          missingConditions: matchScore.missing
+        });
+
+        // 부분 매칭도 약간의 보너스 (최대 5점)
+        const partialBonus = (pattern.backtest?.winRate || 0) / 100 * 5 * matchScore.score;
+        bonusScore += partialBonus;
+      }
     }
 
     return {
       matched: matchedPatterns.length > 0,
       patterns: matchedPatterns,
+      partialMatches: partialMatches,
       bonusScore: Math.min(bonusScore, 20) // 최대 20점
+    };
+  }
+
+  /**
+   * 패턴 매칭 점수 계산 (0.0 ~ 1.0)
+   * @returns {Object} { score, matched, total, missing }
+   */
+  calculateMatchScore(stock, patternKey) {
+    const ind = stock.indicators;
+    const conditions = {
+      'whale_accumulation': [
+        { name: '고래감지', met: ind.whale > 0 },
+        { name: '조용한매집', met: ind.accumulation }
+      ],
+      'drain_escape': [
+        { name: '유동성고갈', met: ind.drain },
+        { name: '탈출속도', met: ind.escape }
+      ],
+      'whale_highvolume': [
+        { name: '고래감지', met: ind.whale > 0 },
+        { name: '고거래량', met: parseFloat(ind.volumeRatio) >= 2.5 }
+      ],
+      'asymmetric_accumulation': [
+        { name: '비대칭비율1.5+', met: ind.asymmetric >= 1.5 },
+        { name: '조용한매집', met: ind.accumulation }
+      ],
+      'escape_strongclose': [
+        { name: '탈출속도', met: ind.escape },
+        { name: '강한마감70+', met: ind.closingStrength >= 70 }
+      ],
+      'mfi_oversold_whale': [
+        { name: 'MFI과매도30-', met: ind.mfi <= 30 },
+        { name: '고래감지', met: ind.whale > 0 }
+      ],
+      'drain_asymmetric': [
+        { name: '유동성고갈', met: ind.drain },
+        { name: '비대칭비율1.5+', met: ind.asymmetric >= 1.5 }
+      ],
+      'accumulation_moderate': [
+        { name: '조용한매집', met: ind.accumulation },
+        { name: '적정거래량1.5-3x', met: parseFloat(ind.volumeRatio) >= 1.5 && parseFloat(ind.volumeRatio) < 3 }
+      ]
+    };
+
+    const patternConditions = conditions[patternKey] || [];
+    if (patternConditions.length === 0) {
+      return { score: 0, matched: 0, total: 0, missing: [] };
+    }
+
+    const metConditions = patternConditions.filter(c => c.met);
+    const missingConditions = patternConditions.filter(c => !c.met).map(c => c.name);
+
+    return {
+      score: metConditions.length / patternConditions.length,
+      matched: metConditions.length,
+      total: patternConditions.length,
+      missing: missingConditions
     };
   }
 

@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
     // 전체 스크리닝 실행
     const result = await screener.screenAllStocks(market);
 
-    // 패턴 매칭된 종목만 필터링
+    // 완전 매칭 종목 필터링
     const matchedStocks = result.stocks.filter(stock => {
       const patternMatch = stock.patternMatch;
       if (!patternMatch || !patternMatch.matched) return false;
@@ -60,10 +60,60 @@ module.exports = async function handler(req, res) {
       });
     });
 
-    // limit 적용
-    const finalStocks = limit ? matchedStocks.slice(0, parseInt(limit)) : matchedStocks;
+    // 부분 매칭 종목 필터링 (완전 매칭 제외)
+    const partialMatchedStocks = result.stocks.filter(stock => {
+      const patternMatch = stock.patternMatch;
 
-    console.log(`✅ ${pattern} 패턴 매칭: ${matchedStocks.length}개 종목 발견`);
+      // 이미 완전 매칭된 종목은 제외
+      if (patternMatch?.matched && patternMatch.patterns?.some(p =>
+        (p.key && p.key === pattern) || p.name === targetPattern.name
+      )) {
+        return false;
+      }
+
+      // partialMatches 배열에서 해당 패턴 찾기
+      if (!patternMatch?.partialMatches) return false;
+
+      return patternMatch.partialMatches.some(p => {
+        if (p.key) return p.key === pattern;
+        return p.name === targetPattern.name;
+      });
+    });
+
+    // 부분 매칭 종목을 매칭도 순으로 정렬 (상 > 중 > 하)
+    partialMatchedStocks.sort((a, b) => {
+      const getMatchLevel = (stock) => {
+        const pm = stock.patternMatch.partialMatches.find(p =>
+          (p.key && p.key === pattern) || p.name === targetPattern.name
+        );
+        if (pm.matchLevel === '상') return 3;
+        if (pm.matchLevel === '중') return 2;
+        if (pm.matchLevel === '하') return 1;
+        return 0;
+      };
+      return getMatchLevel(b) - getMatchLevel(a);
+    });
+
+    // 전체 종목 수 (완전 + 부분)
+    const totalMatches = matchedStocks.length + partialMatchedStocks.length;
+
+    // limit 적용 (완전 매칭 우선, 부족하면 부분 매칭 추가)
+    let finalStocks = [];
+    let finalPartialStocks = [];
+
+    if (limit) {
+      const limitNum = parseInt(limit);
+      finalStocks = matchedStocks.slice(0, limitNum);
+      const remaining = limitNum - finalStocks.length;
+      if (remaining > 0) {
+        finalPartialStocks = partialMatchedStocks.slice(0, remaining);
+      }
+    } else {
+      finalStocks = matchedStocks;
+      finalPartialStocks = partialMatchedStocks;
+    }
+
+    console.log(`✅ ${pattern} 패턴 매칭: 완전일치 ${matchedStocks.length}개 + 부분일치 ${partialMatchedStocks.length}개`);
 
     res.status(200).json({
       success: true,
@@ -74,12 +124,17 @@ module.exports = async function handler(req, res) {
         avgReturn: targetPattern.avgReturn,
         backtest: targetPattern.backtest
       },
-      count: finalStocks.length,
+      count: finalStocks.length + finalPartialStocks.length,
+      completeMatches: finalStocks.length,
+      partialMatches: finalPartialStocks.length,
       stocks: finalStocks,
+      partialStocks: finalPartialStocks,
       metadata: {
         totalAnalyzed: result.metadata.totalAnalyzed,
-        totalMatched: matchedStocks.length,
-        returned: finalStocks.length
+        totalCompleteMatches: matchedStocks.length,
+        totalPartialMatches: partialMatchedStocks.length,
+        totalMatches: totalMatches,
+        returned: finalStocks.length + finalPartialStocks.length
       }
     });
 
