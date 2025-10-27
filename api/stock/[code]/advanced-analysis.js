@@ -1,7 +1,7 @@
 // Vercel Serverless Function
 // GET /api/stock/[code]/advanced-analysis
 
-const screener = require('../../../screening');
+const screener = require('../../../backend/screening');
 
 module.exports = async function handler(req, res) {
   // CORS 헤더
