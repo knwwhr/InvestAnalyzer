@@ -1337,8 +1337,11 @@
           const result = await response.json();
 
           if (result.success) {
-            alert(`패턴 분석 완료!\n- 발견된 패턴: ${result.patternsFound}개\n- 분석 종목: ${result.parameters.totalQualified}개`);
-            await fetchPatterns(); // 패턴 목록 갱신
+            // alert 대신 패턴 목록 바로 갱신하고 UI에 표시
+            setPatterns(result.patterns || []);
+            setLoading(false);
+            // 성공 메시지는 화면에 표시
+            setError(null);
           } else {
             setError(result.error || '패턴 분석 실패');
           }
@@ -1427,9 +1430,35 @@
             </div>
           </div>
 
+          {/* 분석 진행 중 상태 */}
+          {analyzing && (
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded">
+              <div className="flex items-center gap-4">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-4 border-b-4 border-blue-600"></div>
+                <div>
+                  <h4 className="font-bold text-blue-900 mb-1">패턴 분석 진행 중...</h4>
+                  <p className="text-sm text-blue-700">
+                    1️⃣ 거래량 증가율 상위 60개 종목 선별 중...<br/>
+                    2️⃣ 급등 조건 필터링 중...<br/>
+                    3️⃣ 패턴 추출 및 백테스팅 중...
+                  </p>
+                  <p className="text-xs text-blue-600 mt-2">⏱️ 약 3~5분 소요됩니다. 잠시만 기다려주세요.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 패턴 목록 */}
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-xl font-bold mb-4">📊 발견된 패턴 (승률 기준 상위 5개)</h3>
+            {patterns.length > 0 && (
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4 rounded">
+                <p className="text-sm text-green-800">
+                  ✅ <span className="font-bold">{patterns.length}개 패턴</span> 발견 완료!
+                  아래 패턴을 클릭하면 현재 시장에서 해당 패턴과 매칭되는 종목을 볼 수 있습니다.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {patterns.map((pattern, index) => (
                 <button
