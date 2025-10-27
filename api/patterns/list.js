@@ -2,7 +2,7 @@
 // GET /api/patterns/list
 // 저장된 패턴 목록 조회
 
-const patternMiner = require('../../backend/patternMining');
+const smartPatternMiner = require('../../backend/smartPatternMining');
 
 module.exports = async function handler(req, res) {
   // CORS 헤더
@@ -20,7 +20,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const patterns = patternMiner.loadSavedPatterns();
+    const patterns = smartPatternMiner.loadSavedPatterns();
 
     if (!patterns || patterns.length === 0) {
       return res.status(200).json({

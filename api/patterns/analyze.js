@@ -3,8 +3,7 @@
 // 스마트 패턴 분석 실행 (3단계 필터링)
 
 const smartPatternMiner = require('../../backend/smartPatternMining');
-const fs = require('fs');
-const path = require('path');
+const patternCache = require('../../backend/patternCache');
 
 module.exports = async function handler(req, res) {
   // CORS 헤더
@@ -34,21 +33,32 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // data 폴더가 없으면 생성
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-
-    // 결과 저장 (rawData 제외)
+    // 결과를 메모리 캐시에 저장 (rawData 제외)
     const saveData = {
       generatedAt: result.generatedAt,
       parameters: result.parameters,
       patterns: result.patterns
     };
 
-    const savePath = path.join(dataDir, 'patterns.json');
-    fs.writeFileSync(savePath, JSON.stringify(saveData, null, 2));
+    patternCache.savePatterns(saveData);
+
+    // 로컬 개발 환경에서는 파일로도 저장 시도
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const dataDir = path.join(process.cwd(), 'data');
+
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+
+      const savePath = path.join(dataDir, 'patterns.json');
+      fs.writeFileSync(savePath, JSON.stringify(saveData, null, 2));
+      console.log(`✅ 로컬 파일 저장 성공: ${savePath}`);
+    } catch (fsError) {
+      // Vercel에서는 파일 저장 실패해도 무시 (캐시만 사용)
+      console.log('ℹ️ 로컬 파일 저장 생략 (Serverless 환경)');
+    }
 
     console.log(`✅ 패턴 분석 완료: ${result.patterns.length}개 패턴 발견`);
 

@@ -555,17 +555,31 @@ class SmartPatternMiner {
   }
 
   /**
-   * 저장된 패턴 로드
+   * 저장된 패턴 로드 (메모리 캐시 사용)
    */
   loadSavedPatterns() {
     try {
-      const fs = require('fs');
-      const path = './data/patterns.json';
+      const patternCache = require('./patternCache');
+      const cached = patternCache.loadPatterns();
 
-      if (fs.existsSync(path)) {
-        const data = fs.readFileSync(path, 'utf8');
-        const parsed = JSON.parse(data);
-        return parsed.patterns || [];
+      if (cached && cached.patterns) {
+        console.log(`✅ 캐시된 패턴 로드: ${cached.patterns.length}개`);
+        return cached.patterns;
+      }
+
+      // 캐시가 없으면 로컬 파일에서 시도 (로컬 개발용)
+      try {
+        const fs = require('fs');
+        const path = './data/patterns.json';
+
+        if (fs.existsSync(path)) {
+          const data = fs.readFileSync(path, 'utf8');
+          const parsed = JSON.parse(data);
+          console.log(`✅ 로컬 파일에서 패턴 로드: ${parsed.patterns?.length || 0}개`);
+          return parsed.patterns || [];
+        }
+      } catch (fsError) {
+        // 파일시스템 오류는 무시 (Vercel에서는 읽기 전용)
       }
     } catch (error) {
       console.log('⚠️ 저장된 패턴 로드 실패:', error.message);
