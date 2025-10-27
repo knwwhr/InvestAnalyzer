@@ -190,7 +190,7 @@ class KISApi {
   }
 
   /**
-   * 거래량 급증 순위 조회
+   * 거래량 급증 순위 조회 (거래증가율 기준)
    * @param {string} market - 시장구분 ('KOSPI', 'KOSDAQ')
    * @param {number} limit - 조회 개수 (최대 30)
    */
@@ -205,16 +205,16 @@ class KISApi {
           'authorization': `Bearer ${token}`,
           'appkey': this.appKey,
           'appsecret': this.appSecret,
-          'tr_id': 'FHPST01730000'  // 거래량 급증 순위
+          'tr_id': 'FHPST01710000'  // 거래량 순위 (동일 TR_ID, 파라미터로 구분)
         },
         params: {
           FID_COND_MRKT_DIV_CODE: 'J',
-          FID_COND_SCR_DIV_CODE: '20173',
+          FID_COND_SCR_DIV_CODE: '20171',  // 거래량 순위 화면
           FID_INPUT_ISCD: '0000',
           FID_DIV_CLS_CODE: marketCode,
-          FID_BLNG_CLS_CODE: '0',
+          FID_BLNG_CLS_CODE: '1',  // 1: 거래증가율 (거래량 등락률)
           FID_TRGT_CLS_CODE: '111111111',
-          FID_TRGT_EXLS_CLS_CODE: '000000',
+          FID_TRGT_EXLS_CLS_CODE: '0000000000',  // 10자리
           FID_INPUT_PRICE_1: '',
           FID_INPUT_PRICE_2: '',
           FID_VOL_CNT: '',
@@ -277,16 +277,16 @@ class KISApi {
           'authorization': `Bearer ${token}`,
           'appkey': this.appKey,
           'appsecret': this.appSecret,
-          'tr_id': 'FHPST01720000'  // 거래대금 순위
+          'tr_id': 'FHPST01710000'  // 거래량 순위 (동일 TR_ID)
         },
         params: {
           FID_COND_MRKT_DIV_CODE: 'J',
-          FID_COND_SCR_DIV_CODE: '20172',
+          FID_COND_SCR_DIV_CODE: '20171',  // 거래량 순위 화면
           FID_INPUT_ISCD: '0000',
           FID_DIV_CLS_CODE: marketCode,
-          FID_BLNG_CLS_CODE: '0',
+          FID_BLNG_CLS_CODE: '3',  // 3: 거래금액순
           FID_TRGT_CLS_CODE: '111111111',
-          FID_TRGT_EXLS_CLS_CODE: '000000',
+          FID_TRGT_EXLS_CLS_CODE: '0000000000',  // 10자리
           FID_INPUT_PRICE_1: '',
           FID_INPUT_PRICE_2: '',
           FID_VOL_CNT: '',
@@ -473,13 +473,17 @@ class KISApi {
     this._apiErrors = [];
 
     try {
-      // 전략: 등락률 + 거래량 API 조합 (각 30개 제한)
-      // KOSPI/KOSDAQ 각각 등락률 30 + 거래량 30 = 60개씩
-      // 총 120개 (중복 제거 후 ~100개 목표)
+      // 전략: 4가지 순위 API 조합 (각 30개 제한)
+      // KOSPI/KOSDAQ 각각:
+      //   - 등락률 상승 30개
+      //   - 거래량 증가율 30개 (거래량 등락률)
+      //   - 거래량 순위 30개
+      //   - 거래대금 순위 30개
+      // = 120개/시장 * 2시장 = 240개 (중복 제거 후 ~100개 목표)
       for (const mkt of markets) {
         console.log(`\n📊 ${mkt} 시장 데이터 수집 중...`);
 
-        // 1. 등락률 상승 순위 (30개) - GitHub 공식 파라미터 사용
+        // 1. 등락률 상승 순위 (30개) - 가격 급등
         const priceChange = await this.getPriceChangeRank(mkt, 30);
         apiCallResults.push({ market: mkt, api: 'priceChange', count: priceChange.length, target: 30 });
         console.log(`  - 등락률 상승: ${priceChange.length}/30`);
@@ -487,13 +491,27 @@ class KISApi {
         priceChange.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
-            badgeMap.set(item.code, { priceChange: true, volume: false });
+            badgeMap.set(item.code, { priceChange: true, volumeSurge: false, volume: false, tradingValue: false });
           } else {
             badgeMap.get(item.code).priceChange = true;
           }
         });
 
-        // 2. 거래량 순위 (30개)
+        // 2. 거래량 증가율 순위 (30개) - 거래량 급증
+        const volumeSurge = await this.getVolumeSurgeRank(mkt, 30);
+        apiCallResults.push({ market: mkt, api: 'volumeSurge', count: volumeSurge.length, target: 30 });
+        console.log(`  - 거래량 증가율: ${volumeSurge.length}/30`);
+
+        volumeSurge.forEach(item => {
+          if (!stockMap.has(item.code)) {
+            stockMap.set(item.code, item.name);
+            badgeMap.set(item.code, { priceChange: false, volumeSurge: true, volume: false, tradingValue: false });
+          } else {
+            badgeMap.get(item.code).volumeSurge = true;
+          }
+        });
+
+        // 3. 거래량 순위 (30개) - 절대 거래량
         const volume = await this.getVolumeRank(mkt, 30);
         apiCallResults.push({ market: mkt, api: 'volume', count: volume.length, target: 30 });
         console.log(`  - 거래량 순위: ${volume.length}/30`);
@@ -501,9 +519,23 @@ class KISApi {
         volume.forEach(item => {
           if (!stockMap.has(item.code)) {
             stockMap.set(item.code, item.name);
-            badgeMap.set(item.code, { priceChange: false, volume: true });
+            badgeMap.set(item.code, { priceChange: false, volumeSurge: false, volume: true, tradingValue: false });
           } else {
             badgeMap.get(item.code).volume = true;
+          }
+        });
+
+        // 4. 거래대금 순위 (30개) - 대형주 활동성
+        const tradingValue = await this.getTradingValueRank(mkt, 30);
+        apiCallResults.push({ market: mkt, api: 'tradingValue', count: tradingValue.length, target: 30 });
+        console.log(`  - 거래대금 순위: ${tradingValue.length}/30`);
+
+        tradingValue.forEach(item => {
+          if (!stockMap.has(item.code)) {
+            stockMap.set(item.code, item.name);
+            badgeMap.set(item.code, { priceChange: false, volumeSurge: false, volume: false, tradingValue: true });
+          } else {
+            badgeMap.get(item.code).tradingValue = true;
           }
         });
       }
