@@ -215,8 +215,11 @@ class StockScreener {
   /**
    * 전체 종목 스크리닝 (100개 풀 기반)
    * 거래량 급증 30 + 거래량 20 + 거래대금 10 = 60개 * 2시장 = 120개 (중복 제거 후 ~100개)
+   * @param {string} market - 시장 구분
+   * @param {number} limit - 반환 개수 제한
+   * @param {boolean} skipScoreFilter - true면 점수 필터 건너뜀 (패턴 매칭용)
    */
-  async screenAllStocks(market = 'ALL', limit) {
+  async screenAllStocks(market = 'ALL', limit, skipScoreFilter = false) {
     console.log(`🔍 종합 TOP 스크리닝 시작 (100개 풀${limit ? `, 상위 ${limit}개 반환` : ', 전체 반환'})...\n`);
 
     // 종목 풀 생성 (KIS API 또는 fallback 하드코딩 리스트)
@@ -237,9 +240,10 @@ class StockScreener {
         const analysis = await this.analyzeStock(stockCode);
         analyzed++;
 
-        if (analysis && analysis.totalScore >= 30) {
+        // skipScoreFilter가 true면 점수 무시, false면 30점 이상만
+        if (analysis && (skipScoreFilter || analysis.totalScore >= 30)) {
           results.push(analysis);
-          console.log(`✅ [${results.length}] ${analysis.stockName} - 점수: ${analysis.totalScore.toFixed(1)}`);
+          console.log(`✅ [${results.length}] ${analysis.stockName} (${analysis.stockCode}) - 점수: ${analysis.totalScore.toFixed(1)}`);
         }
 
         // API 호출 간격 (200ms)

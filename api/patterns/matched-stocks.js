@@ -43,8 +43,8 @@ module.exports = async function handler(req, res) {
 
     console.log(`🔍 패턴 매칭 종목 검색: ${pattern} (${targetPattern.name})`);
 
-    // 전체 스크리닝 실행
-    const result = await screener.screenAllStocks(market);
+    // 전체 스크리닝 실행 (점수 필터 건너뜀 - 패턴만 체크)
+    const result = await screener.screenAllStocks(market, null, true);
 
     // 완전 매칭 종목 필터링
     const matchedStocks = result.stocks.filter(stock => {

@@ -1543,8 +1543,8 @@
                       <p className="text-xs text-gray-600 mb-1 font-semibold">📌 학습 샘플 종목:</p>
                       <div className="flex flex-wrap gap-1">
                         {pattern.sampleStockNames.map((name, i) => (
-                          <span key={i} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                            {name}
+                          <span key={i} className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded" title={pattern.sampleStocks?.[i] || ''}>
+                            {name} {pattern.sampleStocks?.[i] && `(${pattern.sampleStocks[i]})`}
                           </span>
                         ))}
                       </div>
