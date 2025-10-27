@@ -1,8 +1,8 @@
 // Vercel Serverless Function
 // POST /api/patterns/analyze
-// 패턴 분석 실행 (관리자 전용)
+// 스마트 패턴 분석 실행 (3단계 필터링)
 
-const patternMiner = require('../../backend/patternMining');
+const smartPatternMiner = require('../../backend/smartPatternMining');
 const fs = require('fs');
 const path = require('path');
 
@@ -22,12 +22,10 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { lookbackDays = 30, minReturn = 15 } = req.body || {};
+    console.log(`🔍 스마트 패턴 분석 시작 (3단계 필터링)`);
 
-    console.log(`🔍 패턴 분석 시작: ${lookbackDays}일, ${minReturn}% 이상 급등`);
-
-    // 패턴 분석 실행
-    const result = await patternMiner.analyzeSurgePatterns(lookbackDays, minReturn);
+    // 스마트 패턴 분석 실행
+    const result = await smartPatternMiner.analyzeSmartPatterns();
 
     if (!result) {
       return res.status(400).json({

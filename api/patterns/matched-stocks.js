@@ -3,7 +3,7 @@
 // 특정 패턴과 매칭되는 종목 찾기
 
 const screener = require('../../backend/screening');
-const patternMiner = require('../../backend/patternMining');
+const smartPatternMiner = require('../../backend/smartPatternMining');
 
 module.exports = async function handler(req, res) {
   // CORS 헤더
@@ -31,7 +31,7 @@ module.exports = async function handler(req, res) {
     }
 
     // 저장된 패턴 로드
-    const savedPatterns = patternMiner.loadSavedPatterns();
+    const savedPatterns = smartPatternMiner.loadSavedPatterns();
     const targetPattern = savedPatterns.find(p => p.key === pattern);
 
     if (!targetPattern) {
@@ -48,9 +48,16 @@ module.exports = async function handler(req, res) {
 
     // 패턴 매칭된 종목만 필터링
     const matchedStocks = result.stocks.filter(stock => {
-      return stock.patternMatch &&
-             stock.patternMatch.matched &&
-             stock.patternMatch.patterns.some(p => p.key === pattern);
+      const patternMatch = stock.patternMatch;
+      if (!patternMatch || !patternMatch.matched) return false;
+
+      // patterns 배열에서 해당 패턴 키를 찾되, name으로도 비교
+      return patternMatch.patterns.some(p => {
+        // key가 있으면 key로, 없으면 name으로 비교
+        if (p.key) return p.key === pattern;
+        // name으로 targetPattern 찾기
+        return p.name === targetPattern.name;
+      });
     });
 
     // limit 적용

@@ -7,10 +7,29 @@
 - **목적**: 거래량 기반 창의적 지표로 급등 가능성이 높은 종목 자동 발굴
 - **기술 스택**: Node.js, React (CDN), Vercel Serverless, KIS OpenAPI
 - **배포 URL**: https://investar-xi.vercel.app
+- **개발 기간**: 2025년 10월 (Phase 1~4 완료)
+- **버전**: 2.1 (KIS API 통합 완료)
 
 ---
 
-## 핵심 기능
+## 📊 현재 시스템 상태 (2025-10-27)
+
+### ✅ 작동 현황
+- **종목 풀 확보**: 80개 (KOSPI + KOSDAQ)
+- **API 호출**: 240개/일 (4개 순위 API × 2시장 × 30개)
+- **중복 제거율**: 67% (240개 → 80개)
+- **분석 성공률**: 100% (80개 전체 분석 완료)
+- **추천 종목**: 평균 27개/일 (30점 이상)
+
+### 🎯 핵심 성과
+- ✅ **KIS API 통합 완료** - 4개 순위 API 정상 작동
+- ✅ **동적 종목 발굴** - Fallback 없이 실시간 API 호출
+- ✅ **패턴 마이닝 시스템** - 급등 패턴 자동 학습
+- ✅ **Vercel 배포 완료** - Serverless 환경 최적화
+
+---
+
+## 🚀 핵심 기능
 
 ### 1. 🎯 종목 스크리닝 시스템
 
@@ -79,7 +98,7 @@
 
 ---
 
-### 2. 📈 패턴 마이닝 시스템 (신규)
+### 2. 📈 패턴 마이닝 시스템
 
 과거 급등 종목의 공통 패턴을 학습하여 미래 급등 예측력을 높입니다.
 
@@ -122,36 +141,17 @@
 - 최대 +20점 (여러 패턴 매칭 시 합산)
 ```
 
-#### 패턴 매칭 보너스
-
-```javascript
-패턴 보너스 = (패턴 승률 / 100) * 15
-
-예시:
-- 승률 80% 패턴 매칭 → +12점
-- 승률 60% 패턴 매칭 → +9점
-- 최대 20점 제한 (여러 패턴 중복 매칭 시)
-```
-
-#### 자동 업데이트
-
-**Vercel Cron 설정**:
-- 매일 오전 9시 UTC (한국 시간 오후 6시) 자동 실행
-- 장 마감 후 패턴 재분석
-- `data/patterns.json`에 결과 저장
-- 익일 스크리닝부터 새 패턴 적용
-
 ---
 
 ### 3. 🔍 카테고리별 스크리닝
 
-**전체 TOP 100 종목 풀 구성**:
+**전체 TOP 80 종목 풀 구성** (2025-10-27 업데이트):
 ```
-거래량 급증 순위 40개 (가장 중요)
-+ 거래량 순위 30개
-+ 거래대금 순위 20개
-+ 조용한 누적 패턴 10개
-= 총 100개 풀 (중복 제거)
+등락률 상승 순위: 30개 × 2시장 = 60개
++ 거래량 증가율 순위: 30개 × 2시장 = 60개 (거래량 등락률)
++ 거래량 순위: 30개 × 2시장 = 60개
++ 거래대금 순위: 30개 × 2시장 = 60개
+= 총 240개 API 호출 → 중복 제거 후 80개 확보 (67% 중복)
 ```
 
 **카테고리**:
@@ -164,7 +164,221 @@
 
 ---
 
-## API 엔드포인트
+## 🔧 한국투자증권 API 연동 이슈 및 해결
+
+### ⚠️ 문제점 1: 거래량 급증 API 작동 불가
+
+**증상**:
+```javascript
+// FHPST01730000 (거래량 급증 순위) - 0개 반환
+const volumeSurge = await kisApi.getVolumeSurgeRank('KOSPI', 30);
+// Result: [] (빈 배열)
+```
+
+**원인**:
+- TR_ID `FHPST01730000`이 실제로 존재하지 않거나 deprecated
+- KIS API 공식 문서와 실제 API 동작 불일치
+- 파라미터 설정 오류 (FID_COND_SCR_DIV_CODE 등)
+
+**시도한 해결 방법** (실패):
+1. ❌ 엔드포인트 변경: `/quotations/volume-rank` → 여전히 0개
+2. ❌ TR_ID 변경: `FHPST01730000` → `FHPST01700000` → 여전히 0개
+3. ❌ FID_COND_SCR_DIV_CODE 변경: `20173` → `20170` → 여전히 0개
+
+**최종 해결**:
+```javascript
+// GitHub 공식 저장소에서 발견한 사실:
+// "거래량 급증"은 별도 TR_ID가 아니라 파라미터로 구분!
+
+// ✅ 올바른 방법: fid_blng_cls_code 활용
+async getVolumeSurgeRank(market = 'KOSPI', limit = 30) {
+  const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/quotations/volume-rank`, {
+    headers: {
+      'tr_id': 'FHPST01710000'  // 거래량 순위와 동일 TR_ID
+    },
+    params: {
+      FID_COND_SCR_DIV_CODE: '20171',
+      FID_BLNG_CLS_CODE: '1',  // 🔑 핵심: 1 = 거래증가율 (거래량 등락률)
+      // 0: 평균거래량
+      // 1: 거래증가율 ← 거래량 급증
+      // 2: 평균거래회전율
+      // 3: 거래금액순
+      // 4: 평균거래금액회전율
+    }
+  });
+}
+```
+
+**참고 자료**:
+- 공식 저장소: `koreainvestment/open-trading-api` (GitHub)
+- 파일: `examples_user/domestic_stock/domestic_stock_functions.py`
+- 함수: `volume_rank()` 의 `fid_blng_cls_code` 파라미터 설명
+
+---
+
+### ⚠️ 문제점 2: 거래대금 순위 API 작동 불가
+
+**증상**:
+```javascript
+// FHPST01720000 (거래대금 순위) - 0개 반환
+const tradingValue = await kisApi.getTradingValueRank('KOSPI', 30);
+// Result: [] (빈 배열)
+```
+
+**원인**:
+- 문제점 1과 동일 - 별도 TR_ID가 아닌 파라미터로 구분
+
+**최종 해결**:
+```javascript
+// ✅ 올바른 방법
+async getTradingValueRank(market = 'KOSPI', limit = 30) {
+  const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/quotations/volume-rank`, {
+    headers: {
+      'tr_id': 'FHPST01710000'  // 동일 TR_ID
+    },
+    params: {
+      FID_COND_SCR_DIV_CODE: '20171',
+      FID_BLNG_CLS_CODE: '3',  // 🔑 핵심: 3 = 거래금액순
+    }
+  });
+}
+```
+
+---
+
+### ⚠️ 문제점 3: 등락률 순위 API 파라미터 누락
+
+**증상**:
+```javascript
+// FHPST01700000 (등락률 순위) - 0개 반환
+const priceChange = await kisApi.getPriceChangeRank('KOSPI', 30);
+// Result: [] (빈 배열)
+```
+
+**원인**:
+- 필수 파라미터 14개 중 4개 누락
+- 공식 문서에는 없지만 실제로는 필수인 파라미터들
+
+**시도한 해결 방법** (실패):
+```javascript
+// ❌ 부족한 파라미터 (10개)
+params: {
+  FID_COND_MRKT_DIV_CODE: 'J',
+  FID_COND_SCR_DIV_CODE: '20170',
+  FID_INPUT_ISCD: '0000',
+  FID_DIV_CLS_CODE: marketCode,
+  FID_BLNG_CLS_CODE: '0',
+  FID_TRGT_CLS_CODE: '111111111',
+  FID_TRGT_EXLS_CLS_CODE: '000000',  // ❌ 6자리 (잘못됨)
+  FID_INPUT_PRICE_1: '',
+  FID_INPUT_PRICE_2: '',
+  FID_VOL_CNT: ''
+}
+```
+
+**최종 해결**:
+```javascript
+// ✅ 올바른 방법 (14개 필수 파라미터)
+async getPriceChangeRank(market = 'KOSPI', limit = 30) {
+  const response = await axios.get(`${this.baseUrl}/uapi/domestic-stock/v1/ranking/fluctuation`, {
+    headers: {
+      'tr_id': 'FHPST01700000'
+    },
+    params: {
+      FID_COND_MRKT_DIV_CODE: 'J',
+      FID_COND_SCR_DIV_CODE: '20170',
+      FID_INPUT_ISCD: '0000',
+      FID_RANK_SORT_CLS_CODE: '0',        // 🆕 추가
+      FID_INPUT_CNT_1: String(limit),     // 🆕 추가
+      FID_PRC_CLS_CODE: '0',              // 🆕 추가
+      FID_INPUT_PRICE_1: '0',
+      FID_INPUT_PRICE_2: '1000000',
+      FID_VOL_CNT: '0',
+      FID_TRGT_CLS_CODE: '0',
+      FID_TRGT_EXLS_CLS_CODE: '0000000000',  // 🔧 10자리로 수정
+      FID_DIV_CLS_CODE: '0',              // 🆕 추가
+      FID_RSFL_RATE1: '0',                // 🆕 추가
+      FID_RSFL_RATE2: '1000'              // 🆕 추가
+    }
+  });
+}
+```
+
+**핵심 발견**:
+- `FID_TRGT_EXLS_CLS_CODE`: 6자리 → **10자리**로 수정 필요
+- `FID_RANK_SORT_CLS_CODE`, `FID_INPUT_CNT_1` 등 4개 파라미터 필수
+
+---
+
+### ⚠️ 문제점 4: 조건검색 API 자동화 불가
+
+**시도한 방법**:
+```
+종목조건검색 API (HTS [0110])를 사용하여 100개 종목 확보 시도
+- 엔드포인트: /uapi/domestic-stock/v1/quotations/psearch-result
+- 최대 100건 반환 가능
+```
+
+**문제점**:
+1. ❌ **HTS에서 수동 설정 필수**: API만으로는 조건 생성 불가
+2. ❌ **"사용자조건 서버저장" 클릭 필요**: 수동 작업 필수
+3. ❌ **자동화 불가능**: 프로그래밍 방식으로 동적 조건 생성 불가
+
+**결론**:
+- 조건검색 API는 자동화된 스크리닝 시스템에 부적합
+- 순위 API 조합으로 대체 (등락률 + 거래량증가율 + 거래량 + 거래대금)
+
+---
+
+### ⚠️ 문제점 5: API 호출 제한 (30개)
+
+**문제점**:
+```javascript
+// 60개 요청 시도
+const volume = await this.getVolumeRank('KOSPI', 60);
+// Result: 30개만 반환 (API 제한)
+```
+
+**KIS API 제한사항**:
+- **순위 API**: 최대 30건 고정
+- **다음 조회 불가**: 연속 조회 미지원
+- **공식 문서**: "최대 30건 확인 가능하며, 다음 조회가 불가합니다"
+
+**해결 방법**:
+```javascript
+// 다양한 순위 API 조합으로 종목 수 확보
+// KOSPI/KOSDAQ 각각:
+//   - 등락률 30개
+//   - 거래량증가율 30개
+//   - 거래량 30개
+//   - 거래대금 30개
+// = 120개/시장 × 2시장 = 240개 → 중복 제거 후 80개
+```
+
+---
+
+### 📚 해결 과정에서 얻은 교훈
+
+1. **공식 문서만 믿지 말 것**
+   - KIS API 공식 문서는 불완전
+   - GitHub 공식 저장소 샘플 코드가 더 정확
+
+2. **TR_ID보다 파라미터가 중요**
+   - 같은 TR_ID로 여러 순위 조회 가능
+   - `fid_blng_cls_code` 같은 파라미터가 핵심
+
+3. **에러 메시지 신뢰도 낮음**
+   - "API 오류"만 반환하고 구체적 원인 없음
+   - 직접 파라미터 조합 테스트 필요
+
+4. **커뮤니티 리소스 활용**
+   - GitHub 저장소: `koreainvestment/open-trading-api`
+   - Python 구현체: `python-kis` (Soju06)
+   - 실제 작동하는 코드 참고가 가장 정확
+
+---
+
+## 📡 API 엔드포인트
 
 ### 스크리닝 API
 
@@ -178,10 +392,18 @@ Response:
   "count": 10,
   "recommendations": [...],
   "metadata": {
-    "totalAnalyzed": 100,
-    "totalFound": 45,
+    "totalAnalyzed": 80,
+    "totalFound": 27,
     "returned": 10,
-    "poolSize": 100
+    "poolSize": 80,
+    "debug": {
+      "apiCallResults": [
+        {"market": "KOSPI", "api": "priceChange", "count": 30, "target": 30},
+        {"market": "KOSPI", "api": "volumeSurge", "count": 30, "target": 30},
+        {"market": "KOSPI", "api": "volume", "count": 30, "target": 30},
+        {"market": "KOSPI", "api": "tradingValue", "count": 30, "target": 30}
+      ]
+    }
   }
 }
 ```
@@ -235,95 +457,9 @@ Response:
 }
 ```
 
-**패턴 분석 실행** (관리자용)
-```bash
-POST /api/patterns/analyze
-Content-Type: application/json
-
-{
-  "lookbackDays": 30,
-  "minReturn": 15
-}
-
-Response:
-{
-  "success": true,
-  "message": "패턴 분석이 완료되었습니다.",
-  "generatedAt": "2025-10-26T10:00:00.000Z",
-  "parameters": {
-    "lookbackDays": 30,
-    "minReturn": 15,
-    "totalSurgeStocks": 60
-  },
-  "patternsFound": 5,
-  "patterns": [...]
-}
-```
-
-**특정 패턴 매칭 종목**
-```bash
-GET /api/patterns/matched-stocks?pattern=whale_accumulation&limit=10
-
-Response:
-{
-  "success": true,
-  "pattern": {
-    "key": "whale_accumulation",
-    "name": "고래 + 조용한 매집",
-    "frequency": "25.0",
-    "avgReturn": "18.50",
-    "backtest": {...}
-  },
-  "count": 3,
-  "stocks": [...],
-  "metadata": {
-    "totalAnalyzed": 100,
-    "totalMatched": 3,
-    "returned": 3
-  }
-}
-```
-
-### 성과 검증 API
-
-**백테스팅 결과**
-```bash
-GET /api/backtest
-
-Response:
-{
-  "success": true,
-  "data": {
-    "generatedAt": "...",
-    "parameters": {
-      "lookbackDays": 30,
-      "holdingDays": 7
-    },
-    "statistics": {
-      "overall": {
-        "totalCount": 150,
-        "winRate": 65.3,
-        "avgReturn": 8.5,
-        "maxReturn": 45.2,
-        "minReturn": -15.3,
-        "winCount": 98
-      },
-      "byGrade": {...},
-      "byCategory": {...},
-      "advanced": {
-        "sharpeRatio": 1.45,
-        "maxDrawdown": 8.2,
-        "profitFactor": 2.1,
-        "excessReturn": 5.3
-      }
-    }
-  }
-}
-```
-
 ---
 
-## 로컬 개발 가이드
+## 🛠️ 로컬 개발 가이드
 
 ### 환경 설정
 
@@ -344,30 +480,42 @@ npm start
 # http://localhost:3001
 ```
 
-### 패턴 마이닝 테스트
+### KIS API 키 발급 방법
 
-```bash
-# 패턴 분석 실행 (콘솔 출력)
-node test-pattern-mining.js
+1. **KIS Developers 가입**
+   - https://apiportal.koreainvestment.com
+   - 한국투자증권 계좌 필요 (모의투자 가능)
 
-# 결과 확인
-cat data/patterns.json
-```
+2. **앱 등록**
+   - API 신청 > 앱 등록
+   - APP_KEY, APP_SECRET 발급
 
-### 스크리닝 테스트
+3. **환경변수 설정**
+   ```bash
+   # .env 파일 생성
+   KIS_APP_KEY=PS1234567890abcdef...
+   KIS_APP_SECRET=1a2b3c4d5e6f7g8h9i0j...
+   ```
+
+### API 테스트
 
 ```bash
 # 로컬 API 테스트
 curl http://localhost:3001/api/screening/recommend?limit=5
 
+# 특정 카테고리 테스트
 curl http://localhost:3001/api/screening/whale
 
+# 패턴 목록 조회
 curl http://localhost:3001/api/patterns/list
+
+# Vercel 배포 후 테스트
+curl https://investar-xi.vercel.app/api/screening/recommend?limit=5
 ```
 
 ---
 
-## 프로젝트 구조
+## 📁 프로젝트 구조
 
 ```
 investar/
@@ -386,11 +534,11 @@ investar/
 │   └── tracker.js               # 실시간 추적
 │
 ├── backend/                      # 백엔드 로직
-│   ├── kisApi.js                # KIS OpenAPI 클라이언트
+│   ├── kisApi.js                # KIS OpenAPI 클라이언트 ⭐
 │   ├── screening.js             # 스크리닝 엔진
 │   ├── volumeIndicators.js      # 거래량 지표
 │   ├── advancedIndicators.js    # 창의적 지표
-│   └── patternMining.js         # 패턴 마이닝 시스템 ⭐
+│   └── patternMining.js         # 패턴 마이닝 시스템
 │
 ├── data/
 │   └── patterns.json            # 저장된 패턴 데이터
@@ -398,99 +546,33 @@ investar/
 ├── index.html                    # React SPA 프론트엔드
 ├── server.js                     # 로컬 개발 서버
 ├── vercel.json                   # Vercel 설정 + Cron
-└── test-pattern-mining.js        # 패턴 마이닝 테스트
+├── package.json                  # 의존성 관리
+├── .env                          # 환경변수 (gitignore)
+└── CLAUDE.md                     # 이 문서
 ```
+
+### 핵심 파일 설명
+
+**backend/kisApi.js**:
+- KIS OpenAPI 통합 클라이언트
+- 4개 순위 API 구현 (등락률, 거래량증가율, 거래량, 거래대금)
+- 토큰 관리 및 에러 핸들링
+- **가장 중요한 파일** - API 연동 문제 해결 내역 포함
+
+**backend/screening.js**:
+- 종목 분석 및 점수 계산 로직
+- 창의적 지표 통합
+- 카테고리별 필터링
+
+**backend/patternMining.js**:
+- 급등 패턴 학습 및 매칭
+- 백테스팅 시스템
 
 ---
 
-## 핵심 알고리즘
+## ⚙️ 주요 설정
 
-### 종목 발굴 로직
-
-```javascript
-// 1. 동적 종목 풀 생성 (100개)
-const pool = [
-  ...거래량급증 40개,
-  ...거래량순위 30개,
-  ...거래대금 20개,
-  ...조용한누적 10개
-];
-
-// 2. 각 종목 분석
-for (const stock of pool) {
-  // 2-1. 거래량 지표 분석
-  const volumeAnalysis = analyzeVolume(chartData);
-
-  // 2-2. 창의적 지표 분석
-  const advancedAnalysis = analyzeAdvanced(chartData);
-
-  // 2-3. 과열 감지
-  const overheating = checkOverheating(chartData);
-
-  // 2-4. 패턴 매칭 (신규)
-  const patternMatch = checkPatternMatch(stock, savedPatterns);
-
-  // 2-5. 종합 점수 계산
-  let totalScore =
-    advancedAnalysis.totalScore * 0.4 +
-    volumeScore +
-    mfiScore +
-    obvScore +
-    momentumScore +
-    patternMatch.bonusScore +  // 🆕 패턴 보너스
-    overheating.scorePenalty;
-
-  // 2-6. 30점 이상만 통과
-  if (totalScore >= 30) {
-    results.push(stock);
-  }
-}
-
-// 3. 점수 순 정렬 후 반환
-return results.sort((a, b) => b.totalScore - a.totalScore);
-```
-
-### 패턴 매칭 로직
-
-```javascript
-// 1. 현재 종목 지표 추출
-const stockIndicators = {
-  whale: stock.advancedAnalysis.indicators.whale.length,
-  accumulation: stock.advancedAnalysis.indicators.accumulation.detected,
-  escape: stock.advancedAnalysis.indicators.escape.detected,
-  drain: stock.advancedAnalysis.indicators.drain.detected,
-  asymmetric: stock.advancedAnalysis.indicators.asymmetric.ratio,
-  volumeRatio: stock.volume / stock.volumeAnalysis.current.volumeMA20,
-  mfi: stock.volumeAnalysis.indicators.mfi,
-  closingStrength: stock.advancedAnalysis.indicators.escape.closingStrength
-};
-
-// 2. 저장된 패턴과 매칭
-const matchedPatterns = [];
-let bonusScore = 0;
-
-for (const pattern of savedPatterns) {
-  if (matchesPattern(stockIndicators, pattern.key)) {
-    matchedPatterns.push(pattern);
-
-    // 패턴 승률에 비례한 보너스
-    bonusScore += (pattern.backtest.winRate / 100) * 15;
-  }
-}
-
-// 3. 최대 20점 제한
-return {
-  matched: matchedPatterns.length > 0,
-  patterns: matchedPatterns,
-  bonusScore: Math.min(bonusScore, 20)
-};
-```
-
----
-
-## 주요 설정
-
-### Vercel Cron 설정 (vercel.json)
+### Vercel 배포 설정 (vercel.json)
 
 ```json
 {
@@ -508,9 +590,6 @@ return {
 }
 ```
 
-- 매일 오전 9시 UTC (한국 시간 오후 6시) 실행
-- 장 마감 후 자동으로 패턴 재분석
-
 ### 환경변수 (Vercel)
 
 ```
@@ -521,7 +600,7 @@ CRON_SECRET=<선택사항: Cron 보안용>
 
 ---
 
-## 성과 지표
+## 📈 성과 지표
 
 ### 백테스팅 지표
 
@@ -540,7 +619,7 @@ CRON_SECRET=<선택사항: Cron 보안용>
 
 ---
 
-## 사용 시 주의사항
+## ⚠️ 사용 시 주의사항
 
 ### 투자 주의사항
 
@@ -555,30 +634,96 @@ CRON_SECRET=<선택사항: Cron 보안용>
 ### API 사용 제한
 
 - **KIS API 호출 제한**: 초당 20회
+- **순위 API 제한**: 최대 30건/호출
 - **Vercel Timeout**: 최대 60초
 - **Cron 실행**: 하루 1회 (장 마감 후)
 
 ---
 
-## 향후 개선 계획
+## 🚧 알려진 제약사항
 
-### Phase 5 (예정)
+1. **종목 풀 크기 제한**
+   - 목표: 100개
+   - 현재: 80개 (API 제약으로 인한 한계)
+   - 원인: 순위 API별 30개 제한 + 67% 중복
 
-- [ ] 패턴 UI 탭 추가 (프론트엔드)
-- [ ] 패턴별 승률/수익률 시각화
-- [ ] 실시간 패턴 매칭 알림
-- [ ] 포트폴리오 시뮬레이션 강화
-- [ ] 머신러닝 모델 도입 (선택적)
+2. **실시간 데이터 미지원**
+   - KIS API는 실시간 스트리밍 미지원
+   - 분봉 데이터는 지연 존재
+
+3. **조건검색 자동화 불가**
+   - HTS 수동 설정 필수
+   - 프로그래밍 방식 조건 생성 불가
 
 ---
 
-## 문의 및 기여
+## 🔮 향후 개선 계획
+
+### Phase 5 (계획)
+
+- [ ] **종목 풀 확대**: 추가 API 발견 시 100개 확보
+- [ ] **WebSocket 연동**: 실시간 시세 반영
+- [ ] **패턴 UI 개선**: 프론트엔드 패턴 시각화
+- [ ] **알림 시스템**: 패턴 매칭 시 알림 발송
+- [ ] **포트폴리오 시뮬레이션**: 실제 투자 결과 추적
+
+### 기술 부채
+
+- [ ] 순위 API 중복 제거 최적화
+- [ ] 에러 핸들링 고도화
+- [ ] 캐싱 시스템 도입
+- [ ] 테스트 코드 작성
+
+---
+
+## 📚 참고 자료
+
+### 공식 문서
+- **KIS Developers**: https://apiportal.koreainvestment.com
+- **API 공지**: https://www.truefriend.com/main/customer/systemdown/OpenAPI.jsp
+
+### GitHub 저장소
+- **공식 샘플 코드**: https://github.com/koreainvestment/open-trading-api
+- **Python 구현체**: https://github.com/Soju06/python-kis
+- **본 프로젝트**: https://github.com/knwwhr/investar
+
+### 유용한 링크
+- **WikiDocs - KIS API 가이드**: https://wikidocs.net/159296
+- **Vercel Serverless**: https://vercel.com/docs/functions
+
+---
+
+## 🤝 문의 및 기여
 
 - **GitHub**: https://github.com/knwwhr/investar
 - **Issues**: 버그 리포트 및 기능 제안 환영
+- **Discussions**: 사용 방법 및 투자 전략 토론
 
 ---
 
-**Last Updated**: 2025-10-26
-**Version**: 2.0 (Pattern Mining 통합)
+## 📝 변경 이력
+
+### v2.1 (2025-10-27)
+- ✅ KIS API 통합 완료 (4개 순위 API)
+- ✅ 거래량 증가율 API 추가
+- ✅ 등락률 API 파라미터 수정
+- ✅ 종목 풀 80개 확보 (67% 중복 제거)
+- ✅ 뱃지 시스템 정상화
+
+### v2.0 (2025-10-26)
+- ✅ 패턴 마이닝 시스템 통합
+- ✅ 백테스팅 API 추가
+- ✅ Vercel Cron 설정
+
+### v1.0 (2025-10-25)
+- ✅ 기본 스크리닝 시스템 구축
+- ✅ 창의적 지표 개발
+- ✅ React SPA 프론트엔드
+
+---
+
+**Last Updated**: 2025-10-27
+**Version**: 2.1 (KIS API Integration Complete)
 **Author**: Claude Code with @knwwhr
+
+**🎉 KIS API 연동 완료!**

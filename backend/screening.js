@@ -1,7 +1,7 @@
 const kisApi = require('./kisApi');
 const volumeIndicators = require('./volumeIndicators');
 const advancedIndicators = require('./advancedIndicators');
-const patternMiner = require('./patternMining');
+const smartPatternMiner = require('./smartPatternMining');
 
 /**
  * 전체 종목 스크리닝 및 추천
@@ -11,7 +11,7 @@ class StockScreener {
     this.cachedResults = null;
     this.cacheTimestamp = null;
     this.cacheDuration = 60 * 60 * 1000; // 1시간 캐시
-    this.savedPatterns = patternMiner.loadSavedPatterns(); // 저장된 패턴 로드
+    this.savedPatterns = smartPatternMiner.loadSavedPatterns(); // 저장된 패턴 로드
   }
 
   /**
@@ -49,7 +49,7 @@ class StockScreener {
       totalScore += overheating.scorePenalty;
 
       // 패턴 매칭 보너스 (최대 +20점)
-      const patternMatch = patternMiner.checkPatternMatch(
+      const patternMatch = smartPatternMiner.checkPatternMatch(
         { volumeAnalysis, advancedAnalysis },
         this.savedPatterns
       );
