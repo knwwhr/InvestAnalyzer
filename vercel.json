@@ -4,6 +4,9 @@
       "maxDuration": 60
     }
   },
+  "rewrites": [
+    { "source": "/tracking-dashboard.html", "destination": "/tracking-dashboard.html" }
+  ],
   "crons": [
     {
       "path": "/api/cron/update-patterns",
