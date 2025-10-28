@@ -1691,14 +1691,20 @@
                   </div>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
+                      <span className="text-gray-600">신뢰도</span>
+                      <span className={`font-bold ${parseFloat(pattern.confidence) >= 70 ? 'text-green-600' : parseFloat(pattern.confidence) >= 50 ? 'text-blue-600' : 'text-gray-600'}`}>
+                        {pattern.confidence}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
                       <span className="text-gray-600">승률</span>
-                      <span className={`font-bold ${pattern.backtest.winRate >= 70 ? 'text-green-600' : 'text-blue-600'}`}>
-                        {pattern.backtest.winRate}%
+                      <span className={`font-bold ${parseFloat(pattern.winRate) >= 70 ? 'text-green-600' : 'text-blue-600'}`}>
+                        {pattern.winRate}% ({pattern.wins}승 {pattern.losses}패)
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">평균 수익률</span>
-                      <span className="font-bold text-red-600">+{pattern.backtest.avgReturn}%</span>
+                      <span className="font-bold text-red-600">+{pattern.avgReturn}%</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">출현 빈도</span>
@@ -1706,14 +1712,12 @@
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">샘플 수</span>
-                      <span className="font-bold text-gray-700">{pattern.backtest.totalSamples}개</span>
+                      <span className="font-bold text-gray-700">{pattern.count}개</span>
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-200">
                     <div className="text-xs text-gray-500">
-                      최고 수익: <span className="text-green-600 font-semibold">+{pattern.backtest.maxReturn}%</span>
-                      {' / '}
-                      최저 수익: <span className="text-red-600 font-semibold">{pattern.backtest.minReturn}%</span>
+                      ⏰ 선행시간: <span className="text-purple-600 font-semibold">{pattern.leadTime || 5}거래일 전</span>
                     </div>
                   </div>
                   {/* 샘플 종목 표시 */}
@@ -1769,7 +1773,7 @@
                       <div>
                         <span className="text-gray-700 font-semibold">총 {matchedStocks.length}개 종목 감지</span>
                         <span className="text-gray-600 ml-3">
-                          (승률 {selectedPattern.backtest.winRate}% 기준, 평균 수익률 +{selectedPattern.backtest.avgReturn}%)
+                          (신뢰도 {selectedPattern.confidence}%, 승률 {selectedPattern.winRate}%, 평균 수익률 +{selectedPattern.avgReturn}%)
                         </span>
                       </div>
                       <div className="flex gap-2">
