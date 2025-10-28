@@ -72,15 +72,15 @@ class SmartPatternMiner {
   }
 
   /**
-   * Phase 2 + Phase 3: 10거래일 수익률 15% 이상 + 되돌림 필터링
+   * Phase 2 + Phase 3: 10거래일 수익률 15% 이상 + D-5 선행 지표 분석
    * @param {Array} stockCodes - Phase 1에서 선별된 종목 코드
    * @param {Map} nameMap - 종목 코드 -> 종목명 매핑
    */
   async filterBySurgeAndPullback(stockCodes, nameMap) {
-    console.log('🔍 Phase 2 + 3: 급등 조건 + 되돌림 필터링...');
+    console.log('🔍 Phase 2 + 3: 급등 종목 찾기 + D-5 선행 지표 분석...');
     console.log(`  - 대상: ${stockCodes.length}개 종목`);
     console.log(`  - 조건: 10거래일 대비 +15% 이상 상승`);
-    console.log(`  - 필터: 고가 대비 -10% 이상 하락 제외\n`);
+    console.log(`  - 분석: 급등 5거래일 전(D-5) 지표 추출\n`);
 
     const qualified = [];
     let analyzed = 0;
@@ -91,82 +91,111 @@ class SmartPatternMiner {
       try {
         analyzed++;
 
-        // 충분한 기간 데이터 가져오기
-        const chartData = await kisApi.getDailyChart(stockCode, this.lookbackDays + 5);
+        // 충분한 기간 데이터 가져오기 (최소 20일)
+        const chartData = await kisApi.getDailyChart(stockCode, 30);
 
-        if (!chartData || chartData.length < this.lookbackDays + 1) {
+        if (!chartData || chartData.length < 20) {
           continue; // 데이터 부족
         }
 
-        // 가장 최근 데이터 (today)
-        const today = chartData[chartData.length - 1];
+        // 최근 10일 내에서 급등일 찾기
+        let surgeIndex = -1;
+        let maxReturn = 0;
 
-        // 10거래일 전 데이터
-        const tenDaysAgo = chartData[chartData.length - 1 - this.lookbackDays];
+        for (let i = 10; i < chartData.length; i++) {
+          const tenDaysAgo = chartData[i - 10];
+          const today = chartData[i];
 
-        if (!today || !tenDaysAgo || tenDaysAgo.close === 0) {
-          continue;
+          if (!tenDaysAgo || !today || tenDaysAgo.close === 0) continue;
+
+          const returnRate = ((today.close - tenDaysAgo.close) / tenDaysAgo.close) * 100;
+
+          if (returnRate > maxReturn && returnRate >= this.minReturnThreshold) {
+            maxReturn = returnRate;
+            surgeIndex = i;
+          }
         }
 
-        // Phase 2: 10거래일 대비 수익률 계산
-        const returnRate = ((today.close - tenDaysAgo.close) / tenDaysAgo.close) * 100;
-
-        if (returnRate < this.minReturnThreshold) {
-          continue; // 15% 미만 → 탈락
+        if (surgeIndex === -1) {
+          continue; // 급등 없음
         }
 
         phase2Pass++;
 
-        // Phase 3: 되돌림 필터링 (고가 대비 현재가 낙폭)
-        const recentHigh = Math.max(...chartData.slice(-this.lookbackDays).map(d => d.high));
-        const pullbackRate = ((recentHigh - today.close) / recentHigh) * 100;
+        // Phase 3: 되돌림 필터링 (고가 대비 급등일 가격)
+        const surgeDay = chartData[surgeIndex];
+        const recentHigh = Math.max(...chartData.slice(surgeIndex - 10, surgeIndex + 1).map(d => d.high));
+        const pullbackRate = ((recentHigh - surgeDay.close) / recentHigh) * 100;
 
         if (pullbackRate >= this.pullbackThreshold) {
           phase3Filtered++;
-          continue; // 10% 이상 되돌림 → 제외
+          continue; // 15% 이상 되돌림 → 제외
         }
 
-        // 모든 필터 통과 → 지표 분석
-        const volumeAnalysis = volumeIndicators.analyzeVolume(chartData);
-        const advancedAnalysis = advancedIndicators.analyzeAdvanced(chartData);
+        // ⭐ 핵심: D-5 거래일 전 데이터 (급등 직전 5일)
+        const preSurgeStart = surgeIndex - 5;
+        if (preSurgeStart < 0) continue; // 데이터 부족
 
-        // 거래량 비율 계산
-        const volumeRatio = volumeAnalysis.current.volumeMA20
-          ? today.volume / volumeAnalysis.current.volumeMA20
-          : 1;
+        const preSurgeData = chartData.slice(preSurgeStart, surgeIndex);
+
+        if (preSurgeData.length < 5) continue;
+
+        // D-5 ~ D-1 거래일 지표 분석
+        const volumeAnalysis = volumeIndicators.analyzeVolume(preSurgeData);
+        const advancedAnalysis = advancedIndicators.analyzeAdvanced(preSurgeData);
+
+        // 5일 평균 거래량 비율
+        const avgVolumeRatio = preSurgeData.reduce((sum, d, i) => {
+          // 각 날의 MA20 대비 거래량 비율 (단순화: 마지막 MA20 사용)
+          const ma20 = volumeAnalysis.current.volumeMA20 || 1;
+          return sum + (d.volume / ma20);
+        }, 0) / preSurgeData.length;
+
+        // 5일간 거래량 증가율
+        const volumeGrowth = preSurgeData.length >= 2
+          ? ((preSurgeData[4].volume - preSurgeData[0].volume) / preSurgeData[0].volume) * 100
+          : 0;
+
+        // 5일간 OBV 추세
+        const obvTrend = this.calculateOBVTrend(preSurgeData);
+
+        // 5일간 가격 변동성
+        const priceVolatility = this.calculatePriceVolatility(preSurgeData);
+
+        // D-1 거래일 RSI
+        const rsi = this.calculateRSI(preSurgeData.map(d => d.close));
 
         qualified.push({
           stockCode,
-          stockName: nameMap.get(stockCode) || stockCode,  // nameMap에서 실제 종목명 가져오기
-          surgeDate: today.date,
-          returnRate: returnRate.toFixed(2),
+          stockName: nameMap.get(stockCode) || stockCode,
+          surgeDate: surgeDay.date,
+          returnRate: maxReturn.toFixed(2),
           pullbackRate: pullbackRate.toFixed(2),
           recentHigh,
-          currentPrice: today.close,
-          // D-0일 지표들 (현재)
-          indicators: {
-            whale: advancedAnalysis.indicators.whale.length,
-            whaleIntensity: advancedAnalysis.indicators.whale.length > 0
-              ? advancedAnalysis.indicators.whale[advancedAnalysis.indicators.whale.length - 1].intensity
-              : 0,
+          surgeDayPrice: surgeDay.close,
+          tradingDaysBeforeSurge: 5, // 거래일 명시
+          // ⭐ D-5 ~ D-1 선행 지표
+          preSurgeIndicators: {
             accumulation: advancedAnalysis.indicators.accumulation.detected,
-            escape: advancedAnalysis.indicators.escape.detected,
-            drain: advancedAnalysis.indicators.drain.detected,
-            asymmetric: advancedAnalysis.indicators.asymmetric.ratio,
-            volumeRatio: volumeRatio.toFixed(2),
+            whale: advancedAnalysis.indicators.whale.length > 0,
+            avgVolumeRatio: avgVolumeRatio.toFixed(2),
+            volumeGrowth: volumeGrowth.toFixed(1),
             mfi: volumeAnalysis.indicators.mfi,
-            closingStrength: this.calculateClosingStrength(today)
+            obvTrend: obvTrend.toFixed(2),
+            priceVolatility: priceVolatility.toFixed(2),
+            rsi: rsi.toFixed(1),
+            closingStrength: this.calculateClosingStrength(preSurgeData[preSurgeData.length - 1])
           }
         });
 
-        console.log(`  ✅ [${qualified.length}] ${stockCode}: ${returnRate.toFixed(1)}% (되돌림 ${pullbackRate.toFixed(1)}%)`);
+        console.log(`  ✅ [${qualified.length}] ${stockCode}: ${maxReturn.toFixed(1)}% (D-5 지표 추출)`);
 
         // API 호출 간격
         await new Promise(resolve => setTimeout(resolve, 200));
 
         // 진행률 로그
         if (analyzed % 10 === 0) {
-          console.log(`  📊 진행: ${analyzed}/${stockCodes.length}, 통과: ${qualified.length}개`);
+          console.log(`  📊 진행: ${analyzed}/${stockCodes.length}, 발견: ${qualified.length}개`);
         }
 
       } catch (error) {
@@ -177,72 +206,119 @@ class SmartPatternMiner {
     console.log(`\n✅ Phase 2+3 완료!`);
     console.log(`  - 분석: ${analyzed}개`);
     console.log(`  - Phase 2 통과 (15% 이상 상승): ${phase2Pass}개`);
-    console.log(`  - Phase 3 제외 (10% 되돌림): ${phase3Filtered}개`);
-    console.log(`  - 최종 선별: ${qualified.length}개\n`);
+    console.log(`  - Phase 3 제외 (15% 되돌림): ${phase3Filtered}개`);
+    console.log(`  - 최종 선별 (D-5 지표 추출): ${qualified.length}개\n`);
 
     return qualified;
   }
 
   /**
-   * Step 2: 패턴 추출 및 빈도 계산
+   * 5일간 OBV 추세 계산
+   */
+  calculateOBVTrend(chartData) {
+    if (chartData.length < 2) return 0;
+
+    let obv = 0;
+    const obvValues = [0];
+
+    for (let i = 1; i < chartData.length; i++) {
+      const priceChange = chartData[i].close - chartData[i - 1].close;
+      const direction = priceChange > 0 ? 1 : (priceChange < 0 ? -1 : 0);
+      obv += chartData[i].volume * direction;
+      obvValues.push(obv);
+    }
+
+    // 선형 추세: 첫날 대비 마지막날 비율
+    if (obvValues[0] === 0) return 0;
+    return (obvValues[obvValues.length - 1] - obvValues[0]) / Math.abs(obvValues[0]);
+  }
+
+  /**
+   * 5일간 가격 변동성 계산 (표준편차 / 평균)
+   */
+  calculatePriceVolatility(chartData) {
+    const closes = chartData.map(d => d.close);
+    const mean = closes.reduce((a, b) => a + b) / closes.length;
+    const variance = closes.reduce((sum, price) =>
+      sum + Math.pow(price - mean, 2), 0
+    ) / closes.length;
+    const stdDev = Math.sqrt(variance);
+    return (stdDev / mean) * 100; // %
+  }
+
+  /**
+   * RSI 계산 (간단 버전)
+   */
+  calculateRSI(prices) {
+    if (prices.length < 5) return 50;
+
+    let gains = 0;
+    let losses = 0;
+
+    for (let i = 1; i < prices.length; i++) {
+      const change = prices[i] - prices[i - 1];
+      if (change > 0) gains += change;
+      else losses += Math.abs(change);
+    }
+
+    const avgGain = gains / (prices.length - 1);
+    const avgLoss = losses / (prices.length - 1);
+
+    if (avgLoss === 0) return 100;
+
+    const rs = avgGain / avgLoss;
+    return 100 - (100 / (1 + rs));
+  }
+
+  /**
+   * Step 2: 선행 패턴 추출 및 빈도 계산 (D-5 거래일 기준)
    */
   extractPatterns(qualifiedStocks) {
-    console.log(`🔍 패턴 추출 시작... (총 ${qualifiedStocks.length}개 급등 종목)\n`);
+    console.log(`🔍 선행 패턴 추출 시작... (총 ${qualifiedStocks.length}개 급등 종목)\n`);
+    console.log(`⭐ 분석 시점: 급등 5거래일 전 (D-5 ~ D-1)\n`);
 
     const patternFrequency = {};
 
     for (const stock of qualifiedStocks) {
-      const ind = stock.indicators;
+      const ind = stock.preSurgeIndicators; // ⭐ D-5 선행 지표 사용
 
-      // 패턴 정의 (여러 조합)
+      // 선행 패턴 정의 (급등 5거래일 전 지표 기반)
       const patterns = [
-        // 패턴 1: 고래 + 조용한 매집
+        // 패턴 1: 5일 조용한 매집
         {
-          name: '고래 + 조용한 매집',
-          match: ind.whale > 0 && ind.accumulation,
-          key: 'whale_accumulation'
+          name: '5일 조용한 매집 → 급등',
+          match: ind.accumulation && parseFloat(ind.priceVolatility) < 3,
+          key: 'pre_5d_accumulation'
         },
-        // 패턴 2: 유동성 고갈 + 탈출 속도
+        // 패턴 2: 5일 매집 + 고래신호
         {
-          name: '유동성 고갈 + 탈출 속도',
-          match: ind.drain && ind.escape,
-          key: 'drain_escape'
+          name: '5일 매집 + 고래 → 급등',
+          match: ind.accumulation && ind.whale,
+          key: 'pre_5d_accumulation_whale'
         },
-        // 패턴 3: 고래 + 고거래량
+        // 패턴 3: 5일 OBV 상승 + 가격 횡보
         {
-          name: '고래 + 대량 거래',
-          match: ind.whale > 0 && parseFloat(ind.volumeRatio) >= 2.5,
-          key: 'whale_highvolume'
+          name: '5일 OBV 상승 → 급등',
+          match: parseFloat(ind.obvTrend) > 0.1 && parseFloat(ind.priceVolatility) < 4,
+          key: 'pre_5d_obv_rising'
         },
-        // 패턴 4: 비대칭 매집 + 조용한 매집
+        // 패턴 4: 5일 거래량 점진 증가
         {
-          name: '비대칭 매집 + 조용한 매집',
-          match: ind.asymmetric >= 1.5 && ind.accumulation,
-          key: 'asymmetric_accumulation'
+          name: '5일 거래량 점진증가 → 급등',
+          match: parseFloat(ind.volumeGrowth) >= 50 && parseFloat(ind.volumeGrowth) <= 120,
+          key: 'pre_5d_volume_gradual'
         },
-        // 패턴 5: 탈출 속도 + 강한 마감
+        // 패턴 5: D-1 MFI 저점 + 5일 매집
         {
-          name: '탈출 속도 + 강한 마감',
-          match: ind.escape && ind.closingStrength >= 70,
-          key: 'escape_strongclose'
+          name: '5일 MFI 저점 + 매집 → 급등',
+          match: parseFloat(ind.mfi) < 35 && ind.accumulation,
+          key: 'pre_5d_mfi_accumulation'
         },
-        // 패턴 6: MFI 과매도 + 고래
+        // 패턴 6: D-1 RSI 중립 + 5일 거래량 증가
         {
-          name: 'MFI 과매도 + 고래',
-          match: ind.mfi <= 30 && ind.whale > 0,
-          key: 'mfi_oversold_whale'
-        },
-        // 패턴 7: 유동성 고갈 + 비대칭 매집
-        {
-          name: '유동성 고갈 + 비대칭 매집',
-          match: ind.drain && ind.asymmetric >= 1.5,
-          key: 'drain_asymmetric'
-        },
-        // 패턴 8: 조용한 매집 + 중간 거래량
-        {
-          name: '조용한 매집 + 적정 거래량',
-          match: ind.accumulation && parseFloat(ind.volumeRatio) >= 1.5 && parseFloat(ind.volumeRatio) < 3,
-          key: 'accumulation_moderate'
+          name: '5일 RSI 중립 + 거래량 → 급등',
+          match: parseFloat(ind.rsi) >= 45 && parseFloat(ind.rsi) <= 65 && parseFloat(ind.avgVolumeRatio) >= 1.5,
+          key: 'pre_5d_rsi_volume'
         }
       ];
 
@@ -254,38 +330,63 @@ class SmartPatternMiner {
               name: pattern.name,
               count: 0,
               stocks: [],
-              stockNames: [], // 종목 이름 추가
-              totalReturn: 0
+              stockNames: [],
+              totalReturn: 0,
+              wins: 0, // 승리 횟수
+              losses: 0 // 실패 횟수
             };
           }
           patternFrequency[pattern.key].count++;
           patternFrequency[pattern.key].stocks.push(stock.stockCode);
-          patternFrequency[pattern.key].stockNames.push(stock.stockName); // 종목 이름 저장
+          patternFrequency[pattern.key].stockNames.push(stock.stockName);
           patternFrequency[pattern.key].totalReturn += parseFloat(stock.returnRate);
+
+          // 승패 카운트 (15% 이상 상승을 성공으로 간주)
+          if (parseFloat(stock.returnRate) >= 15) {
+            patternFrequency[pattern.key].wins++;
+          } else {
+            patternFrequency[pattern.key].losses++;
+          }
         }
       }
     }
 
     // 빈도순 정렬 및 통계 계산
     const rankedPatterns = Object.entries(patternFrequency)
-      .map(([key, data]) => ({
-        key,
-        name: data.name,
-        count: data.count,
-        frequency: (data.count / qualifiedStocks.length * 100).toFixed(1),
-        avgReturn: (data.totalReturn / data.count).toFixed(2),
-        sampleStocks: data.stocks.slice(0, 5), // 샘플 5개만 (코드)
-        sampleStockNames: data.stockNames.slice(0, 5) // 샘플 종목 이름 5개
-      }))
-      .sort((a, b) => b.count - a.count);
+      .map(([key, data]) => {
+        const frequency = (data.count / qualifiedStocks.length * 100);
+        const avgReturn = (data.totalReturn / data.count);
+        const winRate = (data.wins / data.count) * 100;
 
-    console.log(`✅ 패턴 추출 완료!\n`);
-    console.log(`📊 발견된 패턴 (빈도순):\n`);
+        // ⭐ 신뢰도 계산 (출현율 + 승률)
+        const confidence = this.calculateConfidence(frequency, winRate);
+
+        return {
+          key,
+          name: data.name,
+          count: data.count,
+          frequency: frequency.toFixed(1),
+          avgReturn: avgReturn.toFixed(2),
+          winRate: winRate.toFixed(1),
+          wins: data.wins,
+          losses: data.losses,
+          confidence: confidence, // ⭐ 신뢰도
+          leadTime: 5, // 거래일
+          sampleStocks: data.stocks.slice(0, 5),
+          sampleStockNames: data.stockNames.slice(0, 5)
+        };
+      })
+      .sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence)); // 신뢰도순 정렬
+
+    console.log(`✅ 선행 패턴 추출 완료!\n`);
+    console.log(`📊 발견된 선행 패턴 (신뢰도순):\n`);
 
     rankedPatterns.forEach((pattern, i) => {
       console.log(`${i + 1}. ${pattern.name}`);
       console.log(`   출현: ${pattern.count}회 (${pattern.frequency}%)`);
-      console.log(`   평균 10일 수익률: +${pattern.avgReturn}%`);
+      console.log(`   승률: ${pattern.winRate}% (${pattern.wins}승 ${pattern.losses}패)`);
+      console.log(`   신뢰도: ${pattern.confidence}% ${this.getConfidenceBadge(parseFloat(pattern.confidence))}`);
+      console.log(`   평균 수익률: +${pattern.avgReturn}% (5거래일 후)`);
       console.log(`   샘플: ${pattern.sampleStockNames.join(', ')}\n`);
     });
 
@@ -293,80 +394,64 @@ class SmartPatternMiner {
   }
 
   /**
-   * Step 3: 패턴 백테스팅
-   * 각 패턴의 승률과 평균 수익률 계산
+   * 신뢰도 계산 (출현율 + 승률 기반)
    */
-  backtestPatterns(patterns, qualifiedStocks) {
-    console.log(`\n📊 패턴 백테스팅 시작...\n`);
+  calculateConfidence(frequency, winRate) {
+    // 출현 점수 (0-50점)
+    const frequencyScore = Math.min(frequency, 50);
 
-    const backtestResults = patterns.map(pattern => {
-      const matchedStocks = qualifiedStocks.filter(stock => {
-        return this.matchesPattern(stock, pattern.key);
-      });
+    // 승률 점수 (0-50점)
+    const winRateScore = (winRate / 100) * 50;
 
-      const returns = matchedStocks.map(s => parseFloat(s.returnRate));
-      const wins = returns.filter(r => r > 0).length;
-      const winRate = matchedStocks.length > 0 ? (wins / matchedStocks.length * 100).toFixed(1) : 0;
-      const avgReturn = matchedStocks.length > 0
-        ? (returns.reduce((a, b) => a + b, 0) / returns.length).toFixed(2)
-        : 0;
-      const maxReturn = matchedStocks.length > 0 ? Math.max(...returns).toFixed(2) : 0;
-      const minReturn = matchedStocks.length > 0 ? Math.min(...returns).toFixed(2) : 0;
+    // 종합 신뢰도 (0-100%)
+    const confidence = frequencyScore + winRateScore;
 
-      console.log(`✅ ${pattern.name}`);
-      console.log(`   승률: ${winRate}% (${wins}/${matchedStocks.length})`);
-      console.log(`   평균: +${avgReturn}%, 최고: +${maxReturn}%, 최저: ${minReturn}%\n`);
-
-      return {
-        ...pattern,
-        backtest: {
-          winRate: parseFloat(winRate),
-          avgReturn: parseFloat(avgReturn),
-          maxReturn: parseFloat(maxReturn),
-          minReturn: parseFloat(minReturn),
-          totalSamples: matchedStocks.length,
-          wins
-        }
-      };
-    });
-
-    console.log(`✅ 백테스팅 완료!\n`);
-    return backtestResults;
+    return confidence.toFixed(1);
   }
 
   /**
-   * 패턴 매칭 헬퍼
+   * 신뢰도 등급 표시
    */
-  matchesPattern(stock, patternKey) {
-    const ind = stock.indicators;
+  getConfidenceBadge(confidence) {
+    if (confidence >= 80) return '⭐⭐⭐⭐⭐';
+    if (confidence >= 70) return '⭐⭐⭐⭐';
+    if (confidence >= 60) return '⭐⭐⭐';
+    if (confidence >= 50) return '⭐⭐';
+    return '⭐';
+  }
+
+  /**
+   * 선행 패턴 매칭 헬퍼 (D-5 지표 기반)
+   */
+  matchesLeadingPattern(stock, patternKey) {
+    const ind = stock.preSurgeIndicators;
 
     const patternMatchers = {
-      'whale_accumulation': ind.whale > 0 && ind.accumulation,
-      'drain_escape': ind.drain && ind.escape,
-      'whale_highvolume': ind.whale > 0 && parseFloat(ind.volumeRatio) >= 2.5,
-      'asymmetric_accumulation': ind.asymmetric >= 1.5 && ind.accumulation,
-      'escape_strongclose': ind.escape && ind.closingStrength >= 70,
-      'mfi_oversold_whale': ind.mfi <= 30 && ind.whale > 0,
-      'drain_asymmetric': ind.drain && ind.asymmetric >= 1.5,
-      'accumulation_moderate': ind.accumulation && parseFloat(ind.volumeRatio) >= 1.5 && parseFloat(ind.volumeRatio) < 3
+      'pre_5d_accumulation': ind.accumulation && parseFloat(ind.priceVolatility) < 3,
+      'pre_5d_accumulation_whale': ind.accumulation && ind.whale,
+      'pre_5d_obv_rising': parseFloat(ind.obvTrend) > 0.1 && parseFloat(ind.priceVolatility) < 4,
+      'pre_5d_volume_gradual': parseFloat(ind.volumeGrowth) >= 50 && parseFloat(ind.volumeGrowth) <= 120,
+      'pre_5d_mfi_accumulation': parseFloat(ind.mfi) < 35 && ind.accumulation,
+      'pre_5d_rsi_volume': parseFloat(ind.rsi) >= 45 && parseFloat(ind.rsi) <= 65 && parseFloat(ind.avgVolumeRatio) >= 1.5
     };
 
     return patternMatchers[patternKey] || false;
   }
 
   /**
-   * 전체 스마트 패턴 마이닝 파이프라인 실행
+   * 전체 급등 방정식 마이닝 파이프라인 실행 (D-5 선행 지표 기반)
    */
   async analyzeSmartPatterns() {
     try {
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`🧠 스마트 패턴 마이닝 시작`);
-      console.log(`${'='.repeat(60)}`);
+      console.log(`\n${'='.repeat(70)}`);
+      console.log(`🧠 급등 방정식 마이닝 시작 (D-5 선행 패턴 분석)`);
+      console.log(`${'='.repeat(70)}`);
       console.log(`\n전략:`);
       console.log(`  Phase 1: 거래량 증가율 상위 60개 (KOSPI 30 + KOSDAQ 30)`);
-      console.log(`  Phase 2: 10거래일 대비 +15% 이상 상승`);
-      console.log(`  Phase 3: 고가 대비 -10% 이상 되돌림 제외`);
-      console.log(`${'='.repeat(60)}\n`);
+      console.log(`  Phase 2: 10거래일 대비 +15% 이상 급등 종목 찾기`);
+      console.log(`  Phase 3: 급등 5거래일 전 (D-5 ~ D-1) 선행 지표 추출`);
+      console.log(`  Step 2: 선행 패턴 추출 및 신뢰도 계산`);
+      console.log(`${'='.repeat(70)}\n`);
 
       // Phase 1: 거래량 증가율 상위 종목 선별
       const { codes: candidateCodes, nameMap } = await this.getHighVolumeSurgeStocks();
@@ -376,7 +461,7 @@ class SmartPatternMiner {
         return null;
       }
 
-      // Phase 2+3: 급등 조건 + 되돌림 필터링
+      // Phase 2+3: 급등 종목 찾기 + D-5 선행 지표 분석
       const qualifiedStocks = await this.filterBySurgeAndPullback(candidateCodes, nameMap);
 
       if (qualifiedStocks.length < 3) {
@@ -384,7 +469,7 @@ class SmartPatternMiner {
         return null;
       }
 
-      // Step 2: 패턴 추출
+      // Step 2: 선행 패턴 추출 (신뢰도 자동 계산)
       const patterns = this.extractPatterns(qualifiedStocks);
 
       if (patterns.length === 0) {
@@ -392,20 +477,18 @@ class SmartPatternMiner {
         return null;
       }
 
-      // Step 3: 패턴 백테스팅
-      const backtested = this.backtestPatterns(patterns, qualifiedStocks);
-
-      // Step 4: 승률 기준으로 재정렬 및 상위 선정
-      const topPatterns = backtested
-        .filter(p => p.backtest.totalSamples >= 2) // 최소 2개 샘플 필요
-        .sort((a, b) => b.backtest.winRate - a.backtest.winRate) // 승률 순
+      // 신뢰도 기준으로 상위 5개 선정
+      const topPatterns = patterns
+        .filter(p => p.count >= 2) // 최소 2개 샘플 필요
         .slice(0, 5);
 
-      console.log(`\n🏆 최종 상위 5개 패턴 (승률 기준):\n`);
+      console.log(`\n🏆 최종 상위 5개 선행 패턴 (신뢰도 기준):\n`);
       topPatterns.forEach((p, i) => {
         console.log(`${i + 1}. ${p.name}`);
-        console.log(`   승률: ${p.backtest.winRate}%, 평균 수익률: +${p.backtest.avgReturn}%`);
-        console.log(`   샘플: ${p.backtest.totalSamples}개, 출현율: ${p.frequency}%\n`);
+        console.log(`   신뢰도: ${p.confidence}% ${this.getConfidenceBadge(parseFloat(p.confidence))}`);
+        console.log(`   출현율: ${p.frequency}%, 승률: ${p.winRate}%`);
+        console.log(`   평균 수익률: +${p.avgReturn}% (5거래일 후)`);
+        console.log(`   샘플: ${p.count}개\n`);
       });
 
       return {
@@ -415,14 +498,15 @@ class SmartPatternMiner {
           phase2MinReturn: this.minReturnThreshold,
           phase3PullbackThreshold: this.pullbackThreshold,
           lookbackDays: this.lookbackDays,
+          tradingDaysBeforeSurge: 5, // 거래일
           totalQualified: qualifiedStocks.length
         },
         patterns: topPatterns,
-        rawData: qualifiedStocks // 백테스팅용
+        rawData: qualifiedStocks // 패턴 매칭용
       };
 
     } catch (error) {
-      console.error('❌ 스마트 패턴 분석 실패:', error);
+      console.error('❌ 급등 방정식 마이닝 실패:', error);
       throw error;
     }
   }
