@@ -162,6 +162,16 @@
                   📊 종목 스크리닝
                 </button>
                 <button
+                  onClick={() => setActiveTab('tracking')}
+                  className={`px-6 py-3 font-semibold transition-all ${
+                    activeTab === 'tracking'
+                      ? 'text-indigo-600 border-b-4 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  🎯 실전 추적
+                </button>
+                <button
                   onClick={() => setActiveTab('patterns')}
                   className={`px-6 py-3 font-semibold transition-all ${
                     activeTab === 'patterns'
@@ -197,7 +207,9 @@
             )}
 
             {/* 탭별 콘텐츠 */}
-            {activeTab === 'patterns' ? (
+            {activeTab === 'tracking' ? (
+              <TrackingDashboard apiBaseUrl={API_BASE_URL} />
+            ) : activeTab === 'patterns' ? (
               <PatternAnalysis apiBaseUrl={API_BASE_URL} />
             ) : activeTab === 'screening' ? (
               <>
@@ -1283,6 +1295,155 @@
           <p className="text-xs text-gray-600 mb-1">{label}</p>
           <p className={`text-2xl font-bold mb-1 ${good ? 'text-green-700' : 'text-gray-700'}`}>{value}</p>
           <p className="text-xs text-gray-500">{desc}</p>
+        </div>
+      );
+    }
+
+    // 실전 추적 대시보드 컴포넌트
+    function TrackingDashboard({ apiBaseUrl }) {
+      const [signals, setSignals] = useState([]);
+      const [loading, setLoading] = useState(false);
+      const [stats, setStats] = useState({ count: 0, avgScore: 0, avgDays: 0, date: '-' });
+
+      const loadTodaySignals = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch(`${apiBaseUrl}/tracking/today-signals?limit=5`);
+          const data = await response.json();
+
+          if (data.success) {
+            setSignals(data.signals);
+            const avgScore = data.count > 0
+              ? (data.signals.reduce((sum, s) => sum + s.score, 0) / data.count).toFixed(0)
+              : 0;
+            const avgDays = data.count > 0
+              ? (data.signals.reduce((sum, s) => sum + (s.expectedSurgeDays || 10), 0) / data.count).toFixed(0)
+              : 0;
+            setStats({
+              count: data.count,
+              avgScore: avgScore,
+              avgDays: avgDays,
+              date: data.date
+            });
+          }
+        } catch (error) {
+          console.error('신호 로드 실패:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      useEffect(() => {
+        loadTodaySignals();
+      }, []);
+
+      return (
+        <div className="space-y-6">
+          {/* 통계 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+              <div className="text-sm opacity-90 mb-2">추적 중인 종목</div>
+              <div className="text-3xl font-bold">{stats.count}</div>
+            </div>
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+              <div className="text-sm opacity-90 mb-2">평균 점수</div>
+              <div className="text-3xl font-bold">{stats.avgScore}</div>
+            </div>
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+              <div className="text-sm opacity-90 mb-2">예상 급등일</div>
+              <div className="text-3xl font-bold">{stats.avgDays}일</div>
+            </div>
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+              <div className="text-sm opacity-90 mb-2">신호 발생일</div>
+              <div className="text-3xl font-bold">{stats.date}</div>
+            </div>
+          </div>
+
+          {/* 새로고침 버튼 */}
+          <div className="text-center">
+            <button
+              onClick={loadTodaySignals}
+              disabled={loading}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 font-semibold shadow-lg"
+            >
+              {loading ? '로딩 중...' : '🔄 오늘 신호 불러오기 (5종목)'}
+            </button>
+          </div>
+
+          {/* 신호 테이블 */}
+          {signals.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">종목코드</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">종목명</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">등급</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">점수</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">현재가</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">오늘등락률</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">손절가</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">1차익절</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">2차익절</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {signals.map((signal, idx) => (
+                    <tr key={idx} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm">{signal.stockCode}</td>
+                      <td className="px-4 py-3 text-sm font-semibold">{signal.stockName}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${
+                          signal.grade === 'S' ? 'bg-red-500' :
+                          signal.grade === 'A' ? 'bg-orange-500' : 'bg-yellow-500'
+                        }`}>
+                          {signal.grade}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-bold">{signal.score}</td>
+                      <td className="px-4 py-3 text-sm">{signal.currentPrice?.toLocaleString()}원</td>
+                      <td className={`px-4 py-3 text-sm font-semibold ${
+                        parseFloat(signal.todayChange) >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {signal.todayChange}%
+                      </td>
+                      <td className="px-4 py-3 text-sm text-red-600 font-semibold">
+                        {signal.trackingPlan?.stopLoss}원
+                      </td>
+                      <td className="px-4 py-3 text-sm text-green-600 font-semibold">
+                        {signal.trackingPlan?.takeProfit1}원
+                      </td>
+                      <td className="px-4 py-3 text-sm text-green-600 font-bold">
+                        {signal.trackingPlan?.takeProfit2}원
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* 실전 매매 지침 */}
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
+            <h3 className="font-bold text-blue-900 mb-4">📋 실전 매매 지침</h3>
+            <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
+              <li>장 마감 10분 전 (14:50) 매수 실행</li>
+              <li>스톱로스 -5% 자동 주문 설정</li>
+              <li>+12% 달성 시 50% 익절</li>
+              <li>+20% 달성 시 30% 익절</li>
+              <li>D+10일 전량 매도</li>
+              <li>매일 결과 기록 (스프레드시트 권장)</li>
+            </ol>
+          </div>
+
+          {/* 빈 상태 */}
+          {!loading && signals.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-4xl mb-4">📭</div>
+              <div className="text-lg font-semibold">오늘 신호가 없습니다</div>
+              <div className="text-sm mt-2">내일 다시 확인해주세요</div>
+            </div>
+          )}
         </div>
       );
     }
