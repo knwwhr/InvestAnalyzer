@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>하이브리드 실전 추적 대시보드</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      font-size: 32px;
+      color: #2d3748;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subtitle {
+      color: #718096;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+    }
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .signals-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .signals-table th {
+      background: #f7fafc;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #2d3748;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .signals-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .grade-S { background: #f56565; color: white; }
+    .grade-A { background: #ed8936; color: white; }
+    .grade-B { background: #ecc94b; color: white; }
+    .indicator-yes { color: #48bb78; font-weight: bold; }
+    .indicator-no { color: #cbd5e0; }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #718096;
+    }
+    .error {
+      background: #fed7d7;
+      color: #c53030;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .instructions {
+      background: #ebf8ff;
+      border-left: 4px solid #3182ce;
+      padding: 16px;
+      margin-top: 20px;
+      border-radius: 8px;
+    }
+    .instructions h3 {
+      color: #2c5282;
+      margin-bottom: 12px;
+    }
+    .instructions ol {
+      margin-left: 20px;
+      color: #2d3748;
+    }
+    .instructions li {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      🎯 하이브리드 실전 추적 대시보드
+    </h1>
+    <div class="subtitle">
+      승률 75-78% 목표 | 보유 기간 10일 | 손절 -5% | 익절 +12%/+20%
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">추적 중인 종목</div>
+        <div class="stat-value" id="trackingCount">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">평균 점수</div>
+        <div class="stat-value" id="avgScore">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">예상 급등일</div>
+        <div class="stat-value" id="avgDays">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">신호 발생일</div>
+        <div class="stat-value" id="signalDate">-</div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="loadTodaySignals()" id="loadBtn">
+      🔄 오늘 신호 불러오기 (5종목)
+    </button>
+
+    <div id="error" class="error" style="display:none"></div>
+    <div id="loading" class="loading" style="display:none">
+      데이터 로딩 중...
+    </div>
+
+    <table class="signals-table" id="signalsTable" style="display:none">
+      <thead>
+        <tr>
+          <th>종목코드</th>
+          <th>종목명</th>
+          <th>등급</th>
+          <th>점수</th>
+          <th>현재가</th>
+          <th>오늘등락률</th>
+          <th>거래량증가</th>
+          <th>OBV다이버</th>
+          <th>상승추세</th>
+          <th>예상급등일</th>
+          <th>손절가</th>
+          <th>1차익절</th>
+          <th>2차익절</th>
+        </tr>
+      </thead>
+      <tbody id="signalsBody">
+      </tbody>
+    </table>
+
+    <div class="instructions">
+      <h3>📋 실전 매매 지침</h3>
+      <ol id="instructionsList"></ol>
+    </div>
+  </div>
+
+  <script>
+    async function loadTodaySignals() {
+      const loadBtn = document.getElementById('loadBtn');
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const table = document.getElementById('signalsTable');
+
+      loadBtn.disabled = true;
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      table.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/tracking/today-signals?limit=5');
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error);
+        }
+
+        // 통계 업데이트
+        document.getElementById('trackingCount').textContent = data.count;
+        document.getElementById('avgScore').textContent =
+          (data.signals.reduce((sum, s) => sum + s.score, 0) / data.count).toFixed(0);
+        document.getElementById('avgDays').textContent =
+          (data.signals.reduce((sum, s) => sum + (s.expectedSurgeDays || 10), 0) / data.count).toFixed(0) + '일';
+        document.getElementById('signalDate').textContent = data.date;
+
+        // 테이블 업데이트
+        const tbody = document.getElementById('signalsBody');
+        tbody.innerHTML = data.signals.map(s => `
+          <tr>
+            <td>${s.stockCode}</td>
+            <td><strong>${s.stockName}</strong></td>
+            <td><span class="grade-badge grade-${s.grade}">${s.grade}</span></td>
+            <td><strong>${s.score}</strong></td>
+            <td>${s.currentPrice.toLocaleString()}원</td>
+            <td style="color: ${parseFloat(s.todayChange) >= 0 ? '#48bb78' : '#f56565'}">
+              ${s.todayChange}%
+            </td>
+            <td class="${s.indicators.volumeGradual ? 'indicator-yes' : 'indicator-no'}">
+              ${s.indicators.volumeGradual ? '✅' : '❌'}
+            </td>
+            <td class="${s.indicators.obvDivergence ? 'indicator-yes' : 'indicator-no'}">
+              ${s.indicators.obvDivergence ? '✅' : '❌'}
+            </td>
+            <td class="${s.indicators.uptrend ? 'indicator-yes' : 'indicator-no'}">
+              ${s.indicators.uptrend ? '✅' : '❌'}
+            </td>
+            <td>${s.expectedSurgeDays || 10}일</td>
+            <td style="color: #f56565">${s.trackingPlan.stopLoss}원</td>
+            <td style="color: #48bb78">${s.trackingPlan.takeProfit1}원</td>
+            <td style="color: #48bb78"><strong>${s.trackingPlan.takeProfit2}원</strong></td>
+          </tr>
+        `).join('');
+
+        table.style.display = 'table';
+
+        // 지침 업데이트
+        const instructionsList = document.getElementById('instructionsList');
+        instructionsList.innerHTML = data.instructions.map(i => `<li>${i}</li>`).join('');
+
+      } catch (err) {
+        error.textContent = '❌ ' + err.message;
+        error.style.display = 'block';
+      } finally {
+        loadBtn.disabled = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    // 페이지 로드 시 자동 실행
+    window.onload = () => {
+      loadTodaySignals();
+    };
+  </script>
+</body>
+</html>
