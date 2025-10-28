@@ -7,6 +7,13 @@
 
 const backtestEngine = require('../../backend/backtestEngine');
 
+// 날짜 계산 헬퍼 함수
+function addDays(date, days) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result.toISOString().split('T')[0];
+}
+
 module.exports = async (req, res) => {
   console.log('\n========================================');
   console.log('🎯 오늘 신호 추적 대상 추출');
@@ -33,7 +40,7 @@ module.exports = async (req, res) => {
         indicators: s.indicators,
         trackingPlan: {
           buyPrice: s.currentPrice,
-          targetDate: this.addDays(new Date(), s.expectedSurgeDays || 10),
+          targetDate: addDays(new Date(), s.expectedSurgeDays || 10),
           stopLoss: (s.currentPrice * 0.95).toFixed(0), // -5%
           takeProfit1: (s.currentPrice * 1.12).toFixed(0), // +12%
           takeProfit2: (s.currentPrice * 1.20).toFixed(0)  // +20%
@@ -56,11 +63,5 @@ module.exports = async (req, res) => {
       success: false,
       error: error.message
     });
-  }
-
-  addDays(date, days) {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result.toISOString().split('T')[0];
   }
 };
