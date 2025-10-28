@@ -2,6 +2,39 @@ const axios = require('axios');
 require('dotenv').config();
 
 /**
+ * Token Bucket Rate Limiter
+ * KIS API 20 calls/sec 제한 준수 (안전 마진 10% → 18 calls/sec)
+ */
+class RateLimiter {
+  constructor(maxPerSecond = 18) {
+    this.maxPerSecond = maxPerSecond;
+    this.tokens = maxPerSecond;
+    this.lastRefill = Date.now();
+  }
+
+  async acquire() {
+    const now = Date.now();
+    const elapsed = (now - this.lastRefill) / 1000;
+
+    // Token 보충 (시간 경과에 비례)
+    this.tokens = Math.min(
+      this.maxPerSecond,
+      this.tokens + elapsed * this.maxPerSecond
+    );
+    this.lastRefill = now;
+
+    // Token 부족 시 대기
+    if (this.tokens < 1) {
+      const waitTime = ((1 - this.tokens) / this.maxPerSecond) * 1000;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      this.tokens = 0;
+    } else {
+      this.tokens -= 1;
+    }
+  }
+}
+
+/**
  * 한국투자증권 OpenAPI 클라이언트
  * 문서: https://apiportal.koreainvestment.com/
  */
@@ -12,6 +45,7 @@ class KISApi {
     this.appSecret = process.env.KIS_APP_SECRET;
     this.accessToken = null;
     this.tokenExpiry = null;
+    this.rateLimiter = new RateLimiter(18); // 전역 Rate Limiter
   }
 
   /**
@@ -47,6 +81,8 @@ class KISApi {
    * @param {string} stockCode - 종목코드 (예: '005930' 삼성전자)
    */
   async getCurrentPrice(stockCode) {
+    await this.rateLimiter.acquire(); // Rate limiting 적용
+
     try {
       const token = await this.getAccessToken();
 
@@ -102,6 +138,8 @@ class KISApi {
    * @param {number} days - 조회일수 (기본 30일)
    */
   async getDailyChart(stockCode, days = 30) {
+    await this.rateLimiter.acquire(); // Rate limiting 적용
+
     try {
       const token = await this.getAccessToken();
 
