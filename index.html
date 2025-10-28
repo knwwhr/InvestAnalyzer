@@ -297,39 +297,21 @@
       const categories = [
         {
           id: 'all',
-          name: '🏆 종합 TOP 10',
+          name: '🏆 종합집계',
           icon: '🏆',
-          desc: '모든 지표를 종합하여 점수가 높은 상위 10개 종목'
+          desc: '모든 지표를 종합하여 점수가 높은 종목 집계'
         },
         {
           id: 'whale',
           name: '🐋 고래 감지',
           icon: '🐋',
-          desc: '거래량 급증 + 가격 상승 = 큰손의 매수 신호 포착'
+          desc: '거래량 2.5배 + 가격 3% 이상 = 세력 매수 신호'
         },
         {
           id: 'accumulation',
           name: '🤫 조용한 매집',
           icon: '🤫',
-          desc: '낮은 변동성 + 거래량 증가 = 물량 조용히 모으는 중'
-        },
-        {
-          id: 'escape',
-          name: '🚀 탈출 속도',
-          icon: '🚀',
-          desc: '저항선 돌파 + 폭발적 거래량 = 상승 탄력 발생'
-        },
-        {
-          id: 'drain',
-          name: '💧 유동성 고갈',
-          icon: '💧',
-          desc: '거래량 급감 + 변동성 하락 = 곧 큰 변동 가능성'
-        },
-        {
-          id: 'volume-surge',
-          name: '🔥 거래량 폭발',
-          icon: '🔥',
-          desc: '평균 대비 2.5배 이상 거래량 급증 종목'
+          desc: '가격 안정 + 거래량 증가 20% = 1~2주 후 급등 전조'
         }
       ];
 
@@ -722,12 +704,9 @@
     // 빈 상태 화면
     function EmptyState({ category }) {
       const categoryNames = {
-        'all': '종합 TOP',
+        'all': '종합집계',
         'whale': '고래 감지',
-        'accumulation': '조용한 매집',
-        'escape': '탈출 속도',
-        'drain': '유동성 고갈',
-        'volume-surge': '거래량 폭발'
+        'accumulation': '조용한 매집'
       };
 
       return (

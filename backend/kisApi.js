@@ -103,9 +103,9 @@ class KISApi {
       if (response.data.rt_cd === '0') {
         const output = response.data.output;
 
-        // 캐싱된 종목명 우선 사용, 없으면 API 응답, 그것도 없으면 Unknown
+        // 캐싱된 종목명 우선 사용, 없으면 API 응답, 그것도 없으면 종목코드 표시
         const cachedName = this.getCachedStockName(stockCode);
-        const stockName = cachedName || output.prdt_name || 'Unknown';
+        const stockName = cachedName || output.prdt_name || `[${stockCode}]`;
 
         return {
           stockCode: stockCode,
@@ -502,12 +502,21 @@ class KISApi {
     if (!name) return true; // 종목명 없으면 제외
 
     const excludeKeywords = [
+      // ETF 브랜드
       'ETF', 'ETN', 'KODEX', 'TIGER', 'KBSTAR', 'ARIRANG', 'KOSEF',
       'HANARO', 'TREX', 'KINDEX', 'TIMEFOLIO', 'SOL', 'ACE',
+      // 특수 펀드/파생상품
+      'plus', 'PLUS', 'Plus', 'unicorn', 'UNICORN', 'Unicorn',
+      '국채', '선물', '통안증권', '미국채', '하이일드', '인컴',
+      'POST', 'Post', 'IPO', 'Active', 'ACTIVE', '액티브',
+      // 리츠/스팩
       '리츠', 'REIT', '스팩', 'SPAC',
-      '1호', '2호', '3호', '4호', '5호', '6호', '7호', '8호', '9호', // 스팩
+      '1호', '2호', '3호', '4호', '5호', '6호', '7호', '8호', '9호',
+      // 레버리지/인버스
       '인버스', 'Inverse', '레버리지', 'Leverage',
-      'WTI', 'S&P', 'MSCI', 'Russell', 'Nasdaq', 'NYSE',
+      // 해외지수
+      'WTI', 'S&P', 'MSCI', 'Russell', 'Nasdaq', 'NYSE', 'DOW',
+      // 기타
       '합병', '전환사채', 'CB', 'BW'
     ];
 

@@ -295,20 +295,10 @@ class StockScreener {
     let analyzed = 0;
     let found = 0;
 
-    // 카테고리별 필터 함수 (Phase 4 추가)
+    // 카테고리별 필터 함수 (핵심 2개 지표만 유지)
     const categoryFilters = {
       'whale': (analysis) => analysis.advancedAnalysis.indicators.whale.length > 0,
-      'accumulation': (analysis) => analysis.advancedAnalysis.indicators.accumulation.detected,
-      'escape': (analysis) => analysis.advancedAnalysis.indicators.escape.detected,
-      'drain': (analysis) => analysis.advancedAnalysis.indicators.drain.detected,
-      'volume-surge': (analysis) =>
-        analysis.volumeAnalysis.current.volumeMA20 &&
-        analysis.volumeAnalysis.current.volume / analysis.volumeAnalysis.current.volumeMA20 >= 2.5,
-      // Phase 4 신규 카테고리
-      'gradual-accumulation': (analysis) => analysis.advancedAnalysis.indicators.gradualAccumulation.detected,
-      'smart-money': (analysis) => analysis.advancedAnalysis.indicators.smartMoney.detected,
-      'bottom-formation': (analysis) => analysis.advancedAnalysis.indicators.bottomFormation.detected,
-      'breakout-prep': (analysis) => analysis.advancedAnalysis.indicators.breakoutPrep.detected
+      'accumulation': (analysis) => analysis.advancedAnalysis.indicators.accumulation.detected
     };
 
     const filterFn = categoryFilters[category] || (() => true);
