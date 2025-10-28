@@ -1,20 +1,5 @@
 # Vercel Serverless Function Limit: 12 functions max (Hobby plan)
-# Excluding subdirectory API files since they're handled by routers
-
-# Screening endpoints (handled by api/screening-router.js)
-api/screening/[category].js
-api/screening/recommend.js
-api/screening/hybrid.js
-
-# Pattern endpoints (handled by api/patterns-router.js)
-api/patterns/analyze.js
-api/patterns/list.js
-api/patterns/matched-stocks.js
-
-# Old/unused API files
-api/backtest.js
-api/tracker.js
-api/stock/
+# Only exclude unused files - router dependencies must be included
 
 # Documentation
 *.md
@@ -24,3 +9,9 @@ api/stock/
 node_modules/
 .env
 .env.local
+
+# Development files
+.git/
+.github/
+test/
+tests/

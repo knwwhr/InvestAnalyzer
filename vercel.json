@@ -5,9 +5,7 @@
     }
   },
   "rewrites": [
-    { "source": "/tracking-dashboard.html", "destination": "/tracking-dashboard.html" },
-    { "source": "/api/screening/:type", "destination": "/api/screening-router?type=:type" },
-    { "source": "/api/patterns/:type", "destination": "/api/patterns-router?type=:type" }
+    { "source": "/tracking-dashboard.html", "destination": "/tracking-dashboard.html" }
   ],
   "crons": [
     {

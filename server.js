@@ -18,65 +18,23 @@ app.use(express.json());
 app.use(express.static('.'));
 
 // API 라우트 매핑 (Vercel Serverless Functions → Express Routes)
-// 통합 라우터로 변경하여 Vercel 12 function 제한 해결
-const screeningRouter = require('./api/screening-router');
-const patternsRouter = require('./api/patterns-router');
+const categoryHandler = require('./api/screening/[category]');
 
 const apiRoutes = {
   '/api/health': require('./api/health'),
-
-  // 통합 스크리닝 라우터 (7개 → 1개)
-  '/api/screening-router': screeningRouter,
-
-  // 통합 패턴 라우터 (3개 → 1개)
-  '/api/patterns-router': patternsRouter,
-
-  // 백테스트 & 추적 시스템
+  '/api/screening/recommend': require('./api/screening/recommend'),
+  '/api/screening/whale': (req, res) => { req.params = { category: 'whale' }; return categoryHandler(req, res); },
+  '/api/screening/accumulation': (req, res) => { req.params = { category: 'accumulation' }; return categoryHandler(req, res); },
+  '/api/screening/escape': (req, res) => { req.params = { category: 'escape' }; return categoryHandler(req, res); },
+  '/api/screening/drain': (req, res) => { req.params = { category: 'drain' }; return categoryHandler(req, res); },
+  '/api/screening/volume-surge': (req, res) => { req.params = { category: 'volume-surge' }; return categoryHandler(req, res); },
+  '/api/screening/hybrid': require('./api/screening/hybrid'),
+  '/api/patterns/list': require('./api/patterns/list'),
+  '/api/patterns/analyze': require('./api/patterns/analyze'),
+  '/api/patterns/matched-stocks': require('./api/patterns/matched-stocks'),
   '/api/backtest/hybrid': require('./api/backtest/hybrid'),
   '/api/tracking/today-signals': require('./api/tracking/today-signals'),
-  '/api/comparison/ab-test': require('./api/comparison/ab-test'),
-
-  // 레거시 호환성 (기존 URL 유지)
-  '/api/screening/recommend': (req, res) => {
-    req.query = { ...req.query, type: 'recommend' };
-    return screeningRouter(req, res);
-  },
-  '/api/screening/whale': (req, res) => {
-    req.query = { ...req.query, type: 'whale' };
-    return screeningRouter(req, res);
-  },
-  '/api/screening/accumulation': (req, res) => {
-    req.query = { ...req.query, type: 'accumulation' };
-    return screeningRouter(req, res);
-  },
-  '/api/screening/escape': (req, res) => {
-    req.query = { ...req.query, type: 'escape' };
-    return screeningRouter(req, res);
-  },
-  '/api/screening/drain': (req, res) => {
-    req.query = { ...req.query, type: 'drain' };
-    return screeningRouter(req, res);
-  },
-  '/api/screening/volume-surge': (req, res) => {
-    req.query = { ...req.query, type: 'volume-surge' };
-    return screeningRouter(req, res);
-  },
-  '/api/screening/hybrid': (req, res) => {
-    req.query = { ...req.query, type: 'hybrid' };
-    return screeningRouter(req, res);
-  },
-  '/api/patterns/list': (req, res) => {
-    req.query = { ...req.query, type: 'list' };
-    return patternsRouter(req, res);
-  },
-  '/api/patterns/analyze': (req, res) => {
-    req.query = { ...req.query, type: 'analyze' };
-    return patternsRouter(req, res);
-  },
-  '/api/patterns/matched-stocks': (req, res) => {
-    req.query = { ...req.query, type: 'matched-stocks' };
-    return patternsRouter(req, res);
-  }
+  '/api/comparison/ab-test': require('./api/comparison/ab-test')
 };
 
 // 라우트 등록
