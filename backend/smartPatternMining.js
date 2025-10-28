@@ -537,6 +537,7 @@ class SmartPatternMiner {
 
     // 현재 종목의 지표를 패턴 형식으로 변환
     const stockIndicators = {
+      // 기존 지표
       whale: stock.advancedAnalysis.indicators.whale.length,
       accumulation: stock.advancedAnalysis.indicators.accumulation.detected,
       escape: stock.advancedAnalysis.indicators.escape.detected,
@@ -548,7 +549,13 @@ class SmartPatternMiner {
       mfi: stock.volumeAnalysis.indicators.mfi,
       closingStrength: stock.advancedAnalysis.indicators.escape.closingStrength
         ? parseFloat(stock.advancedAnalysis.indicators.escape.closingStrength)
-        : 50
+        : 50,
+
+      // D-5 패턴용 추가 지표 (advancedAnalysis에서 제공)
+      priceVolatility: stock.advancedAnalysis.indicators.accumulation?.priceVolatility || 100,
+      obvTrend: stock.volumeAnalysis.indicators.obvTrend || 0,
+      volumeGrowth: stock.advancedAnalysis.indicators.accumulation?.volumeGrowth || 0,
+      rsi: stock.volumeAnalysis.indicators.rsi || 50
     };
 
     // 각 패턴과 매칭 확인
@@ -560,15 +567,18 @@ class SmartPatternMiner {
       if (matchScore.score === 1.0) {
         matchedPatterns.push({
           name: pattern.name,
-          winRate: pattern.backtest?.winRate || 0,
-          avgReturn: pattern.backtest?.avgReturn || 0,
+          key: pattern.key,
+          winRate: parseFloat(pattern.winRate || pattern.backtest?.winRate || 0),
+          avgReturn: parseFloat(pattern.avgReturn || pattern.backtest?.avgReturn || 0),
+          confidence: parseFloat(pattern.confidence || 0),
           frequency: pattern.frequency,
           matchScore: 1.0,
           matchLevel: '완전일치'
         });
 
         // 패턴 승률에 비례한 보너스 점수 (최대 15점)
-        const patternBonus = (pattern.backtest?.winRate || 0) / 100 * 15;
+        const winRate = parseFloat(pattern.winRate || pattern.backtest?.winRate || 0);
+        const patternBonus = winRate / 100 * 15;
         bonusScore += patternBonus;
       }
       // 부분 매칭 (60% 이상)
@@ -576,8 +586,10 @@ class SmartPatternMiner {
         const matchLevel = matchScore.score >= 0.8 ? '상' : matchScore.score >= 0.7 ? '중' : '하';
         partialMatches.push({
           name: pattern.name,
-          winRate: pattern.backtest?.winRate || 0,
-          avgReturn: pattern.backtest?.avgReturn || 0,
+          key: pattern.key,
+          winRate: parseFloat(pattern.winRate || pattern.backtest?.winRate || 0),
+          avgReturn: parseFloat(pattern.avgReturn || pattern.backtest?.avgReturn || 0),
+          confidence: parseFloat(pattern.confidence || 0),
           frequency: pattern.frequency,
           matchScore: matchScore.score,
           matchLevel: matchLevel,
@@ -587,7 +599,8 @@ class SmartPatternMiner {
         });
 
         // 부분 매칭도 약간의 보너스 (최대 5점)
-        const partialBonus = (pattern.backtest?.winRate || 0) / 100 * 5 * matchScore.score;
+        const winRate = parseFloat(pattern.winRate || pattern.backtest?.winRate || 0);
+        const partialBonus = winRate / 100 * 5 * matchScore.score;
         bonusScore += partialBonus;
       }
     }
@@ -606,7 +619,35 @@ class SmartPatternMiner {
    */
   calculateMatchScore(stock, patternKey) {
     const ind = stock.indicators;
+
+    // D-5 선행 패턴 + 이전 패턴 통합
     const conditions = {
+      // ⭐ D-5 선행 패턴 (새로운 패턴)
+      'pre_5d_accumulation': [
+        { name: '조용한매집', met: ind.accumulation },
+        { name: '낮은변동성<3%', met: parseFloat(ind.priceVolatility || 100) < 3 }
+      ],
+      'pre_5d_accumulation_whale': [
+        { name: '조용한매집', met: ind.accumulation },
+        { name: '고래감지', met: ind.whale > 0 }
+      ],
+      'pre_5d_obv_rising': [
+        { name: 'OBV상승>0.1', met: parseFloat(ind.obvTrend || 0) > 0.1 },
+        { name: '가격횡보<4%', met: parseFloat(ind.priceVolatility || 100) < 4 }
+      ],
+      'pre_5d_volume_gradual': [
+        { name: '거래량증가50-120%', met: parseFloat(ind.volumeGrowth || 0) >= 50 && parseFloat(ind.volumeGrowth || 0) <= 120 }
+      ],
+      'pre_5d_mfi_accumulation': [
+        { name: 'MFI저점<35', met: parseFloat(ind.mfi || 50) < 35 },
+        { name: '조용한매집', met: ind.accumulation }
+      ],
+      'pre_5d_rsi_volume': [
+        { name: 'RSI중립45-65', met: parseFloat(ind.rsi || 50) >= 45 && parseFloat(ind.rsi || 50) <= 65 },
+        { name: '거래량증가1.5+', met: parseFloat(ind.volumeRatio || 1) >= 1.5 }
+      ],
+
+      // 이전 패턴 (하위 호환성)
       'whale_accumulation': [
         { name: '고래감지', met: ind.whale > 0 },
         { name: '조용한매집', met: ind.accumulation }

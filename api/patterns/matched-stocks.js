@@ -122,7 +122,15 @@ module.exports = async function handler(req, res) {
         name: targetPattern.name,
         frequency: targetPattern.frequency,
         avgReturn: targetPattern.avgReturn,
-        backtest: targetPattern.backtest
+        winRate: targetPattern.winRate,
+        confidence: targetPattern.confidence,
+        leadTime: targetPattern.leadTime || 5,
+        // 하위 호환성: backtest 객체도 제공
+        backtest: targetPattern.backtest || {
+          winRate: parseFloat(targetPattern.winRate || 0),
+          avgReturn: parseFloat(targetPattern.avgReturn || 0),
+          totalSamples: targetPattern.count || 0
+        }
       },
       count: finalStocks.length + finalPartialStocks.length,
       completeMatches: finalStocks.length,
