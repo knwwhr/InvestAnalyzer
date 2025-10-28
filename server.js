@@ -26,10 +26,13 @@ const apiRoutes = {
   '/api/screening/escape': require('./api/screening/escape'),
   '/api/screening/drain': require('./api/screening/drain'),
   '/api/screening/volume-surge': require('./api/screening/volume-surge'),
-  '/api/screening/hybrid': require('./api/screening/hybrid'),  // 하이브리드 추가
+  '/api/screening/hybrid': require('./api/screening/hybrid'),
   '/api/patterns/list': require('./api/patterns/list'),
   '/api/patterns/analyze': require('./api/patterns/analyze'),
-  '/api/patterns/matched-stocks': require('./api/patterns/matched-stocks')
+  '/api/patterns/matched-stocks': require('./api/patterns/matched-stocks'),
+  '/api/backtest/hybrid': require('./api/backtest/hybrid'),
+  '/api/tracking/today-signals': require('./api/tracking/today-signals'),
+  '/api/comparison/ab-test': require('./api/comparison/ab-test')
 };
 
 // 라우트 등록
