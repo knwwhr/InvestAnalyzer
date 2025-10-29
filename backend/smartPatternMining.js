@@ -464,31 +464,50 @@ class SmartPatternMiner {
       // Phase 2+3: 급등 종목 찾기 + D-5 선행 지표 분석
       const qualifiedStocks = await this.filterBySurgeAndPullback(candidateCodes, nameMap);
 
-      if (qualifiedStocks.length < 3) {
-        console.log(`⚠️ 필터링 후 종목이 너무 적습니다 (${qualifiedStocks.length}개). 조건을 완화하세요.`);
+      if (qualifiedStocks.length === 0) {
+        console.log(`⚠️ 필터링 후 급등 종목이 없습니다.`);
         return null;
       }
 
-      // Step 2: 선행 패턴 추출 (신뢰도 자동 계산)
-      const patterns = this.extractPatterns(qualifiedStocks);
+      // 🆕 개별 종목별 D-5 선행 지표 추출 (패턴 집계 건너뜀)
+      const stocksWithPatterns = qualifiedStocks.map(stock => {
+        const ind = stock.preSurgeIndicators;
 
-      if (patterns.length === 0) {
-        console.log('⚠️ 발견된 패턴이 없습니다.');
-        return null;
-      }
+        // 각 종목별로 매칭되는 패턴들 찾기
+        const matchedPatterns = [];
+        const patterns = [
+          { name: '5일 조용한 매집', match: ind.accumulation && parseFloat(ind.priceVolatility) < 3, key: 'pre_5d_accumulation' },
+          { name: '5일 매집+고래', match: ind.accumulation && ind.whale, key: 'pre_5d_accumulation_whale' },
+          { name: '5일 OBV상승', match: parseFloat(ind.obvTrend) > 0.1 && parseFloat(ind.priceVolatility) < 4, key: 'pre_5d_obv_rising' },
+          { name: '5일 거래량증가', match: parseFloat(ind.volumeGrowth) >= 50 && parseFloat(ind.volumeGrowth) <= 120, key: 'pre_5d_volume_gradual' },
+          { name: '5일 MFI저점+매집', match: parseFloat(ind.mfi) < 35 && ind.accumulation, key: 'pre_5d_mfi_accumulation' },
+          { name: '5일 RSI중립+거래량', match: parseFloat(ind.rsi) >= 45 && parseFloat(ind.rsi) <= 65 && parseFloat(ind.avgVolumeRatio) >= 1.5, key: 'pre_5d_rsi_volume' }
+        ];
 
-      // 신뢰도 기준으로 상위 5개 선정
-      const topPatterns = patterns
-        .filter(p => p.count >= 2) // 최소 2개 샘플 필요
-        .slice(0, 5);
+        patterns.forEach(p => {
+          if (p.match) matchedPatterns.push({ name: p.name, key: p.key });
+        });
 
-      console.log(`\n🏆 최종 상위 5개 선행 패턴 (신뢰도 기준):\n`);
-      topPatterns.forEach((p, i) => {
-        console.log(`${i + 1}. ${p.name}`);
-        console.log(`   신뢰도: ${p.confidence}% ${this.getConfidenceBadge(parseFloat(p.confidence))}`);
-        console.log(`   출현율: ${p.frequency}%, 승률: ${p.winRate}%`);
-        console.log(`   평균 수익률: +${p.avgReturn}% (5거래일 후)`);
-        console.log(`   샘플: ${p.count}개\n`);
+        return {
+          stockCode: stock.stockCode,
+          stockName: stock.stockName,
+          surgeDate: stock.surgeDate,
+          returnRate: stock.returnRate,
+          pullbackRate: stock.pullbackRate,
+          matchedPatterns: matchedPatterns,
+          preSurgeIndicators: stock.preSurgeIndicators
+        };
+      });
+
+      // 수익률 순으로 정렬
+      stocksWithPatterns.sort((a, b) => parseFloat(b.returnRate) - parseFloat(a.returnRate));
+
+      console.log(`\n🏆 D-5 선행 지표 분석 완료! (총 ${stocksWithPatterns.length}개 종목)\n`);
+      stocksWithPatterns.forEach((s, i) => {
+        console.log(`${i + 1}. ${s.stockName} (${s.stockCode})`);
+        console.log(`   급등률: +${s.returnRate}% (${s.surgeDate})`);
+        console.log(`   매칭 패턴: ${s.matchedPatterns.map(p => p.name).join(', ') || '없음'}`);
+        console.log(`   D-5 지표: MFI=${s.preSurgeIndicators.mfi}, RSI=${s.preSurgeIndicators.rsi}, 거래량=${s.preSurgeIndicators.avgVolumeRatio}x\n`);
       });
 
       return {
@@ -498,11 +517,11 @@ class SmartPatternMiner {
           phase2MinReturn: this.minReturnThreshold,
           phase3PullbackThreshold: this.pullbackThreshold,
           lookbackDays: this.lookbackDays,
-          tradingDaysBeforeSurge: 5, // 거래일
+          tradingDaysBeforeSurge: 5,
           totalQualified: qualifiedStocks.length
         },
-        patterns: topPatterns,
-        rawData: qualifiedStocks // 패턴 매칭용
+        stocks: stocksWithPatterns,  // 🆕 개별 종목 데이터
+        patterns: []  // 빈 배열 (하위 호환성)
       };
 
     } catch (error) {
@@ -699,10 +718,12 @@ class SmartPatternMiner {
   }
 
   /**
-   * 저장된 패턴 로드 (메모리 캐시 사용)
+   * 저장된 패턴 로드 (GitHub Gist → 메모리 캐시 → 로컬 파일)
    */
   loadSavedPatterns() {
     try {
+      // ⚠️ 주의: async 함수가 아니므로 Gist 로드는 API 엔드포인트에서 처리
+      // 여기서는 메모리 캐시만 사용
       const patternCache = require('./patternCache');
       const cached = patternCache.loadPatterns();
 
@@ -724,6 +745,54 @@ class SmartPatternMiner {
         }
       } catch (fsError) {
         // 파일시스템 오류는 무시 (Vercel에서는 읽기 전용)
+      }
+    } catch (error) {
+      console.log('⚠️ 저장된 패턴 로드 실패:', error.message);
+    }
+    return [];
+  }
+
+  /**
+   * 저장된 패턴 로드 (async 버전, GitHub Gist 포함)
+   * API 엔드포인트에서 사용
+   */
+  async loadSavedPatternsAsync() {
+    try {
+      // 1순위: GitHub Gist에서 로드
+      const gistStorage = require('./gistStorage');
+      if (gistStorage.isConfigured()) {
+        const gistData = await gistStorage.loadPatterns();
+        if (gistData && gistData.patterns) {
+          console.log(`✅ GitHub Gist에서 패턴 로드: ${gistData.patterns.length}개`);
+          // 메모리 캐시에도 저장
+          const patternCache = require('./patternCache');
+          patternCache.savePatterns(gistData);
+          return gistData.patterns;
+        }
+      }
+
+      // 2순위: 메모리 캐시
+      const patternCache = require('./patternCache');
+      const cached = patternCache.loadPatterns();
+
+      if (cached && cached.patterns) {
+        console.log(`✅ 캐시된 패턴 로드: ${cached.patterns.length}개`);
+        return cached.patterns;
+      }
+
+      // 3순위: 로컬 파일 (로컬 개발용)
+      try {
+        const fs = require('fs');
+        const path = './data/patterns.json';
+
+        if (fs.existsSync(path)) {
+          const data = fs.readFileSync(path, 'utf8');
+          const parsed = JSON.parse(data);
+          console.log(`✅ 로컬 파일에서 패턴 로드: ${parsed.patterns?.length || 0}개`);
+          return parsed.patterns || [];
+        }
+      } catch (fsError) {
+        // 파일시스템 오류는 무시
       }
     } catch (error) {
       console.log('⚠️ 저장된 패턴 로드 실패:', error.message);

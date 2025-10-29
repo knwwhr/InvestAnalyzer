@@ -4,6 +4,7 @@
 
 const smartPatternMiner = require('../../backend/smartPatternMining');
 const patternCache = require('../../backend/patternCache');
+const gistStorage = require('../../backend/gistStorage');
 
 module.exports = async function handler(req, res) {
   // CORS 헤더
@@ -33,14 +34,28 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 결과를 메모리 캐시에 저장 (rawData 제외)
+    // 결과를 메모리 캐시에 저장
     const saveData = {
       generatedAt: result.generatedAt,
       parameters: result.parameters,
-      patterns: result.patterns
+      stocks: result.stocks,
+      patterns: result.patterns  // 빈 배열 (하위 호환성)
     };
 
     patternCache.savePatterns(saveData);
+
+    // GitHub Gist에 영구 저장 (Vercel stateless 문제 해결)
+    if (gistStorage.isConfigured()) {
+      console.log('💾 GitHub Gist에 패턴 저장 시도...');
+      const gistSaved = await gistStorage.savePatterns(saveData);
+      if (gistSaved) {
+        console.log('✅ GitHub Gist 저장 성공');
+      } else {
+        console.log('⚠️ GitHub Gist 저장 실패 (메모리 캐시 사용)');
+      }
+    } else {
+      console.log('⚠️ GitHub Gist 미설정 (GITHUB_GIST_ID 환경변수 필요)');
+    }
 
     // 로컬 개발 환경에서는 파일로도 저장 시도
     try {
@@ -60,15 +75,16 @@ module.exports = async function handler(req, res) {
       console.log('ℹ️ 로컬 파일 저장 생략 (Serverless 환경)');
     }
 
-    console.log(`✅ 패턴 분석 완료: ${result.patterns.length}개 패턴 발견`);
+    console.log(`✅ D-5 선행 지표 분석 완료: ${result.stocks.length}개 급등 종목 발견`);
 
     res.status(200).json({
       success: true,
-      message: '패턴 분석이 완료되었습니다.',
+      message: 'D-5 선행 지표 분석이 완료되었습니다.',
       generatedAt: result.generatedAt,
       parameters: result.parameters,
-      patternsFound: result.patterns.length,
-      patterns: result.patterns
+      stocksFound: result.stocks.length,
+      stocks: result.stocks,
+      patterns: result.patterns  // 빈 배열 (하위 호환성)
     });
 
   } catch (error) {

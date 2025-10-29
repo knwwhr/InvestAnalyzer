@@ -54,7 +54,13 @@ nano .env
 ```env
 KIS_APP_KEY=your_app_key
 KIS_APP_SECRET=your_app_secret
+
+# 패턴 영구 저장 (선택사항, Vercel 배포 시 필수)
+GITHUB_GIST_ID=your_gist_id
+GITHUB_TOKEN=your_github_token
 ```
+
+> 📌 **패턴 저장소 설정**: Vercel Serverless는 stateless이므로 패턴 데이터를 영구 저장하려면 GitHub Gist 설정이 필요합니다. 자세한 내용은 [GIST_SETUP.md](./GIST_SETUP.md)를 참조하세요.
 
 ### 2. 로컬 실행
 
@@ -102,15 +108,18 @@ GET /api/tracking/today-signals?limit=5
 ### 패턴 마이닝 API
 
 ```bash
-# 패턴 목록
+# 패턴 목록 (GitHub Gist에서 로드)
 GET /api/patterns/list
 
-# 패턴 분석 실행
+# 패턴 분석 실행 (GitHub Gist에 자동 저장)
 POST /api/patterns/analyze
 
-# 패턴 매칭 종목
-GET /api/patterns/matched-stocks?pattern=whale_accumulation
+# D-5 선행 패턴 매칭 종목
+GET /api/patterns/matched-stocks?pattern=pre_5d_accumulation
+GET /api/patterns/matched-stocks?pattern=pre_5d_rsi_volume
 ```
+
+> **D-5 선행 패턴**: 급등 5거래일 전 지표를 분석하여 미래 급등을 예측합니다.
 
 ---
 
@@ -125,14 +134,17 @@ investar/
 │   ├── backtest/      # 백테스트
 │   └── comparison/    # A/B 테스트
 │
-├── backend/           # 백엔드 로직
-│   ├── kisApi.js     # KIS OpenAPI 클라이언트
-│   ├── screening.js  # 스크리닝 엔진
-│   └── hybridScoring.js  # 하이브리드 점수
+├── backend/                    # 백엔드 로직
+│   ├── kisApi.js              # KIS OpenAPI 클라이언트
+│   ├── screening.js           # 스크리닝 엔진
+│   ├── smartPatternMining.js  # D-5 선행 패턴 분석
+│   ├── gistStorage.js         # GitHub Gist 저장소 ⭐ NEW
+│   └── hybridScoring.js       # 하이브리드 점수
 │
-├── index.html        # React SPA
-├── server.js         # 로컬 서버
-└── vercel.json       # Vercel 설정
+├── index.html                 # React SPA
+├── server.js                  # 로컬 서버
+├── vercel.json                # Vercel 설정
+└── GIST_SETUP.md              # GitHub Gist 설정 가이드 ⭐ NEW
 ```
 
 ---
@@ -196,6 +208,13 @@ ETF 필터링 (15개 키워드)
 
 ## 📝 변경 이력
 
+### v3.1 (2025-10-28) - GitHub Gist 패턴 저장소 통합 ⭐
+- ✅ **GitHub Gist 영구 저장소**: Vercel stateless 문제 해결
+- ✅ **D-5 선행 패턴 분석**: 급등 5거래일 전 지표 추출
+- ✅ **패턴 API 개선**: 완전 매칭 + 부분 매칭 지원
+- ✅ **프론트엔드 수정**: D-5 패턴 UI 대응 완료
+- ✅ **자동 실행 제거**: 수동 버튼 클릭으로만 스크리닝 실행
+
 ### v3.0 (2025-10-28) - 지표 단순화
 - ✅ 카테고리 6개 → 3개 축소
 - ✅ ETF/ETN 필터링 강화
@@ -216,6 +235,7 @@ ETF 필터링 (15개 키워드)
 - **KIS Developers**: https://apiportal.koreainvestment.com
 - **Vercel Docs**: https://vercel.com/docs/functions
 - **GitHub**: https://github.com/knwwhr/investar
+- **GitHub Gist 설정 가이드**: [GIST_SETUP.md](./GIST_SETUP.md) ⭐ NEW
 
 ---
 
@@ -226,7 +246,7 @@ ETF 필터링 (15개 키워드)
 ---
 
 **Last Updated**: 2025-10-28
-**Version**: 3.0
+**Version**: 3.1
 **License**: MIT
 
-**✨ "적을수록 강하다" - 핵심 지표만 남기다 ✨**
+**✨ "선행 지표로 미래를 예측하다" - D-5 패턴 분석 ✨**
