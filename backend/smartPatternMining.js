@@ -165,6 +165,18 @@ class SmartPatternMiner {
         // D-1 거래일 RSI
         const rsi = this.calculateRSI(preSurgeData.map(d => d.close));
 
+        // D-5 ~ D-1 일별 가격 데이터
+        const dailyPriceData = preSurgeData.map((d, i) => {
+          const prevClose = i === 0 ? d.close : preSurgeData[i - 1].close;
+          const dailyReturn = i === 0 ? 0 : ((d.close - prevClose) / prevClose * 100);
+          return {
+            date: d.date,
+            close: d.close,
+            dailyReturn: dailyReturn.toFixed(2),
+            volume: d.volume
+          };
+        });
+
         qualified.push({
           stockCode,
           stockName: nameMap.get(stockCode) || stockCode,
@@ -174,6 +186,8 @@ class SmartPatternMiner {
           recentHigh,
           surgeDayPrice: surgeDay.close,
           tradingDaysBeforeSurge: 5, // 거래일 명시
+          // ⭐ D-5 ~ D-1 일별 가격 데이터
+          dailyPriceData: dailyPriceData,
           // ⭐ D-5 ~ D-1 선행 지표
           preSurgeIndicators: {
             accumulation: advancedAnalysis.indicators.accumulation.detected,
@@ -219,18 +233,28 @@ class SmartPatternMiner {
     if (chartData.length < 2) return 0;
 
     let obv = 0;
-    const obvValues = [0];
+    const obvValues = [];
 
-    for (let i = 1; i < chartData.length; i++) {
-      const priceChange = chartData[i].close - chartData[i - 1].close;
-      const direction = priceChange > 0 ? 1 : (priceChange < 0 ? -1 : 0);
-      obv += chartData[i].volume * direction;
+    for (let i = 0; i < chartData.length; i++) {
+      if (i === 0) {
+        obv = chartData[i].volume;
+      } else {
+        const priceChange = chartData[i].close - chartData[i - 1].close;
+        if (priceChange > 0) {
+          obv += chartData[i].volume;
+        } else if (priceChange < 0) {
+          obv -= chartData[i].volume;
+        }
+      }
       obvValues.push(obv);
     }
 
-    // 선형 추세: 첫날 대비 마지막날 비율
-    if (obvValues[0] === 0) return 0;
-    return (obvValues[obvValues.length - 1] - obvValues[0]) / Math.abs(obvValues[0]);
+    // 선형 추세: 첫날 대비 마지막날 증가율
+    const firstOBV = obvValues[0];
+    const lastOBV = obvValues[obvValues.length - 1];
+
+    if (Math.abs(firstOBV) < 1) return 0; // OBV가 너무 작으면 0
+    return (lastOBV - firstOBV) / Math.abs(firstOBV);
   }
 
   /**
@@ -473,15 +497,32 @@ class SmartPatternMiner {
       const stocksWithPatterns = qualifiedStocks.map(stock => {
         const ind = stock.preSurgeIndicators;
 
-        // 각 종목별로 매칭되는 패턴들 찾기
+        // 각 종목별로 매칭되는 패턴들 찾기 (완화된 조건)
         const matchedPatterns = [];
         const patterns = [
-          { name: '5일 조용한 매집', match: ind.accumulation && parseFloat(ind.priceVolatility) < 3, key: 'pre_5d_accumulation' },
+          // 패턴 1: 조용한 매집 (낮은 변동성)
+          { name: '5일 조용한 매집', match: ind.accumulation && parseFloat(ind.priceVolatility) < 5, key: 'pre_5d_accumulation' },
+
+          // 패턴 2: 매집 + 고래
           { name: '5일 매집+고래', match: ind.accumulation && ind.whale, key: 'pre_5d_accumulation_whale' },
-          { name: '5일 OBV상승', match: parseFloat(ind.obvTrend) > 0.1 && parseFloat(ind.priceVolatility) < 4, key: 'pre_5d_obv_rising' },
-          { name: '5일 거래량증가', match: parseFloat(ind.volumeGrowth) >= 50 && parseFloat(ind.volumeGrowth) <= 120, key: 'pre_5d_volume_gradual' },
-          { name: '5일 MFI저점+매집', match: parseFloat(ind.mfi) < 35 && ind.accumulation, key: 'pre_5d_mfi_accumulation' },
-          { name: '5일 RSI중립+거래량', match: parseFloat(ind.rsi) >= 45 && parseFloat(ind.rsi) <= 65 && parseFloat(ind.avgVolumeRatio) >= 1.5, key: 'pre_5d_rsi_volume' }
+
+          // 패턴 3: OBV 상승 (조건 완화: 0 초과면 상승)
+          { name: '5일 OBV상승', match: parseFloat(ind.obvTrend) > 0 && parseFloat(ind.priceVolatility) < 6, key: 'pre_5d_obv_rising' },
+
+          // 패턴 4: 거래량 점진 증가 (범위 확대)
+          { name: '5일 거래량증가', match: parseFloat(ind.volumeGrowth) >= 30 && parseFloat(ind.volumeGrowth) <= 150, key: 'pre_5d_volume_gradual' },
+
+          // 패턴 5: MFI 저점 + 매집 (MFI null 허용, 조건 완화)
+          { name: '5일 MFI저점+매집', match: (ind.mfi === null || parseFloat(ind.mfi) < 40) && ind.accumulation, key: 'pre_5d_mfi_accumulation' },
+
+          // 패턴 6: RSI 중립 + 거래량 (범위 확대)
+          { name: '5일 RSI중립+거래량', match: parseFloat(ind.rsi) >= 40 && parseFloat(ind.rsi) <= 70 && parseFloat(ind.avgVolumeRatio) >= 1.2, key: 'pre_5d_rsi_volume' },
+
+          // 🆕 패턴 7: 강한 거래량 증가 (단순 조건)
+          { name: '5일 거래량폭발', match: parseFloat(ind.avgVolumeRatio) >= 2.0, key: 'pre_5d_volume_surge' },
+
+          // 🆕 패턴 8: RSI 과열 회피 (30-80 범위)
+          { name: '5일 안정RSI', match: parseFloat(ind.rsi) >= 30 && parseFloat(ind.rsi) <= 80, key: 'pre_5d_stable_rsi' }
         ];
 
         patterns.forEach(p => {

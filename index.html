@@ -1688,7 +1688,38 @@
                       </div>
                     )}
 
-                    {/* D-5 선행 지표 */}
+                    {/* 📊 D-5 ~ D-1 일별 가격 테이블 */}
+                    {stock.dailyPriceData && stock.dailyPriceData.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-purple-200">
+                        <h5 className="text-sm font-semibold text-gray-700 mb-2">📊 급등 5거래일 전 일별 가격 추이</h5>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-gray-100">
+                                <th className="border border-gray-300 px-2 py-1 text-left">날짜</th>
+                                <th className="border border-gray-300 px-2 py-1 text-right">종가</th>
+                                <th className="border border-gray-300 px-2 py-1 text-right">일수익률</th>
+                                <th className="border border-gray-300 px-2 py-1 text-right">거래량</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stock.dailyPriceData.map((day, i) => (
+                                <tr key={i} className="hover:bg-gray-50">
+                                  <td className="border border-gray-300 px-2 py-1 text-gray-700">{day.date}</td>
+                                  <td className="border border-gray-300 px-2 py-1 text-right font-medium">{day.close.toLocaleString()}원</td>
+                                  <td className={`border border-gray-300 px-2 py-1 text-right font-bold ${parseFloat(day.dailyReturn) > 0 ? 'text-red-600' : parseFloat(day.dailyReturn) < 0 ? 'text-blue-600' : 'text-gray-600'}`}>
+                                    {parseFloat(day.dailyReturn) > 0 ? '+' : ''}{day.dailyReturn}%
+                                  </td>
+                                  <td className="border border-gray-300 px-2 py-1 text-right text-gray-600">{day.volume.toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* D-5 선행 지표 요약 */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mt-3 pt-3 border-t border-purple-200">
                       <div>
                         <span className="text-gray-600">RSI:</span> <span className="font-bold">{stock.preSurgeIndicators.rsi}</span>
