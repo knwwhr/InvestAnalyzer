@@ -1488,7 +1488,15 @@
 
       // 패턴 분석 실행 (관리자 기능)
       const runPatternAnalysis = async () => {
-        if (!confirm('패턴 분석을 실행하시겠습니까? (약 3~5분 소요)')) return;
+        if (!confirm('패턴 재분석을 실행하시겠습니까?\n\n기존 패턴 데이터는 삭제되고 새로운 분석이 시작됩니다. (약 3~5분 소요)')) return;
+
+        // 🆕 기존 캐시 및 상태 초기화
+        console.log('🗑️ 기존 패턴 캐시 삭제 중...');
+        localStorage.removeItem('investar_patterns_cache');
+        setPatterns([]);
+        setSelectedPattern(null);
+        setMatchedStocks([]);
+        setAnalysisInfo(null);
 
         setAnalyzing(true);
         setError(null);
@@ -1501,24 +1509,29 @@
           const result = await response.json();
 
           if (result.success) {
-            // 패턴 데이터를 로컬스토리지에 저장 (Vercel Serverless 메모리 캐시 대신)
+            // 🆕 개별 종목 데이터 저장 (패턴 배열은 빈 배열)
             const cacheData = {
               generatedAt: result.generatedAt,
               parameters: result.parameters,
-              patterns: result.patterns
+              stocks: result.stocks || [],
+              patterns: result.patterns || []
             };
             localStorage.setItem('investar_patterns_cache', JSON.stringify(cacheData));
-            console.log('✅ 패턴 데이터 로컬스토리지 저장 완료');
+            console.log('✅ 새로운 패턴 데이터 저장 완료:', result.stocksFound, '개 종목');
 
-            // alert 대신 패턴 목록 바로 갱신하고 UI에 표시
+            // 🆕 UI에 즉시 반영 (개별 종목 데이터 표시)
             setPatterns(result.patterns || []);
             setAnalysisInfo({
               generatedAt: result.generatedAt,
-              parameters: result.parameters
+              parameters: result.parameters,
+              stocksFound: result.stocksFound,
+              stocks: result.stocks || []
             });
             setLoading(false);
-            // 성공 메시지는 화면에 표시
             setError(null);
+
+            // 성공 메시지
+            alert(`✅ 분석 완료!\n\n${result.stocksFound}개의 급등 종목을 발견했습니다.`);
           } else {
             setError(result.error || '패턴 분석 실패');
           }
@@ -1632,6 +1645,75 @@
                   </p>
                   <p className="text-xs text-blue-600 mt-2">⏱️ 약 3~5분 소요됩니다. 잠시만 기다려주세요.</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🆕 개별 종목 데이터 표시 (패턴 집계 없을 때) */}
+          {analysisInfo?.stocks && analysisInfo.stocks.length > 0 && patterns.length === 0 && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold mb-4">📈 D-5 선행 지표 분석 결과</h3>
+
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4 rounded">
+                <p className="text-sm text-green-800">
+                  ✅ <span className="font-bold">{analysisInfo.stocksFound}개 급등 종목</span> 발견!
+                  각 종목의 급등 5거래일 전 선행 지표를 확인하세요.
+                </p>
+              </div>
+
+              {/* 종목 리스트 */}
+              <div className="space-y-3">
+                {analysisInfo.stocks.map((stock, index) => (
+                  <div key={stock.stockCode} className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-bold text-lg text-gray-900">
+                          #{index + 1} {stock.stockName} <span className="text-sm text-gray-600">({stock.stockCode})</span>
+                        </h4>
+                        <p className="text-sm text-gray-600">급등일: {stock.surgeDate}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-green-600">+{stock.returnRate}%</div>
+                        <div className="text-xs text-gray-500">10거래일 수익률</div>
+                      </div>
+                    </div>
+
+                    {/* 매칭 패턴 */}
+                    {stock.matchedPatterns && stock.matchedPatterns.length > 0 && (
+                      <div className="mb-2">
+                        <span className="text-xs font-semibold text-purple-600">🎯 매칭 패턴: </span>
+                        <span className="text-xs text-purple-700">
+                          {stock.matchedPatterns.map(p => p.name).join(', ')}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* D-5 선행 지표 */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mt-3 pt-3 border-t border-purple-200">
+                      <div>
+                        <span className="text-gray-600">RSI:</span> <span className="font-bold">{stock.preSurgeIndicators.rsi}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">MFI:</span> <span className="font-bold">{stock.preSurgeIndicators.mfi || 'N/A'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">거래량증가:</span> <span className="font-bold">{stock.preSurgeIndicators.volumeGrowth}%</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">가격변동성:</span> <span className="font-bold">{stock.preSurgeIndicators.priceVolatility}%</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">고래:</span> <span className="font-bold">{stock.preSurgeIndicators.whale ? '✅' : '❌'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">조용한매집:</span> <span className="font-bold">{stock.preSurgeIndicators.accumulation ? '✅' : '❌'}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-600">OBV추세:</span> <span className="font-bold">{stock.preSurgeIndicators.obvTrend}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
