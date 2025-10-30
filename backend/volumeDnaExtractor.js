@@ -483,6 +483,148 @@ class VolumeDnaExtractor {
 
     return Math.min(100, strength);
   }
+
+  // ============================================
+  // 5. 현재 시장 스캔 (Phase 2)
+  // ============================================
+
+  /**
+   * 현재 시장의 모든 종목을 DNA와 매칭
+   * @param {Object} commonDNA - 추출된 공통 DNA
+   * @param {Array} stockPool - 스캔할 종목 풀 (기본: screening.js의 53개)
+   * @param {Object} options - 옵션 { matchThreshold: 70, limit: 10, days: 25 }
+   * @returns {Promise<Array>} 매칭된 종목 목록
+   */
+  async scanMarketForDNA(commonDNA, stockPool = null, options = {}) {
+    const {
+      matchThreshold = 70,  // 최소 매칭 점수
+      limit = 10,           // 최대 반환 개수
+      days = 25             // 최근 N일 패턴 분석
+    } = options;
+
+    try {
+      console.log('\n🔍 현재 시장 DNA 스캔 시작...\n');
+      console.log(`  - 매칭 임계값: ${matchThreshold}점`);
+      console.log(`  - 분석 기간: 최근 ${days}일`);
+      console.log(`  - 최대 반환: ${limit}개\n`);
+
+      // 1. 종목 풀 가져오기 (없으면 screening.js에서 동적 로드)
+      if (!stockPool) {
+        const screening = require('./screening');
+        stockPool = await screening.getStockPoolFromRankings();
+        console.log(`  ✓ 종목 풀: ${stockPool.length}개 종목 로드\n`);
+      }
+
+      // 2. 병렬 처리를 위한 배치 설정 (10개씩)
+      const batchSize = 10;
+      const batches = [];
+      for (let i = 0; i < stockPool.length; i += batchSize) {
+        batches.push(stockPool.slice(i, i + batchSize));
+      }
+
+      console.log(`  📦 배치 처리: ${batches.length}개 배치 (각 ${batchSize}개)\n`);
+
+      // 3. 각 종목 분석 및 매칭 점수 계산
+      const matchedStocks = [];
+      let processedCount = 0;
+
+      for (const batch of batches) {
+        const batchResults = await Promise.all(
+          batch.map(async (stock) => {
+            try {
+              // 최근 N일 차트 데이터 조회
+              const chartData = await kisApi.getDailyChart(stock.code, days);
+
+              if (chartData.length < 10) {
+                console.log(`  ⚠️ ${stock.name} (${stock.code}): 데이터 부족 (${chartData.length}일)`);
+                return null;
+              }
+
+              // 거래량 패턴 분석
+              const volumePattern = this.analyzeVolumePattern(chartData);
+              if (volumePattern.error) {
+                return null;
+              }
+
+              // 기관/외국인 데이터 조회 (선택적)
+              let institutionFlow = { institution: null, foreign: null };
+              try {
+                const investorData = await kisApi.getInvestorData(stock.code, days);
+                institutionFlow = this.analyzeInstitutionFlow(investorData);
+              } catch (error) {
+                // 투자자 데이터 없어도 거래량 패턴으로 매칭 가능
+              }
+
+              // DNA 매칭 점수 계산
+              const currentPattern = {
+                volumeRate: volumePattern,
+                institutionFlow: institutionFlow.institution,
+                foreignFlow: institutionFlow.foreign
+              };
+
+              const matchScore = this.calculateMatchScore(currentPattern, commonDNA);
+
+              // 임계값 이상만 반환
+              if (matchScore.totalScore >= matchThreshold) {
+                console.log(`  ✅ ${stock.name} (${stock.code}): ${matchScore.totalScore}점 - 매칭!`);
+                return {
+                  stockCode: stock.code,
+                  stockName: stock.name,
+                  matchScore: matchScore.totalScore,
+                  scoreDetails: matchScore.details,
+                  pattern: currentPattern,
+                  analyzedDays: chartData.length
+                };
+              } else {
+                console.log(`  ⏭️ ${stock.name} (${stock.code}): ${matchScore.totalScore}점 - 미달`);
+                return null;
+              }
+
+            } catch (error) {
+              console.error(`  ❌ ${stock.name} (${stock.code}): 분석 실패 - ${error.message}`);
+              return null;
+            }
+          })
+        );
+
+        // null 제거 후 추가
+        const validResults = batchResults.filter(r => r !== null);
+        matchedStocks.push(...validResults);
+
+        processedCount += batch.length;
+        console.log(`\n  진행률: ${processedCount}/${stockPool.length} (${((processedCount / stockPool.length) * 100).toFixed(1)}%)\n`);
+
+        // Rate limiting을 위한 약간의 지연 (배치 간 1초)
+        if (batches.indexOf(batch) < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+
+      // 4. 매칭 점수 내림차순 정렬 및 제한
+      matchedStocks.sort((a, b) => b.matchScore - a.matchScore);
+      const topMatches = matchedStocks.slice(0, limit);
+
+      console.log('\n━'.repeat(60));
+      console.log(`✅ DNA 스캔 완료!\n`);
+      console.log(`  - 분석 종목: ${stockPool.length}개`);
+      console.log(`  - 매칭 종목: ${matchedStocks.length}개`);
+      console.log(`  - 반환 종목: ${topMatches.length}개\n`);
+
+      if (topMatches.length > 0) {
+        console.log('🏆 TOP 매칭 종목:\n');
+        topMatches.forEach((stock, i) => {
+          console.log(`  ${i + 1}. ${stock.stockName} (${stock.stockCode}) - ${stock.matchScore}점`);
+        });
+        console.log('');
+      }
+
+      return topMatches;
+
+    } catch (error) {
+      console.error('❌ DNA 스캔 실패:', error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = new VolumeDnaExtractor();
