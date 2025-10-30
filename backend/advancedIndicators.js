@@ -91,10 +91,10 @@ function detectSilentAccumulation(chartData) {
   const avgVolumeSecond = secondHalf.reduce((sum, d) => sum + d.volume, 0) / 10;
   const volumeGrowth = ((avgVolumeSecond - avgVolumeFirst) / avgVolumeFirst) * 100;
 
-  // 조용한 매집 조건:
-  // 1. 가격 변동성 낮음 (3% 미만)
-  // 2. 거래량 증가 추세 (20% 이상)
-  const isSilentAccumulation = priceVolatility < 3 && volumeGrowth > 20;
+  // 조용한 매집 조건 (완화):
+  // 1. 가격 변동성 낮음 (10% 미만) - 횡보 구간
+  // 2. 거래량 증가 추세 (10% 이상) - 점진적 증가
+  const isSilentAccumulation = priceVolatility < 10 && volumeGrowth > 10;
 
   return {
     detected: isSilentAccumulation,
