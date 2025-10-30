@@ -931,11 +931,9 @@
 
     // 성과 검증 컴포넌트
     function PerformanceVerification({ apiBaseUrl }) {
-      const [backtestData, setBacktestData] = useState(null);
       const [trackerData, setTrackerData] = useState(null);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState(null);
-      const [activeView, setActiveView] = useState('backtest'); // backtest or realtime
 
       useEffect(() => {
         fetchPerformanceData();
@@ -946,19 +944,6 @@
         setError(null);
 
         try {
-          // 백테스팅 데이터 - /backtest/hybrid API 사용
-          try {
-            const backtestRes = await fetch(`${apiBaseUrl}/backtest/hybrid`);
-            if (backtestRes.ok) {
-              const backtestResult = await backtestRes.json();
-              if (backtestResult.success) {
-                setBacktestData(backtestResult.data);
-              }
-            }
-          } catch (err) {
-            console.warn('백테스트 데이터 로드 실패 (무시):', err.message);
-          }
-
           // 실시간 추적 데이터 - 패턴 분석 결과 사용
           try {
             const patternsRes = await fetch(`${apiBaseUrl}/patterns/list`);
@@ -984,8 +969,8 @@
             console.warn('패턴 데이터 로드 실패 (무시):', err.message);
           }
 
-          // 데이터가 하나도 없으면 에러 표시
-          if (!backtestData && !trackerData) {
+          // 데이터가 없으면 에러 표시
+          if (!trackerData) {
             setError('성과 데이터를 불러올 수 없습니다. 패턴 분석을 먼저 실행해주세요.');
           }
 
@@ -1014,8 +999,7 @@
         );
       }
 
-      const data = activeView === 'backtest' ? backtestData : trackerData;
-      const stats = data?.statistics?.overall;
+      const stats = trackerData?.statistics?.overall;
 
       if (!stats) {
         return (
@@ -1027,30 +1011,12 @@
 
       return (
         <div className="space-y-6">
-          {/* 뷰 선택 */}
-          <div className="bg-white rounded-xl shadow-lg p-4">
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => setActiveView('backtest')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                  activeView === 'backtest'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                📊 과거 백테스팅
-              </button>
-              <button
-                onClick={() => setActiveView('realtime')}
-                className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-                  activeView === 'realtime'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                ⏱️ 실시간 추적
-              </button>
-            </div>
+          {/* 헤더 */}
+          <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-xl shadow-lg p-6 text-white">
+            <h2 className="text-3xl font-bold mb-2">📈 성과 검증</h2>
+            <p className="text-green-100">
+              패턴 기반 종목 추천의 실제 성과를 확인합니다
+            </p>
           </div>
 
           {/* 전체 요약 카드 */}
@@ -1065,7 +1031,7 @@
             <SummaryCard
               title="평균 수익률"
               value={`${stats.avgReturn > 0 ? '+' : ''}${stats.avgReturn}%`}
-              subtext={`${data.parameters?.holdingDays || 7}일 보유 기준`}
+              subtext={`${trackerData.parameters?.holdingDays || 7}일 보유 기준`}
               color="bg-gradient-to-br from-blue-500 to-blue-600"
               icon="📈"
             />
@@ -1086,7 +1052,7 @@
           </div>
 
           {/* Phase 3: 고급 지표 */}
-          {data.statistics?.advanced && (
+          {trackerData.statistics?.advanced && (
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 🎯 고급 성과 지표 (Phase 3)
@@ -1094,33 +1060,33 @@
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <AdvancedMetricBox
                   label="샤프 비율"
-                  value={data.statistics.advanced.sharpeRatio}
+                  value={trackerData.statistics.advanced.sharpeRatio}
                   desc="위험 대비 수익 (>1 양호)"
-                  good={data.statistics.advanced.sharpeRatio > 1}
+                  good={trackerData.statistics.advanced.sharpeRatio > 1}
                 />
                 <AdvancedMetricBox
                   label="MDD (최대 낙폭)"
-                  value={`${data.statistics.advanced.maxDrawdown}%`}
+                  value={`${trackerData.statistics.advanced.maxDrawdown}%`}
                   desc="최대 손실 폭 (<10% 안정)"
-                  good={data.statistics.advanced.maxDrawdown < 10}
+                  good={trackerData.statistics.advanced.maxDrawdown < 10}
                 />
                 <AdvancedMetricBox
                   label="Profit Factor"
-                  value={data.statistics.advanced.profitFactor}
+                  value={trackerData.statistics.advanced.profitFactor}
                   desc="수익/손실 비율 (>1.5 우수)"
-                  good={data.statistics.advanced.profitFactor > 1.5}
+                  good={trackerData.statistics.advanced.profitFactor > 1.5}
                 />
                 <AdvancedMetricBox
                   label="KOSPI 초과수익"
-                  value={`${data.statistics.advanced.excessReturn > 0 ? '+' : ''}${data.statistics.advanced.excessReturn}%`}
+                  value={`${trackerData.statistics.advanced.excessReturn > 0 ? '+' : ''}${trackerData.statistics.advanced.excessReturn}%`}
                   desc="시장 대비 초과 성과"
-                  good={data.statistics.advanced.excessReturn > 0}
+                  good={trackerData.statistics.advanced.excessReturn > 0}
                 />
               </div>
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                 <h4 className="font-bold text-blue-900 mb-2">💡 종합 해석</h4>
                 <div className="space-y-1">
-                  {data.statistics.advanced.interpretation.map((interp, i) => (
+                  {trackerData.statistics.advanced.interpretation.map((interp, i) => (
                     <div key={i} className="text-sm text-blue-800">{interp}</div>
                   ))}
                 </div>
@@ -1143,7 +1109,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(data.statistics?.byGrade || {}).map(([grade, gstats]) => (
+                  {Object.entries(trackerData.statistics?.byGrade || {}).map(([grade, gstats]) => (
                     <tr key={grade} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <span className={`inline-block px-3 py-1 rounded-full text-white font-bold grade-${grade}`}>
@@ -1184,7 +1150,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(data.statistics?.byCategory || {}).map(([key, cstats]) => (
+                  {Object.entries(trackerData.statistics?.byCategory || {}).map(([key, cstats]) => (
                     <tr key={key} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3 font-semibold">{cstats.label}</td>
                       <td className="px-4 py-3">{cstats.count}개</td>
