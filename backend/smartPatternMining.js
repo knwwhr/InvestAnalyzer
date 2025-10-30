@@ -559,6 +559,62 @@ class SmartPatternMiner {
       // 수익률 순으로 정렬
       stocksWithPatterns.sort((a, b) => parseFloat(b.returnRate) - parseFloat(a.returnRate));
 
+      // 🆕 패턴별 통계 계산 (승률, 평균 수익률, 출현율)
+      const patternStats = {};
+      const successThreshold = 10; // 10% 이상을 성공으로 간주
+
+      stocksWithPatterns.forEach(stock => {
+        stock.matchedPatterns.forEach(pattern => {
+          if (!patternStats[pattern.key]) {
+            patternStats[pattern.key] = {
+              key: pattern.key,
+              name: pattern.name,
+              count: 0,
+              wins: 0,
+              losses: 0,
+              totalReturn: 0,
+              stocks: []
+            };
+          }
+
+          patternStats[pattern.key].count++;
+          patternStats[pattern.key].totalReturn += parseFloat(stock.returnRate);
+          patternStats[pattern.key].stocks.push({
+            code: stock.stockCode,
+            name: stock.stockName,
+            returnRate: stock.returnRate
+          });
+
+          // 승패 판정
+          if (parseFloat(stock.returnRate) >= successThreshold) {
+            patternStats[pattern.key].wins++;
+          } else {
+            patternStats[pattern.key].losses++;
+          }
+        });
+      });
+
+      // 패턴별 통계를 배열로 변환하고 신뢰도순 정렬
+      const patternPerformance = Object.values(patternStats).map(stat => {
+        const frequency = (stat.count / stocksWithPatterns.length) * 100;
+        const winRate = (stat.wins / stat.count) * 100;
+        const avgReturn = stat.totalReturn / stat.count;
+        const confidence = this.calculateConfidence(frequency, winRate);
+
+        return {
+          key: stat.key,
+          name: stat.name,
+          count: stat.count,
+          frequency: frequency.toFixed(1),
+          wins: stat.wins,
+          losses: stat.losses,
+          winRate: winRate.toFixed(1),
+          avgReturn: avgReturn.toFixed(2),
+          confidence: confidence,
+          samples: stat.stocks.slice(0, 3) // 상위 3개 샘플
+        };
+      }).sort((a, b) => parseFloat(b.confidence) - parseFloat(a.confidence));
+
       console.log(`\n🏆 D-5 선행 지표 분석 완료! (총 ${stocksWithPatterns.length}개 종목)\n`);
       stocksWithPatterns.forEach((s, i) => {
         console.log(`${i + 1}. ${s.stockName} (${s.stockCode})`);
@@ -566,6 +622,18 @@ class SmartPatternMiner {
         console.log(`   매칭 패턴: ${s.matchedPatterns.map(p => p.name).join(', ') || '없음'}`);
         console.log(`   D-5 지표: MFI=${s.preSurgeIndicators.mfi}, RSI=${s.preSurgeIndicators.rsi}, 거래량=${s.preSurgeIndicators.avgVolumeRatio}x\n`);
       });
+
+      // 패턴 성과 출력
+      if (patternPerformance.length > 0) {
+        console.log(`\n📊 패턴 성과 분석 (신뢰도순):\n`);
+        patternPerformance.forEach((p, i) => {
+          console.log(`${i + 1}. ${p.name}`);
+          console.log(`   출현: ${p.count}회 (${p.frequency}%)`);
+          console.log(`   승률: ${p.winRate}% (${p.wins}승 ${p.losses}패)`);
+          console.log(`   평균 수익률: +${p.avgReturn}%`);
+          console.log(`   신뢰도: ${p.confidence}% ${this.getConfidenceBadge(parseFloat(p.confidence))}\n`);
+        });
+      }
 
       return {
         generatedAt: new Date().toISOString(),
@@ -575,10 +643,11 @@ class SmartPatternMiner {
           phase3PullbackThreshold: this.pullbackThreshold,
           lookbackDays: this.lookbackDays,
           tradingDaysBeforeSurge: 5,
-          totalQualified: qualifiedStocks.length
+          totalQualified: qualifiedStocks.length,
+          successThreshold: successThreshold
         },
-        stocks: stocksWithPatterns,  // 🆕 개별 종목 데이터
-        patterns: []  // 빈 배열 (하위 호환성)
+        stocks: stocksWithPatterns,  // 개별 종목 데이터
+        patterns: patternPerformance  // 🆕 패턴별 성과 통계
       };
 
     } catch (error) {
