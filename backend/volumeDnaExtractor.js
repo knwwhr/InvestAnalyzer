@@ -508,10 +508,11 @@ class VolumeDnaExtractor {
       console.log(`  - 분석 기간: 최근 ${days}일`);
       console.log(`  - 최대 반환: ${limit}개\n`);
 
-      // 1. 종목 풀 가져오기 (없으면 screening.js에서 동적 로드)
+      // 1. 종목 풀 가져오기 (없으면 KIS API에서 동적 로드)
       if (!stockPool) {
-        const screening = require('./screening');
-        stockPool = await screening.getStockPoolFromRankings();
+        const { codes: stockCodes } = await kisApi.getAllStockList('ALL');
+        // stockPool 형식으로 변환 (code, name)
+        stockPool = stockCodes.map(code => ({ code, name: code }));
         console.log(`  ✓ 종목 풀: ${stockPool.length}개 종목 로드\n`);
       }
 
