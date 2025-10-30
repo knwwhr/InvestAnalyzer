@@ -7,8 +7,8 @@
 - **목적**: 거래량 지표로 급등 가능성이 높은 종목 자동 발굴
 - **기술 스택**: Node.js, React (CDN), Vercel Serverless, KIS OpenAPI
 - **배포 URL**: https://investar-xi.vercel.app
-- **버전**: 3.0 (카테고리 단순화 완료)
-- **최종 업데이트**: 2025-10-28
+- **버전**: 3.1 (거래량 DNA 시스템 추가)
+- **최종 업데이트**: 2025-10-30
 
 ---
 
@@ -128,6 +128,107 @@ GET /api/screening/whale?market=KOSPI&limit=5
 GET /api/screening/accumulation?market=ALL&limit=5
 ```
 
+### 🧬 거래량 DNA 시스템 (NEW - 2025-10-30)
+
+**핵심 철학**: "과거 급등주의 거래량 패턴에서 DNA를 추출하여, 현재 시장에서 같은 패턴을 가진 종목을 찾는다"
+
+#### DNA 추출 (Phase 1)
+```bash
+POST /api/patterns/volume-dna
+{
+  "mode": "extract",
+  "stocks": [
+    { "code": "005930", "startDate": "20251001", "endDate": "20251025" },
+    { "code": "000660", "startDate": "20251005", "endDate": "20251025" }
+  ]
+}
+```
+
+**응답**:
+```json
+{
+  "success": true,
+  "mode": "extract",
+  "result": {
+    "commonDNA": {
+      "volumeRate": {
+        "avgEMA": 2.23,
+        "avgRecent5d": -0.31,
+        "threshold": { "emaMin": 1.134, "recent5dMin": -0.756 }
+      },
+      "institutionFlow": {
+        "avgConsecutiveDays": 2,
+        "threshold": { "minConsecutiveDays": 0 }
+      }
+    },
+    "dnaStrength": 100,
+    "basedOnStocks": 2
+  }
+}
+```
+
+#### 시장 스캔 (Phase 2)
+```bash
+POST /api/patterns/volume-dna
+{
+  "mode": "scan",
+  "commonDNA": { ... },  // Phase 1에서 추출된 DNA
+  "options": {
+    "matchThreshold": 70,  // 최소 매칭 점수
+    "limit": 10,           // 최대 반환 개수
+    "days": 25             // 분석 기간 (최근 N일)
+  }
+}
+```
+
+**응답**:
+```json
+{
+  "success": true,
+  "mode": "scan",
+  "result": {
+    "matchedStocks": [
+      {
+        "stockCode": "900270",
+        "stockName": "900270",
+        "matchScore": 100,
+        "scoreDetails": {
+          "volumeRate": {
+            "score": 100,
+            "current": { "emaAvg": 792.09, "recent5d": 762.88 },
+            "threshold": { "emaMin": 1.134, "recent5dMin": -0.756 }
+          }
+        },
+        "pattern": {
+          "volumeRate": {
+            "segmented": { "trend": "accelerating" },
+            "compositeScore": 734.33,
+            "urgency": "low"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+#### DNA 시스템 특징
+
+**시간 가중치 분석**:
+- **EMA (Exponential Moving Average)**: 지수 가중 평균 (반감기 5일)
+- **구간별 분석**: 초반 20%, 중반 30%, 후반 50% 가중치
+- **하이브리드 점수**: EMA 40% + 구간별 30% + 최근5일 30%
+
+**지표**:
+1. **거래량 증가율**: EMA 평균, 최근 5일 평균, 트렌드 (accelerating/mixed/decelerating)
+2. **기관 순매수**: 연속 매수일, 강도 (strong/moderate/weak)
+3. **외국인 순매수**: 연속 매수일, 강도
+
+**매칭 로직**:
+- 각 종목의 현재 패턴을 추출된 DNA와 비교
+- 임계값 이상(기본 70점)인 종목만 반환
+- 매칭 점수 내림차순 정렬
+
 ---
 
 ## 🛠️ 로컬 개발 가이드
@@ -170,7 +271,7 @@ curl http://localhost:3001/api/screening/accumulation
 
 ```
 investar/
-├── api/                          # Vercel Serverless Functions (11개)
+├── api/                          # Vercel Serverless Functions (12개)
 │   ├── screening/
 │   │   ├── recommend.js         # 종합집계
 │   │   ├── [category].js        # whale, accumulation
@@ -178,7 +279,8 @@ investar/
 │   ├── patterns/
 │   │   ├── analyze.js           # 패턴 분석
 │   │   ├── list.js              # 패턴 목록
-│   │   └── matched-stocks.js    # 패턴 매칭 종목
+│   │   ├── matched-stocks.js    # 패턴 매칭 종목
+│   │   └── volume-dna.js        # 🧬 DNA 추출 + 스캔 (NEW)
 │   ├── tracking/
 │   │   └── today-signals.js     # 오늘의 신호
 │   ├── comparison/
@@ -196,11 +298,13 @@ investar/
 │   ├── advancedIndicators.js    # 창의적 지표
 │   ├── smartPatternMining.js    # 패턴 마이닝
 │   ├── hybridScoring.js         # 하이브리드 점수
-│   └── patternCache.js          # 패턴 캐시
+│   ├── patternCache.js          # 패턴 캐시
+│   └── volumeDnaExtractor.js    # 🧬 DNA 추출 엔진 (NEW)
 │
 ├── index.html                    # React SPA 프론트엔드
 ├── server.js                     # 로컬 개발 서버
 ├── vercel.json                   # Vercel 설정
+├── test-volume-dna-full.js       # 🧬 DNA 통합 테스트 (NEW)
 └── CLAUDE.md                     # 이 문서
 ```
 
@@ -268,6 +372,14 @@ KIS_APP_SECRET=<한국투자증권 앱 시크릿>
 
 ## 📝 변경 이력
 
+### v3.1 (2025-10-30) - 🧬 거래량 DNA 시스템
+- ✅ DNA 추출 시스템 구현 (volumeDnaExtractor.js)
+- ✅ 시간 가중치 분석 (EMA + 구간별 + 최근5일)
+- ✅ 기관/외국인 투자자 데이터 통합
+- ✅ 통합 API 엔드포인트 (extract + scan)
+- ✅ 배치 처리 + 병렬 처리 최적화
+- ✅ Vercel 12-function limit 준수
+
 ### v3.0 (2025-10-28) - 지표 단순화
 - ✅ 카테고리 6개 → 3개 축소 (종합집계, 고래 감지, 조용한 매집)
 - ✅ ETF/ETN 필터링 강화 (15개 키워드)
@@ -292,8 +404,8 @@ KIS_APP_SECRET=<한국투자증권 앱 시크릿>
 
 ---
 
-**Last Updated**: 2025-10-28
-**Version**: 3.0 (Category Simplification Complete)
+**Last Updated**: 2025-10-30
+**Version**: 3.1 (Volume DNA System)
 **Author**: Claude Code with @knwwhr
 
-**✨ "적을수록 강하다" - 핵심 지표만 남기다**
+**✨ "거래량이 주가에 선행한다" - DNA 기반 종목 발굴**
