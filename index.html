@@ -104,17 +104,13 @@
         }
       };
 
-      // 종목 상세 분석
-      const fetchStockDetail = async (stockCode) => {
-        try {
-          const response = await fetch(`${API_BASE_URL}/stock/${stockCode}/advanced-analysis`);
-          const result = await response.json();
-
-          if (result.success) {
-            setSelectedStock(result.analysis);
-          }
-        } catch (err) {
-          console.error('상세 분석 실패:', err);
+      // 종목 상세 분석 (API 호출 없이 recommendations 데이터 사용)
+      const fetchStockDetail = (stockCode) => {
+        const stock = recommendations.find(s => s.stockCode === stockCode);
+        if (stock) {
+          setSelectedStock(stock);
+        } else {
+          console.error('종목 데이터를 찾을 수 없습니다:', stockCode);
         }
       };
 
