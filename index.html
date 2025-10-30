@@ -191,6 +191,16 @@
                 >
                   📈 성과 검증
                 </button>
+                <button
+                  onClick={() => setActiveTab('dna')}
+                  className={`px-6 py-3 font-semibold transition-all ${
+                    activeTab === 'dna'
+                      ? 'text-indigo-600 border-b-4 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  🧬 DNA 추출
+                </button>
               </div>
             </div>
           </header>
@@ -211,6 +221,8 @@
               <TrackingDashboard apiBaseUrl={API_BASE_URL} />
             ) : activeTab === 'patterns' ? (
               <PatternAnalysis apiBaseUrl={API_BASE_URL} />
+            ) : activeTab === 'dna' ? (
+              <DnaExtraction apiBaseUrl={API_BASE_URL} />
             ) : activeTab === 'screening' ? (
               <>
                 {/* 마지막 업데이트 시간 */}
@@ -2181,6 +2193,364 @@
                     </div>
                   )}
                 </>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // DNA 추출 컴포넌트
+    function DnaExtraction({ apiBaseUrl }) {
+      const [stocks, setStocks] = useState([{ code: '', startDate: '', endDate: '' }]);
+      const [extractedDNA, setExtractedDNA] = useState(null);
+      const [matchedStocks, setMatchedStocks] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState(null);
+      const [scanOptions, setScanOptions] = useState({
+        matchThreshold: 70,
+        limit: 10,
+        days: 25
+      });
+
+      // 종목 추가
+      const addStock = () => {
+        setStocks([...stocks, { code: '', startDate: '', endDate: '' }]);
+      };
+
+      // 종목 제거
+      const removeStock = (index) => {
+        if (stocks.length > 1) {
+          const newStocks = stocks.filter((_, i) => i !== index);
+          setStocks(newStocks);
+        }
+      };
+
+      // 종목 정보 업데이트
+      const updateStock = (index, field, value) => {
+        const newStocks = [...stocks];
+        newStocks[index][field] = value;
+        setStocks(newStocks);
+      };
+
+      // DNA 추출
+      const extractDNA = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          setExtractedDNA(null);
+          setMatchedStocks(null);
+
+          // 유효성 검사
+          const validStocks = stocks.filter(s => s.code && s.startDate && s.endDate);
+          if (validStocks.length === 0) {
+            throw new Error('최소 1개 종목의 코드와 날짜를 입력하세요');
+          }
+
+          const response = await fetch(`${apiBaseUrl}/patterns/volume-dna`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: 'extract',
+              stocks: validStocks
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            setExtractedDNA(result.result);
+          } else {
+            throw new Error(result.error || 'DNA 추출 실패');
+          }
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      // 시장 스캔
+      const scanMarket = async () => {
+        if (!extractedDNA) {
+          setError('먼저 DNA를 추출하세요');
+          return;
+        }
+
+        try {
+          setLoading(true);
+          setError(null);
+
+          const response = await fetch(`${apiBaseUrl}/patterns/volume-dna`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: 'scan',
+              commonDNA: extractedDNA.commonDNA,
+              options: scanOptions
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            setMatchedStocks(result.result);
+          } else {
+            throw new Error(result.error || '시장 스캔 실패');
+          }
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* 헤더 */}
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+            <h2 className="text-3xl font-bold mb-2">🧬 거래량 DNA 추출 시스템</h2>
+            <p className="text-purple-100">
+              과거 급등주의 거래량 패턴에서 DNA를 추출하여 현재 시장에서 유사한 종목을 찾습니다
+            </p>
+          </div>
+
+          {error && (
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          {/* Phase 1: DNA 추출 */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">📊 Phase 1: DNA 추출</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              과거 급등했던 종목들의 거래량 패턴을 분석하여 공통 DNA를 추출합니다
+            </p>
+
+            {/* 종목 입력 폼 */}
+            <div className="space-y-3 mb-4">
+              {stocks.map((stock, index) => (
+                <div key={index} className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="종목코드 (예: 005930)"
+                    value={stock.code}
+                    onChange={(e) => updateStock(index, 'code', e.target.value)}
+                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="시작일 (YYYYMMDD)"
+                    value={stock.startDate}
+                    onChange={(e) => updateStock(index, 'startDate', e.target.value)}
+                    className="w-40 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="종료일 (YYYYMMDD)"
+                    value={stock.endDate}
+                    onChange={(e) => updateStock(index, 'endDate', e.target.value)}
+                    className="w-40 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                  {stocks.length > 1 && (
+                    <button
+                      onClick={() => removeStock(index)}
+                      className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={addStock}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                + 종목 추가
+              </button>
+              <button
+                onClick={extractDNA}
+                disabled={loading}
+                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                {loading ? '🔍 추출 중...' : '🧬 DNA 추출'}
+              </button>
+            </div>
+          </div>
+
+          {/* 추출된 DNA 결과 */}
+          {extractedDNA && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">✅ 추출된 DNA</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">DNA 강도</p>
+                  <p className="text-2xl font-bold text-purple-600">{extractedDNA.dnaStrength}%</p>
+                </div>
+                <div className="bg-indigo-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-600">분석 종목</p>
+                  <p className="text-2xl font-bold text-indigo-600">{extractedDNA.basedOnStocks}개</p>
+                </div>
+              </div>
+
+              {/* DNA 세부 정보 */}
+              <div className="space-y-4">
+                {extractedDNA.commonDNA.volumeRate && (
+                  <div className="border-l-4 border-purple-500 pl-4">
+                    <p className="font-semibold text-gray-800">거래량 증가율 DNA</p>
+                    <div className="text-sm text-gray-600 mt-2 space-y-1">
+                      <p>• 평균 EMA: <span className="font-semibold">{extractedDNA.commonDNA.volumeRate.avgEMA.toFixed(2)}%</span></p>
+                      <p>• 최근 5일 평균: <span className="font-semibold">{extractedDNA.commonDNA.volumeRate.avgRecent5d.toFixed(2)}%</span></p>
+                      <p>• 임계값 (EMA): <span className="font-semibold">{extractedDNA.commonDNA.volumeRate.threshold.emaMin.toFixed(2)}%</span></p>
+                    </div>
+                  </div>
+                )}
+
+                {extractedDNA.commonDNA.institutionFlow && (
+                  <div className="border-l-4 border-indigo-500 pl-4">
+                    <p className="font-semibold text-gray-800">기관 투자자 DNA</p>
+                    <div className="text-sm text-gray-600 mt-2">
+                      <p>• 평균 연속 매수: <span className="font-semibold">{extractedDNA.commonDNA.institutionFlow.avgConsecutiveDays}일</span></p>
+                    </div>
+                  </div>
+                )}
+
+                {extractedDNA.commonDNA.foreignFlow && (
+                  <div className="border-l-4 border-blue-500 pl-4">
+                    <p className="font-semibold text-gray-800">외국인 투자자 DNA</p>
+                    <div className="text-sm text-gray-600 mt-2">
+                      <p>• 평균 연속 매수: <span className="font-semibold">{extractedDNA.commonDNA.foreignFlow.avgConsecutiveDays}일</span></p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Phase 2: 시장 스캔 */}
+              <div className="mt-6 pt-6 border-t">
+                <h3 className="text-lg font-bold text-gray-800 mb-4">🔍 Phase 2: 시장 스캔</h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">매칭 임계값</label>
+                    <input
+                      type="number"
+                      value={scanOptions.matchThreshold}
+                      onChange={(e) => setScanOptions({...scanOptions, matchThreshold: parseInt(e.target.value)})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">최대 반환 개수</label>
+                    <input
+                      type="number"
+                      value={scanOptions.limit}
+                      onChange={(e) => setScanOptions({...scanOptions, limit: parseInt(e.target.value)})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      min="1"
+                      max="50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">분석 기간 (일)</label>
+                    <input
+                      type="number"
+                      value={scanOptions.days}
+                      onChange={(e) => setScanOptions({...scanOptions, days: parseInt(e.target.value)})}
+                      className="w-full px-4 py-2 border rounded-lg"
+                      min="10"
+                      max="60"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={scanMarket}
+                  disabled={loading}
+                  className="w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-semibold"
+                >
+                  {loading ? '🔍 스캔 중...' : '🚀 현재 시장에서 매칭 종목 찾기'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 매칭된 종목 결과 */}
+          {matchedStocks && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">
+                🎯 DNA 매칭 종목 ({matchedStocks.matchedStocks.length}개)
+              </h3>
+
+              {matchedStocks.matchedStocks.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="mb-2">매칭되는 종목이 없습니다</p>
+                  <p className="text-sm">임계값을 낮추거나 분석 기간을 조정해보세요</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {matchedStocks.matchedStocks.map((stock, index) => (
+                    <div key={index} className="border rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-bold text-lg text-gray-800">
+                            {stock.stockName} ({stock.stockCode})
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            분석 일수: {stock.analyzedDays}일
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-purple-600">
+                            {stock.matchScore}점
+                          </p>
+                          <p className="text-sm text-gray-500">매칭 점수</p>
+                        </div>
+                      </div>
+
+                      {/* 점수 세부 */}
+                      {stock.scoreDetails.volumeRate && (
+                        <div className="bg-purple-50 p-3 rounded mb-2">
+                          <p className="text-sm font-semibold text-gray-700 mb-1">거래량 증가율</p>
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <p>• EMA 평균: {stock.scoreDetails.volumeRate.current.emaAvg.toFixed(2)}% (기준: {stock.scoreDetails.volumeRate.threshold.emaMin.toFixed(2)}%)</p>
+                            <p>• 최근 5일: {stock.scoreDetails.volumeRate.current.recent5d.toFixed(2)}% (기준: {stock.scoreDetails.volumeRate.threshold.recent5dMin.toFixed(2)}%)</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 패턴 정보 */}
+                      {stock.pattern.volumeRate && (
+                        <div className="flex gap-2 text-xs">
+                          <span className={`px-2 py-1 rounded ${
+                            stock.pattern.volumeRate.segmented.trend === 'accelerating'
+                              ? 'bg-green-100 text-green-700'
+                              : stock.pattern.volumeRate.segmented.trend === 'mixed'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            트렌드: {stock.pattern.volumeRate.segmented.trend}
+                          </span>
+                          <span className={`px-2 py-1 rounded ${
+                            stock.pattern.volumeRate.urgency === 'high'
+                              ? 'bg-red-100 text-red-700'
+                              : stock.pattern.volumeRate.urgency === 'medium'
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            급등 임박성: {stock.pattern.volumeRate.urgency}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}
