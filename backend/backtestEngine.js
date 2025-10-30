@@ -130,32 +130,42 @@ class BacktestEngine {
   async getTodaySignals(limit = 5) {
     console.log('\n📊 오늘 하이브리드 신호 발굴 중...\n');
 
-    // 종목 리스트 확보
-    const { codes: stockList } = await kisApi.getAllStockList('ALL');
+    try {
+      // 기존 종합집계 스크리닝 사용 (이미 53개 필터링 완료)
+      const results = await screening.getRecommendations('ALL', 100);
 
-    // 하이브리드 스크리닝 실행
-    const results = await hybridScreening.runHybridScreening(stockList);
-
-    // 상위 N개 추출
-    const topSignals = results.slice(0, limit);
-
-    console.log(`\n✅ 오늘 신호 ${topSignals.length}개 발견\n`);
-
-    return topSignals.map(r => ({
-      stockCode: r.stockCode,
-      stockName: r.stockName,
-      grade: r.grade,
-      score: r.score,
-      currentPrice: r.currentPrice,
-      todayChange: r.todayChange,
-      signalDate: new Date().toISOString().split('T')[0].replace(/-/g, ''),
-      expectedSurgeDays: r.indicators.volumeGradual.expectedDays,
-      indicators: {
-        volumeGradual: r.indicators.volumeGradual.detected,
-        obvDivergence: r.indicators.obvDivergence.detected,
-        uptrend: r.indicators.uptrend.detected
+      if (!results || results.length === 0) {
+        console.log('⚠️ 오늘 추천 종목 없음');
+        return [];
       }
-    }));
+
+      // S/A 등급만 필터링 (70점 이상)
+      const topGrades = results.filter(r => r.totalScore >= 70);
+
+      // 상위 N개 추출
+      const topSignals = topGrades.slice(0, limit);
+
+      console.log(`\n✅ 오늘 신호 ${topSignals.length}개 발견 (S/A 등급)\n`);
+
+      return topSignals.map(r => ({
+        stockCode: r.stockCode,
+        stockName: r.stockName,
+        grade: r.recommendation.grade,
+        score: r.totalScore,
+        currentPrice: r.currentPrice,
+        todayChange: r.priceChange,
+        signalDate: new Date().toISOString().split('T')[0].replace(/-/g, ''),
+        expectedSurgeDays: 10, // 기본 10일
+        indicators: {
+          volumeGradual: r.indicators?.volumeAnalysis?.volumeRatio > 2,
+          obvDivergence: r.indicators?.obv?.trend > 0,
+          uptrend: r.priceChange > 0
+        }
+      }));
+    } catch (error) {
+      console.error('getTodaySignals 실패:', error.message);
+      return [];
+    }
   }
 
   /**
