@@ -512,16 +512,22 @@ class SmartPatternMiner {
           // 패턴 4: 거래량 점진 증가 (범위 확대)
           { name: '5일 거래량증가', match: parseFloat(ind.volumeGrowth) >= 30 && parseFloat(ind.volumeGrowth) <= 150, key: 'pre_5d_volume_gradual' },
 
-          // 패턴 5: MFI 저점 + 매집 (MFI null 허용, 조건 완화)
-          { name: '5일 MFI저점+매집', match: (ind.mfi === null || parseFloat(ind.mfi) < 40) && ind.accumulation, key: 'pre_5d_mfi_accumulation' },
-
-          // 패턴 6: RSI 중립 + 거래량 (범위 확대)
+          // 패턴 5: RSI 중립 + 거래량 (범위 확대)
           { name: '5일 RSI중립+거래량', match: parseFloat(ind.rsi) >= 40 && parseFloat(ind.rsi) <= 70 && parseFloat(ind.avgVolumeRatio) >= 1.2, key: 'pre_5d_rsi_volume' },
 
-          // 🆕 패턴 7: 강한 거래량 증가 (단순 조건)
-          { name: '5일 거래량폭발', match: parseFloat(ind.avgVolumeRatio) >= 2.0, key: 'pre_5d_volume_surge' },
+          // 패턴 6-1: 거래량 폭발 2배 (보통 수준)
+          { name: '5일 거래량 2배', match: parseFloat(ind.avgVolumeRatio) >= 2.0 && parseFloat(ind.avgVolumeRatio) < 3.0, key: 'pre_5d_volume_2x' },
 
-          // 🆕 패턴 8: RSI 과열 회피 (30-80 범위)
+          // 패턴 6-2: 거래량 폭발 3배 (강한 수준)
+          { name: '5일 거래량 3배', match: parseFloat(ind.avgVolumeRatio) >= 3.0 && parseFloat(ind.avgVolumeRatio) < 5.0, key: 'pre_5d_volume_3x' },
+
+          // 패턴 6-3: 거래량 폭발 5배 (매우 강함)
+          { name: '5일 거래량 5배', match: parseFloat(ind.avgVolumeRatio) >= 5.0 && parseFloat(ind.avgVolumeRatio) < 10.0, key: 'pre_5d_volume_5x' },
+
+          // 패턴 6-4: 거래량 폭발 10배 (극단적)
+          { name: '5일 거래량 10배+', match: parseFloat(ind.avgVolumeRatio) >= 10.0, key: 'pre_5d_volume_10x' },
+
+          // 패턴 7: RSI 안정 (30-80 범위)
           { name: '5일 안정RSI', match: parseFloat(ind.rsi) >= 30 && parseFloat(ind.rsi) <= 80, key: 'pre_5d_stable_rsi' }
         ];
 
@@ -706,6 +712,21 @@ class SmartPatternMiner {
       'pre_5d_rsi_volume': [
         { name: 'RSI중립45-65', met: parseFloat(ind.rsi || 50) >= 45 && parseFloat(ind.rsi || 50) <= 65 },
         { name: '거래량증가1.5+', met: parseFloat(ind.volumeRatio || 1) >= 1.5 }
+      ],
+      'pre_5d_volume_2x': [
+        { name: '거래량2배', met: parseFloat(ind.volumeRatio || 1) >= 2.0 && parseFloat(ind.volumeRatio || 1) < 3.0 }
+      ],
+      'pre_5d_volume_3x': [
+        { name: '거래량3배', met: parseFloat(ind.volumeRatio || 1) >= 3.0 && parseFloat(ind.volumeRatio || 1) < 5.0 }
+      ],
+      'pre_5d_volume_5x': [
+        { name: '거래량5배', met: parseFloat(ind.volumeRatio || 1) >= 5.0 && parseFloat(ind.volumeRatio || 1) < 10.0 }
+      ],
+      'pre_5d_volume_10x': [
+        { name: '거래량10배+', met: parseFloat(ind.volumeRatio || 1) >= 10.0 }
+      ],
+      'pre_5d_stable_rsi': [
+        { name: 'RSI안정30-80', met: parseFloat(ind.rsi || 50) >= 30 && parseFloat(ind.rsi || 50) <= 80 }
       ],
 
       // 이전 패턴 (하위 호환성)
