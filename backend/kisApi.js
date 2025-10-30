@@ -751,6 +751,92 @@ class KISApi {
   getCachedRankBadges(stockCode) {
     return this.rankBadgeCache ? this.rankBadgeCache.get(stockCode) : null;
   }
+
+  /**
+   * 투자자별 매매 데이터 조회 (기관/외국인/개인)
+   * @param {string} stockCode - 종목코드
+   * @param {number} days - 조회일수 (기본 30일, 최대 30일)
+   * @returns {Promise<Array>} 일자별 투자자 매매 데이터 배열
+   *
+   * ⚠️ 주의사항:
+   * - 당일 데이터는 장 종료 후 제공됩니다
+   * - 외국인 = 외국인투자등록 고유번호가 있는 경우 + 기타 외국인
+   * - 응답은 Object Array 형태 (여러 날짜 데이터)
+   */
+  async getInvestorData(stockCode, days = 30) {
+    await this.rateLimiter.acquire();
+
+    try {
+      const token = await this.getAccessToken();
+
+      const response = await axios.get(
+        `${this.baseUrl}/uapi/domestic-stock/v1/quotations/inquire-investor`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'authorization': `Bearer ${token}`,
+            'appkey': this.appKey,
+            'appsecret': this.appSecret,
+            'tr_id': 'FHKST01010900'
+          },
+          params: {
+            FID_COND_MRKT_DIV_CODE: 'J',  // J: KRX
+            FID_INPUT_ISCD: stockCode      // 종목코드
+          }
+        }
+      );
+
+      if (response.data.rt_cd === '0') {
+        const output = response.data.output;
+
+        // 배열 응답 처리 (최신 데이터부터 days개 추출)
+        const investorData = output.slice(0, days).map(item => ({
+          date: item.stck_bsop_date,              // 영업일자
+          closePrice: parseInt(item.stck_clpr),   // 종가
+          priceChange: parseInt(item.prdy_vrss),  // 전일 대비
+
+          // 개인 투자자
+          individual: {
+            netBuyQty: parseInt(item.prsn_ntby_qty || 0),        // 순매수 수량
+            netBuyValue: parseInt(item.prsn_ntby_tr_pbmn || 0),  // 순매수 거래대금
+            buyQty: parseInt(item.prsn_shnu_vol || 0),           // 매수 거래량
+            buyValue: parseInt(item.prsn_shnu_tr_pbmn || 0),     // 매수 거래대금
+            sellQty: parseInt(item.prsn_seln_vol || 0),          // 매도 거래량
+            sellValue: parseInt(item.prsn_seln_tr_pbmn || 0)     // 매도 거래대금
+          },
+
+          // 외국인 투자자
+          foreign: {
+            netBuyQty: parseInt(item.frgn_ntby_qty || 0),
+            netBuyValue: parseInt(item.frgn_ntby_tr_pbmn || 0),
+            buyQty: parseInt(item.frgn_shnu_vol || 0),
+            buyValue: parseInt(item.frgn_shnu_tr_pbmn || 0),
+            sellQty: parseInt(item.frgn_seln_vol || 0),
+            sellValue: parseInt(item.frgn_seln_tr_pbmn || 0)
+          },
+
+          // 기관 투자자
+          institution: {
+            netBuyQty: parseInt(item.orgn_ntby_qty || 0),
+            netBuyValue: parseInt(item.orgn_ntby_tr_pbmn || 0),
+            buyQty: parseInt(item.orgn_shnu_vol || 0),
+            buyValue: parseInt(item.orgn_shnu_tr_pbmn || 0),
+            sellQty: parseInt(item.orgn_seln_vol || 0),
+            sellValue: parseInt(item.orgn_seln_tr_pbmn || 0)
+          }
+        })).reverse(); // 오래된 날짜부터 정렬
+
+        return investorData;
+
+      } else {
+        throw new Error(`API 오류: ${response.data.msg1}`);
+      }
+
+    } catch (error) {
+      console.error(`❌ 투자자 데이터 조회 실패 [${stockCode}]:`, error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = new KISApi();
