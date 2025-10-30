@@ -144,12 +144,21 @@ class SmartPatternMiner {
         const volumeAnalysis = volumeIndicators.analyzeVolume(preSurgeData);
         const advancedAnalysis = advancedIndicators.analyzeAdvanced(preSurgeData);
 
-        // 5일 평균 거래량 비율
-        const avgVolumeRatio = preSurgeData.reduce((sum, d, i) => {
-          // 각 날의 MA20 대비 거래량 비율 (단순화: 마지막 MA20 사용)
-          const ma20 = volumeAnalysis.current.volumeMA20 || 1;
-          return sum + (d.volume / ma20);
-        }, 0) / preSurgeData.length;
+        // 5일 평균 거래량 계산 (D-5 ~ D-1)
+        const avgVolume5d = preSurgeData.reduce((sum, d) => sum + d.volume, 0) / preSurgeData.length;
+
+        // 기준 거래량: D-10 ~ D-6의 평균 (5일간)
+        const baselineStart = surgeIndex - 10;
+        const baselineEnd = surgeIndex - 5;
+        const baselineData = chartData.slice(baselineStart, baselineEnd);
+        const baselineAvgVolume = baselineData.length >= 5
+          ? baselineData.reduce((sum, d) => sum + d.volume, 0) / baselineData.length
+          : avgVolume5d; // 데이터 부족시 자기 자신
+
+        // D-5 5일 평균 거래량 / 기준선 평균 거래량 비율
+        const avgVolumeRatio = baselineAvgVolume > 0
+          ? avgVolume5d / baselineAvgVolume
+          : 1;
 
         // 5일간 거래량 증가율
         const volumeGrowth = preSurgeData.length >= 2
