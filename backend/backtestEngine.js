@@ -128,39 +128,57 @@ class BacktestEngine {
    * @returns {Promise<Array>} 추적 대상 종목
    */
   async getTodaySignals(limit = 5) {
-    console.log('\n📊 오늘 하이브리드 신호 발굴 중...\n');
+    console.log('\n📊 오늘 D-5 패턴 기반 신호 발굴 중...\n');
 
     try {
-      // 기존 종합집계 스크리닝 사용 (이미 53개 필터링 완료)
-      const results = await screening.getRecommendations('ALL', 100);
+      // 패턴 캐시 사용 (GitHub Gist 또는 메모리)
+      const gistStorage = require('./gistStorage');
+      const patternCache = require('./patternCache');
 
-      if (!results || results.length === 0) {
-        console.log('⚠️ 오늘 추천 종목 없음');
+      let patternsData = null;
+
+      // 1. GitHub Gist에서 시도
+      if (gistStorage.isConfigured()) {
+        console.log('📥 GitHub Gist에서 패턴 데이터 로드 시도...');
+        patternsData = await gistStorage.loadPatterns();
+      }
+
+      // 2. 메모리 캐시에서 시도
+      if (!patternsData) {
+        console.log('💾 메모리 캐시에서 패턴 데이터 로드 시도...');
+        patternsData = patternCache.getPatterns();
+      }
+
+      // 3. 데이터 없으면 빈 배열 반환
+      if (!patternsData || !patternsData.stocks || patternsData.stocks.length === 0) {
+        console.log('⚠️ 패턴 데이터 없음 - 패턴 분석을 먼저 실행하세요');
         return [];
       }
 
-      // S/A 등급만 필터링 (70점 이상)
-      const topGrades = results.filter(r => r.totalScore >= 70);
+      // 급등 종목 중 수익률 상위 N개 추출
+      const topStocks = patternsData.stocks
+        .sort((a, b) => parseFloat(b.returnRate) - parseFloat(a.returnRate))
+        .slice(0, limit);
 
-      // 상위 N개 추출
-      const topSignals = topGrades.slice(0, limit);
+      console.log(`\n✅ 오늘 신호 ${topStocks.length}개 발견 (D-5 패턴 기반)\n`);
 
-      console.log(`\n✅ 오늘 신호 ${topSignals.length}개 발견 (S/A 등급)\n`);
-
-      return topSignals.map(r => ({
-        stockCode: r.stockCode,
-        stockName: r.stockName,
-        grade: r.recommendation.grade,
-        score: r.totalScore,
-        currentPrice: r.currentPrice,
-        todayChange: r.priceChange,
-        signalDate: new Date().toISOString().split('T')[0].replace(/-/g, ''),
-        expectedSurgeDays: 10, // 기본 10일
+      return topStocks.map(stock => ({
+        stockCode: stock.stockCode,
+        stockName: stock.stockName,
+        grade: parseFloat(stock.returnRate) >= 30 ? 'S' : parseFloat(stock.returnRate) >= 20 ? 'A' : 'B',
+        score: Math.min(100, parseInt(parseFloat(stock.returnRate) * 3)), // 수익률 * 3 = 점수
+        currentPrice: stock.preSurgeIndicators?.avgPrice || 0,
+        todayChange: 0,
+        signalDate: stock.surgeDate,
+        expectedSurgeDays: 5, // D-5 패턴
+        returnRate: stock.returnRate,
         indicators: {
-          volumeGradual: r.indicators?.volumeAnalysis?.volumeRatio > 2,
-          obvDivergence: r.indicators?.obv?.trend > 0,
-          uptrend: r.priceChange > 0
-        }
+          accumulation: stock.preSurgeIndicators?.accumulation || false,
+          whale: stock.preSurgeIndicators?.whale || false,
+          obvTrend: stock.preSurgeIndicators?.obvTrend || 0,
+          rsi: stock.preSurgeIndicators?.rsi || 50
+        },
+        matchedPatterns: stock.matchedPatterns || []
       }));
     } catch (error) {
       console.error('getTodaySignals 실패:', error.message);
