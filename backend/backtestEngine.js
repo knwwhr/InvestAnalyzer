@@ -168,8 +168,17 @@ class BacktestEngine {
         try {
           // 현재가 조회
           const currentData = await kisApi.getCurrentPrice(stock.stockCode);
-          const currentPrice = currentData?.price || 0;
-          const priceChange = currentData?.priceChange || 0;
+
+          if (!currentData) {
+            console.warn(`  ⚠️ ${stock.stockName} (${stock.stockCode}): getCurrentPrice returned null/undefined`);
+          }
+
+          const currentPrice = currentData?.price || currentData?.currentPrice || 0;
+          const priceChange = currentData?.priceChange || currentData?.changeRate || 0;
+
+          if (currentPrice === 0) {
+            console.warn(`  ⚠️ ${stock.stockName} (${stock.stockCode}): price is 0 - currentData:`, JSON.stringify(currentData));
+          }
 
           // 점수 계산 세부 로직
           const returnRate = parseFloat(stock.returnRate);

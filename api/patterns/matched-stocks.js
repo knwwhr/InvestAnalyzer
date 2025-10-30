@@ -30,14 +30,15 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // 저장된 패턴 로드
-    const savedPatterns = smartPatternMiner.loadSavedPatterns();
+    // 저장된 패턴 로드 (GitHub Gist에서)
+    const savedPatterns = await smartPatternMiner.loadSavedPatternsAsync();
     const targetPattern = savedPatterns.find(p => p.key === pattern);
 
     if (!targetPattern) {
       return res.status(404).json({
         success: false,
-        error: `패턴 '${pattern}'을 찾을 수 없습니다.`
+        error: `패턴 '${pattern}'을 찾을 수 없습니다.`,
+        availablePatterns: savedPatterns.map(p => p.key)
       });
     }
 
