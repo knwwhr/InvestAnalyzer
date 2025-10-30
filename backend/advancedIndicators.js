@@ -72,9 +72,25 @@ function detectWhale(chartData) {
  * 2. 조용한 매집 지표 (Silent Accumulation)
  * 가격은 횡보하지만 거래량이 꾸준히 증가
  * 큰 손들의 물량 모으기 패턴 감지
+ * 5일 데이터로도 작동 가능하도록 개선
  */
 function detectSilentAccumulation(chartData) {
-  const recent = chartData.slice(-20); // 최근 20일
+  const dataLength = chartData.length;
+
+  // 데이터가 5일 미만이면 분석 불가
+  if (dataLength < 5) {
+    return {
+      detected: false,
+      priceVolatility: '0.00',
+      volumeGrowth: '0.00',
+      avgPrice: 0,
+      signal: '데이터 부족',
+      score: 0
+    };
+  }
+
+  // 사용 가능한 모든 데이터 사용
+  const recent = chartData.slice(-Math.min(20, dataLength));
 
   // 가격 변동성 계산
   const prices = recent.map(d => d.close);
@@ -84,17 +100,28 @@ function detectSilentAccumulation(chartData) {
   );
   const priceVolatility = (priceStdDev / avgPrice) * 100;
 
-  // 거래량 추세 계산 (최근 거래량이 증가 추세인가?)
-  const firstHalf = recent.slice(0, 10);
-  const secondHalf = recent.slice(10, 20);
-  const avgVolumeFirst = firstHalf.reduce((sum, d) => sum + d.volume, 0) / 10;
-  const avgVolumeSecond = secondHalf.reduce((sum, d) => sum + d.volume, 0) / 10;
-  const volumeGrowth = ((avgVolumeSecond - avgVolumeFirst) / avgVolumeFirst) * 100;
+  // 거래량 추세 계산 (데이터 양에 따라 동적 분할)
+  let volumeGrowth = 0;
+
+  if (recent.length >= 10) {
+    // 10일 이상: 전반부 vs 후반부
+    const midPoint = Math.floor(recent.length / 2);
+    const firstHalf = recent.slice(0, midPoint);
+    const secondHalf = recent.slice(midPoint);
+    const avgVolumeFirst = firstHalf.reduce((sum, d) => sum + d.volume, 0) / firstHalf.length;
+    const avgVolumeSecond = secondHalf.reduce((sum, d) => sum + d.volume, 0) / secondHalf.length;
+    volumeGrowth = ((avgVolumeSecond - avgVolumeFirst) / avgVolumeFirst) * 100;
+  } else {
+    // 5~9일: 첫날 vs 마지막날 거래량 비교
+    const firstVolume = recent[0].volume;
+    const lastVolume = recent[recent.length - 1].volume;
+    volumeGrowth = ((lastVolume - firstVolume) / firstVolume) * 100;
+  }
 
   // 조용한 매집 조건 (완화):
-  // 1. 가격 변동성 낮음 (10% 미만) - 횡보 구간
-  // 2. 거래량 증가 추세 (10% 이상) - 점진적 증가
-  const isSilentAccumulation = priceVolatility < 10 && volumeGrowth > 10;
+  // 1. 가격 변동성 낮음 (15% 미만) - 횡보 구간
+  // 2. 거래량 증가 (0% 이상) - 증가 또는 유지
+  const isSilentAccumulation = priceVolatility < 15 && volumeGrowth > 0;
 
   return {
     detected: isSilentAccumulation,
@@ -102,7 +129,7 @@ function detectSilentAccumulation(chartData) {
     volumeGrowth: volumeGrowth.toFixed(2),
     avgPrice: Math.round(avgPrice),
     signal: isSilentAccumulation ? '🤫 조용한 매집 진행중' : '없음',
-    score: isSilentAccumulation ? volumeGrowth : 0
+    score: isSilentAccumulation ? Math.max(volumeGrowth, 10) : 0
   };
 }
 
