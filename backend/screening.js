@@ -25,6 +25,11 @@ class StockScreener {
         kisApi.getDailyChart(stockCode, 30)
       ]);
 
+      // getCurrentPrice가 null 반환하면 스킵
+      if (!currentData) {
+        return null;
+      }
+
       // 거래량 지표 분석
       const volumeAnalysis = volumeIndicators.analyzeVolume(chartData);
 

@@ -102,24 +102,26 @@ class KISApi {
 
       // 응답 상태 코드 체크
       if (response.data.rt_cd !== '0') {
-        console.error(`❌ KIS API Error [${stockCode}]:`, {
+        console.warn(`⚠️ KIS API Error [${stockCode}]:`, {
           rt_cd: response.data.rt_cd,
           msg_cd: response.data.msg_cd,
           msg1: response.data.msg1
         });
-        throw new Error(`KIS API 오류 (rt_cd: ${response.data.rt_cd}): ${response.data.msg1}`);
+        // 에러를 throw하지 않고 null 반환 (screening에서 스킵 가능)
+        return null;
       }
 
       const output = response.data.output;
 
       // output 검증
       if (!output || !output.stck_prpr) {
-        console.error(`❌ Invalid output [${stockCode}]:`, {
+        console.warn(`⚠️ Invalid output [${stockCode}]:`, {
           hasOutput: !!output,
           stck_prpr: output?.stck_prpr,
           outputKeys: output ? Object.keys(output).slice(0, 10) : []
         });
-        throw new Error('API 응답에 stck_prpr 필드가 없음');
+        // 에러를 throw하지 않고 null 반환
+        return null;
       }
 
       // 캐싱된 종목명 우선 사용, 없으면 API 응답, 그것도 없으면 종목코드 표시
@@ -156,12 +158,9 @@ class KISApi {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error(`❌ 현재가 조회 실패 [${stockCode}]:`, {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
-      throw error;
+      console.warn(`⚠️ 현재가 조회 실패 [${stockCode}]:`, error.message);
+      // 에러를 throw하지 않고 null 반환 (screening에서 해당 종목 스킵 가능)
+      return null;
     }
   }
 
