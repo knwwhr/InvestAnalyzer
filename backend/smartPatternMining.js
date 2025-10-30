@@ -535,6 +535,7 @@ class SmartPatternMiner {
           surgeDate: stock.surgeDate,
           returnRate: stock.returnRate,
           pullbackRate: stock.pullbackRate,
+          dailyPriceData: stock.dailyPriceData,  // ⭐ 일별 가격 데이터 포함
           matchedPatterns: matchedPatterns,
           preSurgeIndicators: stock.preSurgeIndicators
         };
