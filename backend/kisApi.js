@@ -100,34 +100,67 @@ class KISApi {
         }
       });
 
-      if (response.data.rt_cd === '0') {
-        const output = response.data.output;
-
-        // 캐싱된 종목명 우선 사용, 없으면 API 응답, 그것도 없으면 종목코드 표시
-        const cachedName = this.getCachedStockName(stockCode);
-        const stockName = cachedName || output.prdt_name || `[${stockCode}]`;
-
-        return {
-          stockCode: stockCode,
-          stockName: stockName,
-          currentPrice: parseInt(output.stck_prpr),           // 현재가
-          changePrice: parseInt(output.prdy_vrss),            // 전일대비
-          changeRate: parseFloat(output.prdy_ctrt),           // 등락률
-          volume: parseInt(output.acml_vol),                  // 누적거래량
-          volumeRate: parseFloat(output.vol_tnrt),            // 거래량회전율
-          tradingValue: parseInt(output.acml_tr_pbmn),        // 누적거래대금
-          marketCap: parseInt(output.hts_avls) * 100000000,   // 시가총액
-          high: parseInt(output.stck_hgpr),                   // 고가
-          low: parseInt(output.stck_lwpr),                    // 저가
-          open: parseInt(output.stck_oprc),                   // 시가
-          prevClose: parseInt(output.stck_sdpr),              // 전일종가
-          timestamp: new Date().toISOString()
-        };
-      } else {
-        throw new Error(`API 오류: ${response.data.msg1}`);
+      // 응답 상태 코드 체크
+      if (response.data.rt_cd !== '0') {
+        console.error(`❌ KIS API Error [${stockCode}]:`, {
+          rt_cd: response.data.rt_cd,
+          msg_cd: response.data.msg_cd,
+          msg1: response.data.msg1
+        });
+        throw new Error(`KIS API 오류 (rt_cd: ${response.data.rt_cd}): ${response.data.msg1}`);
       }
+
+      const output = response.data.output;
+
+      // output 검증
+      if (!output || !output.stck_prpr) {
+        console.error(`❌ Invalid output [${stockCode}]:`, {
+          hasOutput: !!output,
+          stck_prpr: output?.stck_prpr,
+          outputKeys: output ? Object.keys(output).slice(0, 10) : []
+        });
+        throw new Error('API 응답에 stck_prpr 필드가 없음');
+      }
+
+      // 캐싱된 종목명 우선 사용, 없으면 API 응답, 그것도 없으면 종목코드 표시
+      const cachedName = this.getCachedStockName(stockCode);
+      const stockName = cachedName || output.prdt_name || `[${stockCode}]`;
+
+      const price = parseInt(output.stck_prpr);
+      const change = parseFloat(output.prdy_ctrt);
+
+      // 가격이 0이면 경고
+      if (price === 0 || isNaN(price)) {
+        console.warn(`⚠️ Price is 0 or NaN [${stockCode}]:`, {
+          stck_prpr: output.stck_prpr,
+          parsed: price
+        });
+      }
+
+      return {
+        stockCode: stockCode,
+        stockName: stockName,
+        currentPrice: price,                                 // 현재가
+        price: price,                                        // 호환성을 위해 추가
+        changePrice: parseInt(output.prdy_vrss || 0),       // 전일대비
+        changeRate: change,                                  // 등락률
+        priceChange: change,                                 // 호환성을 위해 추가
+        volume: parseInt(output.acml_vol || 0),             // 누적거래량
+        volumeRate: parseFloat(output.vol_tnrt || 0),       // 거래량회전율
+        tradingValue: parseInt(output.acml_tr_pbmn || 0),   // 누적거래대금
+        marketCap: parseInt(output.hts_avls || 0) * 100000000,  // 시가총액
+        high: parseInt(output.stck_hgpr || 0),              // 고가
+        low: parseInt(output.stck_lwpr || 0),               // 저가
+        open: parseInt(output.stck_oprc || 0),              // 시가
+        prevClose: parseInt(output.stck_sdpr || 0),         // 전일종가
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
-      console.error(`❌ 현재가 조회 실패 [${stockCode}]:`, error.message);
+      console.error(`❌ 현재가 조회 실패 [${stockCode}]:`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
       throw error;
     }
   }
