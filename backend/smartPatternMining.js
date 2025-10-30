@@ -500,14 +500,14 @@ class SmartPatternMiner {
         // 각 종목별로 매칭되는 패턴들 찾기 (완화된 조건)
         const matchedPatterns = [];
         const patterns = [
-          // 패턴 1: 조용한 매집 (낮은 변동성)
-          { name: '5일 조용한 매집', match: ind.accumulation && parseFloat(ind.priceVolatility) < 5, key: 'pre_5d_accumulation' },
+          // 패턴 1: 조용한 매집 (낮은 변동성) - 조건 완화
+          { name: '5일 조용한 매집', match: ind.accumulation && parseFloat(ind.priceVolatility) < 10, key: 'pre_5d_accumulation' },
 
           // 패턴 2: 매집 + 고래
           { name: '5일 매집+고래', match: ind.accumulation && ind.whale, key: 'pre_5d_accumulation_whale' },
 
           // 패턴 3: OBV 상승 (조건 완화: 0 초과면 상승)
-          { name: '5일 OBV상승', match: parseFloat(ind.obvTrend) > 0 && parseFloat(ind.priceVolatility) < 6, key: 'pre_5d_obv_rising' },
+          { name: '5일 OBV상승', match: parseFloat(ind.obvTrend) > 0 && parseFloat(ind.priceVolatility) < 10, key: 'pre_5d_obv_rising' },
 
           // 패턴 4: 거래량 점진 증가 (범위 확대)
           { name: '5일 거래량증가', match: parseFloat(ind.volumeGrowth) >= 30 && parseFloat(ind.volumeGrowth) <= 150, key: 'pre_5d_volume_gradual' },
