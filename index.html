@@ -934,21 +934,49 @@
         setError(null);
 
         try {
-          // 백테스팅 데이터
-          const backtestRes = await fetch(`${apiBaseUrl}/backtest`);
-          const backtestResult = await backtestRes.json();
-
-          if (backtestResult.success) {
-            setBacktestData(backtestResult.data);
+          // 백테스팅 데이터 - /backtest/hybrid API 사용
+          try {
+            const backtestRes = await fetch(`${apiBaseUrl}/backtest/hybrid`);
+            if (backtestRes.ok) {
+              const backtestResult = await backtestRes.json();
+              if (backtestResult.success) {
+                setBacktestData(backtestResult.data);
+              }
+            }
+          } catch (err) {
+            console.warn('백테스트 데이터 로드 실패 (무시):', err.message);
           }
 
-          // 실시간 추적 데이터
-          const trackerRes = await fetch(`${apiBaseUrl}/tracker?action=performance`);
-          const trackerResult = await trackerRes.json();
-
-          if (trackerResult.success) {
-            setTrackerData(trackerResult.data);
+          // 실시간 추적 데이터 - 패턴 분석 결과 사용
+          try {
+            const patternsRes = await fetch(`${apiBaseUrl}/patterns/list`);
+            if (patternsRes.ok) {
+              const patternsResult = await patternsRes.json();
+              if (patternsResult.success && patternsResult.patterns && patternsResult.patterns.length > 0) {
+                // 패턴 데이터를 추적 데이터 형식으로 변환
+                const mockTrackerData = {
+                  statistics: {
+                    overall: {
+                      totalSignals: patternsResult.patterns.reduce((sum, p) => sum + p.count, 0),
+                      avgWinRate: (patternsResult.patterns.reduce((sum, p) => sum + parseFloat(p.winRate), 0) / patternsResult.patterns.length).toFixed(1),
+                      avgReturn: (patternsResult.patterns.reduce((sum, p) => sum + parseFloat(p.avgReturn), 0) / patternsResult.patterns.length).toFixed(2),
+                      totalTrades: patternsResult.patterns.reduce((sum, p) => sum + p.count, 0)
+                    }
+                  },
+                  patterns: patternsResult.patterns
+                };
+                setTrackerData(mockTrackerData);
+              }
+            }
+          } catch (err) {
+            console.warn('패턴 데이터 로드 실패 (무시):', err.message);
           }
+
+          // 데이터가 하나도 없으면 에러 표시
+          if (!backtestData && !trackerData) {
+            setError('성과 데이터를 불러올 수 없습니다. 패턴 분석을 먼저 실행해주세요.');
+          }
+
         } catch (err) {
           setError('성과 데이터 로드 실패: ' + err.message);
         } finally {
@@ -1290,10 +1318,19 @@
         setLoading(true);
         try {
           const response = await fetch(`${apiBaseUrl}/tracking/today-signals?limit=5`);
+
+          if (!response.ok) {
+            console.warn('신호 API 응답 오류:', response.status);
+            setSignals([]);
+            setStats({ count: 0, avgScore: 0, avgDays: 0, date: '-' });
+            setLoading(false);
+            return;
+          }
+
           const data = await response.json();
 
           if (data.success) {
-            setSignals(data.signals);
+            setSignals(data.signals || []);
             const avgScore = data.count > 0
               ? (data.signals.reduce((sum, s) => sum + s.score, 0) / data.count).toFixed(0)
               : 0;
@@ -1309,6 +1346,8 @@
           }
         } catch (error) {
           console.error('신호 로드 실패:', error);
+          setSignals([]);
+          setStats({ count: 0, avgScore: 0, avgDays: 0, date: '-' });
         } finally {
           setLoading(false);
         }
@@ -1506,6 +1545,15 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           });
+
+          // 400 에러 처리 (데이터 부족)
+          if (response.status === 400) {
+            const errorData = await response.json();
+            setError(`⚠️ ${errorData.error || '충분한 데이터가 없습니다'}\n\n최근 10거래일 동안 급등(+5% 이상) 종목이 부족합니다. 장 마감 후 다시 시도해주세요.`);
+            setAnalyzing(false);
+            return;
+          }
+
           const result = await response.json();
 
           if (result.success) {
