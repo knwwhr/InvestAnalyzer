@@ -627,6 +627,177 @@
               </div>
             </div>
 
+            {/* 추세 분석 테이블 */}
+            {stock.trendAnalysis && (
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 mb-4">
+                <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center">
+                  📈 추세 분석 (최근 5일/10일/20일 비교)
+                  <span className="ml-2 text-xs text-gray-500 font-normal">※ 흐름을 비교하세요</span>
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-300">
+                        <th className="text-left py-2 px-2 text-gray-600 font-semibold">지표</th>
+                        <th className="text-center py-2 px-2 text-indigo-600 font-semibold">5일</th>
+                        <th className="text-center py-2 px-2 text-purple-600 font-semibold">10일</th>
+                        <th className="text-center py-2 px-2 text-pink-600 font-semibold">20일</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* 주가 변동률 */}
+                      <tr className="border-b border-gray-200">
+                        <td className="py-2 px-2 font-medium text-gray-700">주가 변동률</td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent5d?.priceChange >= 0 ? 'text-red-600' : 'text-blue-600'
+                        }`}>
+                          {stock.trendAnalysis.recent5d?.priceChange >= 0 ? '▲' : '▼'}
+                          {Math.abs(stock.trendAnalysis.recent5d?.priceChange || 0).toFixed(2)}%
+                        </td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent10d?.priceChange >= 0 ? 'text-red-600' : 'text-blue-600'
+                        }`}>
+                          {stock.trendAnalysis.recent10d?.priceChange >= 0 ? '▲' : '▼'}
+                          {Math.abs(stock.trendAnalysis.recent10d?.priceChange || 0).toFixed(2)}%
+                        </td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent20d?.priceChange >= 0 ? 'text-red-600' : 'text-blue-600'
+                        }`}>
+                          {stock.trendAnalysis.recent20d?.priceChange >= 0 ? '▲' : '▼'}
+                          {Math.abs(stock.trendAnalysis.recent20d?.priceChange || 0).toFixed(2)}%
+                        </td>
+                      </tr>
+
+                      {/* 거래량 CAGR */}
+                      <tr className="border-b border-gray-200">
+                        <td className="py-2 px-2 font-medium text-gray-700">
+                          거래량 CAGR
+                          <span className="text-xs text-gray-500 ml-1">(연환산)</span>
+                        </td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent5d?.volumeCAGR >= 0 ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {stock.trendAnalysis.recent5d?.volumeCAGR >= 0 ? '↑' : '↓'}
+                          {Math.abs(stock.trendAnalysis.recent5d?.volumeCAGR || 0).toFixed(1)}%
+                        </td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent10d?.volumeCAGR >= 0 ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {stock.trendAnalysis.recent10d?.volumeCAGR >= 0 ? '↑' : '↓'}
+                          {Math.abs(stock.trendAnalysis.recent10d?.volumeCAGR || 0).toFixed(1)}%
+                        </td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent20d?.volumeCAGR >= 0 ? 'text-green-600' : 'text-gray-500'
+                        }`}>
+                          {stock.trendAnalysis.recent20d?.volumeCAGR >= 0 ? '↑' : '↓'}
+                          {Math.abs(stock.trendAnalysis.recent20d?.volumeCAGR || 0).toFixed(1)}%
+                        </td>
+                      </tr>
+
+                      {/* 거래량 증가율 */}
+                      <tr className="border-b border-gray-200">
+                        <td className="py-2 px-2 font-medium text-gray-700">
+                          거래량 증가율
+                          <span className="text-xs text-gray-500 ml-1">(단순)</span>
+                        </td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent5d?.volumeGrowth >= 20 ? 'text-red-600' :
+                          stock.trendAnalysis.recent5d?.volumeGrowth >= 0 ? 'text-orange-600' : 'text-gray-500'
+                        }`}>
+                          {stock.trendAnalysis.recent5d?.volumeGrowth >= 0 ? '+' : ''}{stock.trendAnalysis.recent5d?.volumeGrowth.toFixed(1)}%
+                        </td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent10d?.volumeGrowth >= 20 ? 'text-red-600' :
+                          stock.trendAnalysis.recent10d?.volumeGrowth >= 0 ? 'text-orange-600' : 'text-gray-500'
+                        }`}>
+                          {stock.trendAnalysis.recent10d?.volumeGrowth >= 0 ? '+' : ''}{stock.trendAnalysis.recent10d?.volumeGrowth.toFixed(1)}%
+                        </td>
+                        <td className={`text-center py-2 px-2 font-bold ${
+                          stock.trendAnalysis.recent20d?.volumeGrowth >= 20 ? 'text-red-600' :
+                          stock.trendAnalysis.recent20d?.volumeGrowth >= 0 ? 'text-orange-600' : 'text-gray-500'
+                        }`}>
+                          {stock.trendAnalysis.recent20d?.volumeGrowth >= 0 ? '+' : ''}{stock.trendAnalysis.recent20d?.volumeGrowth.toFixed(1)}%
+                        </td>
+                      </tr>
+
+                      {/* 모멘텀 */}
+                      <tr className="border-b border-gray-200">
+                        <td className="py-2 px-2 font-medium text-gray-700">주가 추세</td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            stock.trendAnalysis.recent5d?.momentum === '상승' ? 'bg-red-100 text-red-700' :
+                            stock.trendAnalysis.recent5d?.momentum === '하락' ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {stock.trendAnalysis.recent5d?.momentum || '-'}
+                          </span>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            stock.trendAnalysis.recent10d?.momentum === '상승' ? 'bg-red-100 text-red-700' :
+                            stock.trendAnalysis.recent10d?.momentum === '하락' ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {stock.trendAnalysis.recent10d?.momentum || '-'}
+                          </span>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            stock.trendAnalysis.recent20d?.momentum === '상승' ? 'bg-red-100 text-red-700' :
+                            stock.trendAnalysis.recent20d?.momentum === '하락' ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {stock.trendAnalysis.recent20d?.momentum || '-'}
+                          </span>
+                        </td>
+                      </tr>
+
+                      {/* 거래량 추세 */}
+                      <tr>
+                        <td className="py-2 px-2 font-medium text-gray-700">거래량 추세</td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            stock.trendAnalysis.recent5d?.volumeTrend === '급증' ? 'bg-red-100 text-red-700' :
+                            stock.trendAnalysis.recent5d?.volumeTrend === '증가' ? 'bg-orange-100 text-orange-700' :
+                            stock.trendAnalysis.recent5d?.volumeTrend === '급감' ? 'bg-blue-100 text-blue-700' :
+                            stock.trendAnalysis.recent5d?.volumeTrend === '감소' ? 'bg-gray-100 text-gray-600' :
+                            'bg-gray-50 text-gray-500'
+                          }`}>
+                            {stock.trendAnalysis.recent5d?.volumeTrend || '-'}
+                          </span>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            stock.trendAnalysis.recent10d?.volumeTrend === '급증' ? 'bg-red-100 text-red-700' :
+                            stock.trendAnalysis.recent10d?.volumeTrend === '증가' ? 'bg-orange-100 text-orange-700' :
+                            stock.trendAnalysis.recent10d?.volumeTrend === '급감' ? 'bg-blue-100 text-blue-700' :
+                            stock.trendAnalysis.recent10d?.volumeTrend === '감소' ? 'bg-gray-100 text-gray-600' :
+                            'bg-gray-50 text-gray-500'
+                          }`}>
+                            {stock.trendAnalysis.recent10d?.volumeTrend || '-'}
+                          </span>
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            stock.trendAnalysis.recent20d?.volumeTrend === '급증' ? 'bg-red-100 text-red-700' :
+                            stock.trendAnalysis.recent20d?.volumeTrend === '증가' ? 'bg-orange-100 text-orange-700' :
+                            stock.trendAnalysis.recent20d?.volumeTrend === '급감' ? 'bg-blue-100 text-blue-700' :
+                            stock.trendAnalysis.recent20d?.volumeTrend === '감소' ? 'bg-gray-100 text-gray-600' :
+                            'bg-gray-50 text-gray-500'
+                          }`}>
+                            {stock.trendAnalysis.recent20d?.volumeTrend || '-'}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-2 text-xs text-gray-600">
+                  <span className="font-semibold">💡 해석:</span> 단기→장기로 추세가 일치하면 강한 시그널 | 거래량 CAGR 200%+ = 연간 3배 이상 거래량 증가 추세
+                </div>
+              </div>
+            )}
+
             {/* 주요 지표 */}
             <div className="grid grid-cols-3 gap-2 text-sm">
               <div className="bg-blue-50 p-2 rounded relative group">

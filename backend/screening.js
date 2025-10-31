@@ -15,6 +15,70 @@ class StockScreener {
   }
 
   /**
+   * 추세 분석 (5일/10일/20일)
+   */
+  calculateTrendAnalysis(chartData) {
+    if (!chartData || chartData.length < 20) {
+      return null;
+    }
+
+    const analyzePeriod = (days) => {
+      if (chartData.length <= days) return null;
+
+      const today = chartData[0];
+      const past = chartData[days];
+
+      // 주가 변동률
+      const priceChange = ((today.close - past.close) / past.close) * 100;
+
+      // 거래량 CAGR (연환산 복합성장률)
+      // CAGR = (endValue/startValue)^(365/days) - 1
+      const volumeCAGR = (Math.pow(today.volume / past.volume, 365 / days) - 1) * 100;
+
+      // 단순 거래량 증가율
+      const volumeGrowth = ((today.volume - past.volume) / past.volume) * 100;
+
+      // 추세 방향 판단
+      let momentum = '횡보';
+      if (priceChange > 3) momentum = '상승';
+      else if (priceChange < -3) momentum = '하락';
+
+      let volumeTrend = '보합';
+      if (volumeGrowth > 20) volumeTrend = '급증';
+      else if (volumeGrowth > 0) volumeTrend = '증가';
+      else if (volumeGrowth < -20) volumeTrend = '급감';
+      else if (volumeGrowth < 0) volumeTrend = '감소';
+
+      // 각 일자별 가격 배열 (추이 표시용)
+      const priceHistory = [];
+      for (let i = days; i >= 0; i--) {
+        if (chartData[i]) {
+          priceHistory.push({
+            date: chartData[i].date,
+            close: chartData[i].close,
+            volume: chartData[i].volume
+          });
+        }
+      }
+
+      return {
+        priceChange: parseFloat(priceChange.toFixed(2)),
+        volumeCAGR: parseFloat(volumeCAGR.toFixed(2)),
+        volumeGrowth: parseFloat(volumeGrowth.toFixed(2)),
+        momentum,
+        volumeTrend,
+        priceHistory: priceHistory.reverse() // 과거→현재 순서
+      };
+    };
+
+    return {
+      recent5d: analyzePeriod(4),   // 0~4 = 5일
+      recent10d: analyzePeriod(9),  // 0~9 = 10일
+      recent20d: analyzePeriod(19)  // 0~19 = 20일
+    };
+  }
+
+  /**
    * 단일 종목 분석 (Phase 4 통합)
    */
   async analyzeStock(stockCode) {
@@ -35,6 +99,9 @@ class StockScreener {
 
       // 창의적 지표 분석 (Phase 4 신규 지표 포함)
       const advancedAnalysis = advancedIndicators.analyzeAdvanced(chartData);
+
+      // 추세 분석 (5일/10일/20일)
+      const trendAnalysis = this.calculateTrendAnalysis(chartData);
 
       // 종합 점수 계산
       let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis);
@@ -74,6 +141,7 @@ class StockScreener {
         marketCap: currentData.marketCap,
         volumeAnalysis,
         advancedAnalysis,
+        trendAnalysis, // 추세 분석 추가
         overheating, // Phase 4C 과열 정보 추가
         patternMatch, // 패턴 매칭 정보 추가
         totalScore,
