@@ -15,66 +15,56 @@ class StockScreener {
   }
 
   /**
-   * 추세 분석 (5일/10일/20일)
+   * 추세 분석 (최근 5일 일자별)
    */
   calculateTrendAnalysis(chartData) {
-    if (!chartData || chartData.length < 20) {
+    if (!chartData || chartData.length < 6) {
       return null;
     }
 
-    const analyzePeriod = (days) => {
-      if (chartData.length <= days) return null;
+    // 최근 5일 + 기준일(6일전) 필요
+    const dailyData = [];
 
-      const today = chartData[0];
-      const past = chartData[days];
+    for (let i = 0; i < 5; i++) {
+      const today = chartData[i];
+      const yesterday = chartData[i + 1];
 
-      // 주가 변동률
-      const priceChange = ((today.close - past.close) / past.close) * 100;
+      if (!today || !yesterday) continue;
 
-      // 거래량 CAGR (연환산 복합성장률)
-      // CAGR = (endValue/startValue)^(365/days) - 1
-      const volumeCAGR = (Math.pow(today.volume / past.volume, 365 / days) - 1) * 100;
+      // 전일 대비 주가 변동률
+      const priceChange = ((today.close - yesterday.close) / yesterday.close) * 100;
 
-      // 단순 거래량 증가율
-      const volumeGrowth = ((today.volume - past.volume) / past.volume) * 100;
+      // 전일 대비 거래량 증가율
+      const volumeChange = ((today.volume - yesterday.volume) / yesterday.volume) * 100;
 
-      // 추세 방향 판단
-      let momentum = '횡보';
-      if (priceChange > 3) momentum = '상승';
-      else if (priceChange < -3) momentum = '하락';
+      // 해당 기간(1일~5일)의 누적 변동률
+      const periodStart = chartData[i];
+      const periodEnd = chartData[Math.min(i + (i + 1), chartData.length - 1)]; // i일 전부터 현재까지
+      const periodPriceChange = periodEnd ? ((periodStart.close - periodEnd.close) / periodEnd.close) * 100 : 0;
+      const periodVolumeChange = periodEnd ? ((periodStart.volume - periodEnd.volume) / periodEnd.volume) * 100 : 0;
 
-      let volumeTrend = '보합';
-      if (volumeGrowth > 20) volumeTrend = '급증';
-      else if (volumeGrowth > 0) volumeTrend = '증가';
-      else if (volumeGrowth < -20) volumeTrend = '급감';
-      else if (volumeGrowth < 0) volumeTrend = '감소';
-
-      // 각 일자별 가격 배열 (추이 표시용)
-      const priceHistory = [];
-      for (let i = days; i >= 0; i--) {
-        if (chartData[i]) {
-          priceHistory.push({
-            date: chartData[i].date,
-            close: chartData[i].close,
-            volume: chartData[i].volume
-          });
-        }
-      }
-
-      return {
+      dailyData.push({
+        dayIndex: i + 1, // 1일전 = 오늘, 2일전 = 어제, ...
+        date: today.date,
+        close: today.close,
+        volume: today.volume,
         priceChange: parseFloat(priceChange.toFixed(2)),
-        volumeCAGR: parseFloat(volumeCAGR.toFixed(2)),
-        volumeGrowth: parseFloat(volumeGrowth.toFixed(2)),
-        momentum,
-        volumeTrend,
-        priceHistory: priceHistory.reverse() // 과거→현재 순서
-      };
-    };
+        volumeChange: parseFloat(volumeChange.toFixed(2)),
+        periodPriceChange: parseFloat(periodPriceChange.toFixed(2)),
+        periodVolumeChange: parseFloat(periodVolumeChange.toFixed(2))
+      });
+    }
 
     return {
-      recent5d: analyzePeriod(4),   // 0~4 = 5일
-      recent10d: analyzePeriod(9),  // 0~9 = 10일
-      recent20d: analyzePeriod(19)  // 0~19 = 20일
+      dailyData: dailyData, // 최근 5일 (0=오늘, 1=어제, 2=그저께, ...)
+      summary: {
+        totalPriceChange: dailyData.length > 0 ? dailyData[dailyData.length - 1].periodPriceChange : 0,
+        totalVolumeChange: dailyData.length > 0 ? dailyData[dailyData.length - 1].periodVolumeChange : 0,
+        avgDailyPriceChange: dailyData.length > 0 ?
+          (dailyData.reduce((sum, d) => sum + d.priceChange, 0) / dailyData.length).toFixed(2) : 0,
+        avgDailyVolumeChange: dailyData.length > 0 ?
+          (dailyData.reduce((sum, d) => sum + d.volumeChange, 0) / dailyData.length).toFixed(2) : 0
+      }
     };
   }
 
