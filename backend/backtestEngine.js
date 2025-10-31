@@ -123,140 +123,73 @@ class BacktestEngine {
   }
 
   /**
-   * 오늘 신호 → 실전 추적용
+   * 오늘 신호 → 실전 추적용 (실시간 스크리닝 기반)
    * @param {number} limit - 종목 수
    * @returns {Promise<Array>} 추적 대상 종목
    */
   async getTodaySignals(limit = 5) {
-    console.log('\n📊 오늘 D-5 패턴 기반 신호 발굴 중...\n');
+    console.log('\n📊 오늘 실시간 스크리닝 기반 신호 발굴 중...\n');
 
     try {
-      // 패턴 캐시 사용 (GitHub Gist 또는 메모리)
-      const gistStorage = require('./gistStorage');
-      const patternCache = require('./patternCache');
+      // 실시간 스크리닝 API 사용 (패턴 캐시 대신)
+      const screener = require('./screening');
 
-      let patternsData = null;
+      // 상위 종목 스크리닝 (limit * 2 만큼 가져와서 필터링)
+      const result = await screener.screenAllStocks('ALL', limit * 2);
 
-      // 1. GitHub Gist에서 시도
-      if (gistStorage.isConfigured()) {
-        console.log('📥 GitHub Gist에서 패턴 데이터 로드 시도...');
-        patternsData = await gistStorage.loadPatterns();
-      }
-
-      // 2. 메모리 캐시에서 시도
-      if (!patternsData) {
-        console.log('💾 메모리 캐시에서 패턴 데이터 로드 시도...');
-        patternsData = patternCache.getPatterns();
-      }
-
-      // 3. 데이터 없으면 빈 배열 반환
-      if (!patternsData || !patternsData.stocks || patternsData.stocks.length === 0) {
-        console.log('⚠️ 패턴 데이터 없음 - 패턴 분석을 먼저 실행하세요');
+      if (!result || !result.stocks || result.stocks.length === 0) {
+        console.log('⚠️ 스크리닝 결과 없음');
         return [];
       }
 
-      // 급등 종목 중 수익률 상위 N개 추출
-      const topStocks = patternsData.stocks
-        .sort((a, b) => parseFloat(b.returnRate) - parseFloat(a.returnRate))
+      console.log(`✅ ${result.stocks.length}개 종목 분석 완료\n`);
+
+      // 점수 50점 이상 (A등급 이상)만 필터링
+      const topStocks = result.stocks
+        .filter(stock => stock.totalScore >= 50)
         .slice(0, limit);
 
-      console.log(`\n✅ 오늘 신호 ${topStocks.length}개 발견 (D-5 패턴 기반)\n`);
+      console.log(`✅ 오늘 신호 ${topStocks.length}개 발견 (실시간 스크리닝)\n`);
 
-      // 각 종목의 현재가 조회
-      const signalsWithPrice = [];
-      for (const stock of topStocks) {
-        try {
-          // 현재가 조회
-          const currentData = await kisApi.getCurrentPrice(stock.stockCode);
+      // 신호 데이터 변환
+      const signals = topStocks.map(stock => {
+        // 오늘 날짜 (YYYYMMDD)
+        const today = new Date();
+        const signalDate = today.toISOString().slice(0,10).replace(/-/g, '');
 
-          if (!currentData) {
-            console.warn(`  ⚠️ ${stock.stockName} (${stock.stockCode}): getCurrentPrice returned null/undefined`);
-          }
+        return {
+          stockCode: stock.stockCode,
+          stockName: stock.stockName,
+          grade: stock.recommendation.grade,
+          score: Math.round(stock.totalScore),
+          scoreBreakdown: {
+            total: Math.round(stock.totalScore),
+            volumeAnalysis: stock.volumeAnalysis?.current?.volume ? 30 : 0,
+            advancedAnalysis: stock.advancedAnalysis?.totalScore || 0,
+            patternMatch: stock.patternMatch?.bonusScore || 0
+          },
+          currentPrice: stock.currentPrice,
+          todayChange: stock.changeRate,
+          signalDate: signalDate,
+          expectedSurgeDays: 5, // 기본 5일 홀딩
+          indicators: {
+            accumulation: stock.advancedAnalysis?.indicators?.accumulation?.detected || false,
+            whale: stock.advancedAnalysis?.indicators?.whale?.length > 0 || false,
+            obvTrend: stock.volumeAnalysis?.signals?.obvTrend || '중립',
+            mfi: stock.volumeAnalysis?.indicators?.mfi || 50,
+            volumeRatio: stock.volumeAnalysis?.current?.volumeMA20 ?
+              (stock.volume / stock.volumeAnalysis.current.volumeMA20).toFixed(2) : 0
+          },
+          matchedPatterns: stock.patternMatch?.patterns?.map(p => p.name) || []
+        };
+      });
 
-          const currentPrice = currentData?.price || currentData?.currentPrice || 0;
-          const priceChange = currentData?.priceChange || currentData?.changeRate || 0;
+      // 각 종목 로그
+      signals.forEach((sig, idx) => {
+        console.log(`  ${idx + 1}. [${sig.grade}] ${sig.stockName}: ${sig.currentPrice.toLocaleString()}원 (${sig.todayChange >= 0 ? '+' : ''}${sig.todayChange.toFixed(2)}%) - ${sig.score}점`);
+      });
 
-          if (currentPrice === 0) {
-            console.warn(`  ⚠️ ${stock.stockName} (${stock.stockCode}): price is 0 - currentData:`, JSON.stringify(currentData));
-          }
-
-          // 점수 계산 세부 로직
-          const returnRate = parseFloat(stock.returnRate);
-          let score = 0;
-          const scoreBreakdown = {};
-
-          // 1. 과거 수익률 기반 (최대 40점)
-          scoreBreakdown.historicalReturn = Math.min(40, parseInt(returnRate * 1.3));
-          score += scoreBreakdown.historicalReturn;
-
-          // 2. 패턴 매칭 보너스 (최대 30점)
-          const patternCount = stock.matchedPatterns?.length || 0;
-          scoreBreakdown.patternBonus = Math.min(30, patternCount * 5);
-          score += scoreBreakdown.patternBonus;
-
-          // 3. 선행 지표 점수 (최대 30점)
-          let indicatorScore = 0;
-          if (stock.preSurgeIndicators?.accumulation) indicatorScore += 10; // 조용한 매집
-          if (stock.preSurgeIndicators?.whale) indicatorScore += 10; // 고래 감지
-          if (parseFloat(stock.preSurgeIndicators?.rsi || 0) > 50 && parseFloat(stock.preSurgeIndicators?.rsi || 0) < 80) indicatorScore += 5; // RSI 적정
-          if (parseFloat(stock.preSurgeIndicators?.obvTrend || 0) > 0) indicatorScore += 5; // OBV 상승
-          scoreBreakdown.indicators = indicatorScore;
-          score += indicatorScore;
-
-          // 등급 산정
-          let grade = 'D';
-          if (score >= 70) grade = 'S';
-          else if (score >= 55) grade = 'A';
-          else if (score >= 40) grade = 'B';
-          else if (score >= 30) grade = 'C';
-
-          signalsWithPrice.push({
-            stockCode: stock.stockCode,
-            stockName: stock.stockName,
-            grade: grade,
-            score: score,
-            scoreBreakdown: scoreBreakdown,
-            currentPrice: currentPrice,
-            todayChange: priceChange,
-            signalDate: stock.surgeDate,
-            expectedSurgeDays: 5, // D-5 패턴
-            returnRate: stock.returnRate,
-            indicators: {
-              accumulation: stock.preSurgeIndicators?.accumulation || false,
-              whale: stock.preSurgeIndicators?.whale || false,
-              obvTrend: stock.preSurgeIndicators?.obvTrend || 0,
-              rsi: stock.preSurgeIndicators?.rsi || 50
-            },
-            matchedPatterns: stock.matchedPatterns || []
-          });
-
-          console.log(`  ✓ ${stock.stockName}: ${currentPrice}원 (${priceChange > 0 ? '+' : ''}${priceChange}%)`);
-        } catch (priceError) {
-          console.warn(`  ⚠️ ${stock.stockName}: 현재가 조회 실패`);
-          // 현재가 조회 실패해도 종목은 포함 (0으로 표시)
-          signalsWithPrice.push({
-            stockCode: stock.stockCode,
-            stockName: stock.stockName,
-            grade: parseFloat(stock.returnRate) >= 30 ? 'S' : parseFloat(stock.returnRate) >= 20 ? 'A' : 'B',
-            score: Math.min(100, parseInt(parseFloat(stock.returnRate) * 3)),
-            scoreBreakdown: { error: '현재가 조회 실패' },
-            currentPrice: 0,
-            todayChange: 0,
-            signalDate: stock.surgeDate,
-            expectedSurgeDays: 5,
-            returnRate: stock.returnRate,
-            indicators: {
-              accumulation: stock.preSurgeIndicators?.accumulation || false,
-              whale: stock.preSurgeIndicators?.whale || false,
-              obvTrend: stock.preSurgeIndicators?.obvTrend || 0,
-              rsi: stock.preSurgeIndicators?.rsi || 50
-            },
-            matchedPatterns: stock.matchedPatterns || []
-          });
-        }
-      }
-
-      return signalsWithPrice;
+      return signals;
     } catch (error) {
       console.error('getTodaySignals 실패:', error.message);
       return [];
