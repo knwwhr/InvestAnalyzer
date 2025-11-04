@@ -152,8 +152,8 @@ module.exports = async function handler(req, res) {
       const limit = req.query.limit ? parseInt(req.query.limit) : 50;
       const newsPerStock = req.query.newsPerStock ? parseInt(req.query.newsPerStock) : 10;
 
-      const kospiStocks = await kisApi.getTopStocksByTradeValue('KOSPI', Math.ceil(limit / 2));
-      const kosdaqStocks = await kisApi.getTopStocksByTradeValue('KOSDAQ', Math.floor(limit / 2));
+      const kospiStocks = await kisApi.getTradingValueRank('KOSPI', Math.ceil(limit / 2));
+      const kosdaqStocks = await kisApi.getTradingValueRank('KOSDAQ', Math.floor(limit / 2));
 
       const allStocks = [...kospiStocks, ...kosdaqStocks]
         .slice(0, limit)
@@ -190,8 +190,8 @@ module.exports = async function handler(req, res) {
       const startTime = Date.now();
       const limit = req.query.limit ? parseInt(req.query.limit) : 30;
 
-      const kospiStocks = await kisApi.getTopStocksByTradeValue('KOSPI', Math.ceil(limit / 2));
-      const kosdaqStocks = await kisApi.getTopStocksByTradeValue('KOSDAQ', Math.floor(limit / 2));
+      const kospiStocks = await kisApi.getTradingValueRank('KOSPI', Math.ceil(limit / 2));
+      const kosdaqStocks = await kisApi.getTradingValueRank('KOSDAQ', Math.floor(limit / 2));
 
       const allStocks = [...kospiStocks, ...kosdaqStocks]
         .slice(0, limit)
