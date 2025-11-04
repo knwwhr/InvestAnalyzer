@@ -17,8 +17,10 @@ class StockScreener {
 
   /**
    * 추세 분석 (최근 5일 일자별)
+   * @param {Array} chartData - 일봉 데이터
+   * @param {Object} currentData - 현재가 정보 (실시간)
    */
-  calculateTrendAnalysis(chartData) {
+  calculateTrendAnalysis(chartData, currentData = null) {
     if (!chartData || chartData.length < 6) {
       return null;
     }
@@ -32,23 +34,28 @@ class StockScreener {
 
       if (!today || !yesterday) continue;
 
+      // 오늘(i=0) 데이터는 현재가 사용, 과거는 종가 사용
+      const todayPrice = (i === 0 && currentData) ? currentData.currentPrice : today.close;
+      const todayVolume = (i === 0 && currentData) ? currentData.volume : today.volume;
+
       // 전일 대비 주가 변동률
-      const priceChange = ((today.close - yesterday.close) / yesterday.close) * 100;
+      const priceChange = ((todayPrice - yesterday.close) / yesterday.close) * 100;
 
       // 전일 대비 거래량 증가율
-      const volumeChange = ((today.volume - yesterday.volume) / yesterday.volume) * 100;
+      const volumeChange = ((todayVolume - yesterday.volume) / yesterday.volume) * 100;
 
       // 해당 기간(1일~5일)의 누적 변동률
       const periodStart = chartData[i];
       const periodEnd = chartData[Math.min(i + (i + 1), chartData.length - 1)]; // i일 전부터 현재까지
-      const periodPriceChange = periodEnd ? ((periodStart.close - periodEnd.close) / periodEnd.close) * 100 : 0;
-      const periodVolumeChange = periodEnd ? ((periodStart.volume - periodEnd.volume) / periodEnd.volume) * 100 : 0;
+      const periodPriceChange = periodEnd ? ((todayPrice - periodEnd.close) / periodEnd.close) * 100 : 0;
+      const periodVolumeChange = periodEnd ? ((todayVolume - periodEnd.volume) / periodEnd.volume) * 100 : 0;
 
       dailyData.push({
         dayIndex: i + 1, // 1일전 = 오늘, 2일전 = 어제, ...
         date: today.date,
-        close: today.close,
-        volume: today.volume,
+        close: todayPrice,  // 오늘은 현재가, 과거는 종가
+        volume: todayVolume,  // 오늘은 누적거래량, 과거는 종가 거래량
+        isToday: i === 0,  // 오늘 여부
         priceChange: parseFloat(priceChange.toFixed(2)),
         volumeChange: parseFloat(volumeChange.toFixed(2)),
         periodPriceChange: parseFloat(periodPriceChange.toFixed(2)),
@@ -91,8 +98,8 @@ class StockScreener {
       // 창의적 지표 분석 (Phase 4 신규 지표 포함)
       const advancedAnalysis = advancedIndicators.analyzeAdvanced(chartData);
 
-      // 추세 분석 (5일/10일/20일)
-      const trendAnalysis = this.calculateTrendAnalysis(chartData);
+      // 추세 분석 (5일/10일/20일) - 현재가 정보 포함
+      const trendAnalysis = this.calculateTrendAnalysis(chartData, currentData);
 
       // 트렌드 점수 조회 (Google Trends + 뉴스 + AI 감성)
       const trendScore = await trendScoring.getStockTrendScore(stockCode);

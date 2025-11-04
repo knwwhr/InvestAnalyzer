@@ -899,7 +899,7 @@
                       <thead>
                         <tr className="border-b-2 border-purple-300">
                           <th className="text-left py-3 px-3 font-bold text-purple-900">구분</th>
-                          <th className="text-center py-3 px-3 font-bold text-purple-900">종가</th>
+                          <th className="text-center py-3 px-3 font-bold text-purple-900">종가/현재가</th>
                           <th className="text-center py-3 px-3 font-bold text-purple-900">전일대비</th>
                           <th className="text-center py-3 px-3 font-bold text-purple-900">거래량</th>
                           <th className="text-center py-3 px-3 font-bold text-purple-900">거래량 전일대비</th>
@@ -925,12 +925,27 @@
                               </td>
                               <td className="text-center py-3 px-3 font-bold">
                                 {day.close.toLocaleString()}원
+                                {isToday && (
+                                  <div className="text-xs text-red-600 mt-1">
+                                    (현재가)
+                                  </div>
+                                )}
+                                {!isToday && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    (종가)
+                                  </div>
+                                )}
                               </td>
                               <td className={`text-center py-3 px-3 font-bold ${priceColor}`}>
                                 {day.priceChange >= 0 ? '▲' : '▼'} {Math.abs(day.priceChange).toFixed(2)}%
                               </td>
                               <td className="text-center py-3 px-3">
                                 {(day.volume / 1000).toFixed(0)}K
+                                {isToday && (
+                                  <div className="text-xs text-orange-600 mt-1">
+                                    (누적)
+                                  </div>
+                                )}
                               </td>
                               <td className={`text-center py-3 px-3 font-bold ${volumeColor}`}>
                                 {day.volumeChange >= 0 ? '+' : ''}{day.volumeChange.toFixed(1)}%
