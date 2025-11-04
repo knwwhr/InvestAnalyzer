@@ -241,16 +241,20 @@ class TrendScoring {
   }
 
   /**
-   * HOT 이슈 종목 조회
+   * HOT 이슈 종목 조회 (최근 24시간 이내 업데이트된 데이터만)
    * @returns {Promise<Array>} HOT 이슈 종목 목록
    */
   async getHotIssueStocks() {
     if (!supabase) return [];
 
     try {
+      // 24시간 전 시간 계산
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
       const { data, error } = await supabase
         .from('hot_issue_stocks')
         .select('*')
+        .gte('updated_at', oneDayAgo.toISOString())  // 최근 24시간 이내만
         .order('total_trend_score', { ascending: false });
 
       if (error) throw error;
