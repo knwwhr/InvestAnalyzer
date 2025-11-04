@@ -293,13 +293,18 @@ class KISApi {
       });
 
       if (response.data.rt_cd === '0') {
-        return response.data.output.slice(0, limit).map(item => ({
-          code: item.mksc_shrn_iscd,
-          name: item.hts_kor_isnm,
-          currentPrice: parseInt(item.stck_prpr),
-          volume: parseInt(item.acml_vol),
-          volumeRate: parseFloat(item.prdy_vrss_vol_rate)  // 전일대비 거래량 증가율
-        }));
+        // ETF/ETN 제외 필터링 적용
+        const filtered = response.data.output
+          .filter(item => !this.isNonStockItem(item.hts_kor_isnm))
+          .slice(0, limit)
+          .map(item => ({
+            code: item.mksc_shrn_iscd,
+            name: item.hts_kor_isnm,
+            currentPrice: parseInt(item.stck_prpr),
+            volume: parseInt(item.acml_vol),
+            volumeRate: parseFloat(item.prdy_vrss_vol_rate)  // 전일대비 거래량 증가율
+          }));
+        return filtered;
       } else {
         const errorDetail = {
           rt_cd: response.data.rt_cd,
