@@ -152,8 +152,9 @@ module.exports = async function handler(req, res) {
       const limit = req.query.limit ? parseInt(req.query.limit) : 50;
       const newsPerStock = req.query.newsPerStock ? parseInt(req.query.newsPerStock) : 10;
 
-      const kospiStocks = await kisApi.getTradingValueRank('KOSPI', Math.ceil(limit / 2));
-      const kosdaqStocks = await kisApi.getTradingValueRank('KOSDAQ', Math.floor(limit / 2));
+      // 거래량 증가율 순위로 급등 가능성 높은 종목 선정
+      const kospiStocks = await kisApi.getVolumeSurgeRank('KOSPI', Math.ceil(limit / 2));
+      const kosdaqStocks = await kisApi.getVolumeSurgeRank('KOSDAQ', Math.floor(limit / 2));
 
       const allStocks = [...kospiStocks, ...kosdaqStocks]
         .slice(0, limit)
@@ -190,8 +191,9 @@ module.exports = async function handler(req, res) {
       const startTime = Date.now();
       const limit = req.query.limit ? parseInt(req.query.limit) : 30;
 
-      const kospiStocks = await kisApi.getTradingValueRank('KOSPI', Math.ceil(limit / 2));
-      const kosdaqStocks = await kisApi.getTradingValueRank('KOSDAQ', Math.floor(limit / 2));
+      // 거래량 증가율 순위로 급등 가능성 높은 종목 선정
+      const kospiStocks = await kisApi.getVolumeSurgeRank('KOSPI', Math.ceil(limit / 2));
+      const kosdaqStocks = await kisApi.getVolumeSurgeRank('KOSDAQ', Math.floor(limit / 2));
 
       const allStocks = [...kospiStocks, ...kosdaqStocks]
         .slice(0, limit)
