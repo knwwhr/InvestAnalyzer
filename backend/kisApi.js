@@ -541,11 +541,13 @@ class KISApi {
     const excludeKeywords = [
       // ETF 브랜드
       'ETF', 'ETN', 'KODEX', 'TIGER', 'KBSTAR', 'ARIRANG', 'KOSEF',
-      'HANARO', 'TREX', 'KINDEX', 'TIMEFOLIO', 'SOL', 'ACE',
+      'HANARO', 'TREX', 'KINDEX', 'TIMEFOLIO', 'SOL', 'ACE', 'KIWOOM',
+      'SAMSUNG', 'MIRAE', 'KB', 'SHINHAN', 'NH', 'WOORI',
       // 특수 펀드/파생상품
       'plus', 'PLUS', 'Plus', 'unicorn', 'UNICORN', 'Unicorn',
       '국채', '선물', '통안증권', '미국채', '하이일드', '인컴',
       'POST', 'Post', 'IPO', 'Active', 'ACTIVE', '액티브',
+      '밸류업', '고배당', '커버드콜', 'TR',
       // 리츠/스팩
       '리츠', 'REIT', '스팩', 'SPAC',
       '1호', '2호', '3호', '4호', '5호', '6호', '7호', '8호', '9호',
