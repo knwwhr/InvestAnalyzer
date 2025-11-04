@@ -232,6 +232,16 @@
                 >
                   🧬 DNA 추출
                 </button>
+                <button
+                  onClick={() => setActiveTab('trends')}
+                  className={`px-6 py-3 font-semibold transition-all ${
+                    activeTab === 'trends'
+                      ? 'text-indigo-600 border-b-4 border-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  📰 트렌드 이슈
+                </button>
               </div>
             </div>
           </header>
@@ -327,6 +337,8 @@
                   />
                 )}
               </>
+            ) : activeTab === 'trends' ? (
+              <TrendAnalysis apiBaseUrl={API_BASE_URL} />
             ) : (
               <PerformanceVerification apiBaseUrl={API_BASE_URL} />
             )}
@@ -1060,6 +1072,295 @@
           <p className="text-xs text-gray-600 mb-1">{label}</p>
           <p className="text-lg font-bold text-gray-900">{value || 'N/A'}</p>
           {desc && <p className="text-xs text-gray-500 mt-1">{desc}</p>}
+        </div>
+      );
+    }
+
+    // 트렌드 분석 컴포넌트
+    function TrendAnalysis({ apiBaseUrl }) {
+      const [hotIssues, setHotIssues] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [collecting, setCollecting] = useState(false);
+      const [analyzing, setAnalyzing] = useState(false);
+      const [error, setError] = useState(null);
+      const [lastUpdate, setLastUpdate] = useState(null);
+
+      // HOT 이슈 조회
+      useEffect(() => {
+        fetchHotIssues();
+      }, []);
+
+      const fetchHotIssues = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const response = await fetch(`${apiBaseUrl}/trends?action=hot-issues&limit=20`);
+          const result = await response.json();
+
+          if (result.success) {
+            setHotIssues(result.hotIssues || []);
+            setLastUpdate(new Date());
+          } else {
+            setError(result.error || 'HOT 이슈를 불러올 수 없습니다.');
+          }
+        } catch (err) {
+          setError('서버 연결 실패: ' + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      // 뉴스 수집
+      const collectNews = async () => {
+        if (!confirm('네이버 뉴스를 수집하시겠습니까?\n\n거래량 증가율 상위 50개 종목의 뉴스를 수집합니다. (약 10초 소요)')) return;
+
+        setCollecting(true);
+        setError(null);
+        try {
+          const response = await fetch(`${apiBaseUrl}/trends?action=collect-news&limit=50&newsPerStock=10`, {
+            method: 'POST'
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            alert(`✅ 뉴스 수집 완료!\n\n수집 종목: ${result.collected.stocks}개\n총 뉴스: ${result.collected.totalNews}개`);
+            fetchHotIssues(); // 새로고침
+          } else {
+            setError(result.error || '뉴스 수집 실패');
+          }
+        } catch (err) {
+          setError('뉴스 수집 중 오류: ' + err.message);
+        } finally {
+          setCollecting(false);
+        }
+      };
+
+      // 감성 분석
+      const analyzeSentiment = async () => {
+        if (!confirm('AI 감성 분석을 실행하시겠습니까?\n\nGemini AI로 뉴스의 감성을 분석합니다. (약 20초 소요)')) return;
+
+        setAnalyzing(true);
+        setError(null);
+        try {
+          const response = await fetch(`${apiBaseUrl}/trends?action=analyze-sentiment&limit=30`, {
+            method: 'POST'
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            alert(`✅ 감성 분석 완료!\n\n분석 종목: ${result.analyzed.stocks}개\n분석 뉴스: ${result.analyzed.newsItems}개`);
+            fetchHotIssues(); // 새로고침
+          } else {
+            setError(result.error || '감성 분석 실패');
+          }
+        } catch (err) {
+          setError('감성 분석 중 오류: ' + err.message);
+        } finally {
+          setAnalyzing(false);
+        }
+      };
+
+      // 등급 표시
+      const getGradeBadge = (score) => {
+        if (score >= 50) return { label: 'S', color: 'bg-red-600' };
+        if (score >= 42) return { label: 'A', color: 'bg-green-600' };
+        if (score >= 30) return { label: 'B', color: 'bg-yellow-600' };
+        return { label: 'C', color: 'bg-gray-600' };
+      };
+
+      if (loading) {
+        return (
+          <div className="text-center py-20">
+            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mb-4"></div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">HOT 이슈 로딩 중...</h3>
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-6">
+          {/* 헤더 */}
+          <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl shadow-lg p-6 text-white">
+            <h2 className="text-3xl font-bold mb-2">📰 트렌드 이슈</h2>
+            <p className="text-orange-100">
+              네이버 뉴스 + Gemini AI 감성 분석으로 HOT 이슈 종목을 발굴합니다
+            </p>
+          </div>
+
+          {/* 에러 메시지 */}
+          {error && (
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+              <p className="font-bold">오류</p>
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* 액션 버튼 */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="flex flex-wrap gap-4">
+              <button
+                onClick={collectNews}
+                disabled={collecting}
+                className="flex-1 min-w-[200px] px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 font-semibold shadow-lg"
+              >
+                {collecting ? '🔄 뉴스 수집 중...' : '📰 뉴스 수집 (50개 종목)'}
+              </button>
+              <button
+                onClick={analyzeSentiment}
+                disabled={analyzing}
+                className="flex-1 min-w-[200px] px-6 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 font-semibold shadow-lg"
+              >
+                {analyzing ? '🤖 AI 분석 중...' : '🤖 감성 분석 (Gemini AI)'}
+              </button>
+              <button
+                onClick={fetchHotIssues}
+                disabled={loading}
+                className="flex-1 min-w-[200px] px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-semibold shadow-lg"
+              >
+                {loading ? '🔄 조회 중...' : '🔄 HOT 이슈 새로고침'}
+              </button>
+            </div>
+
+            {/* 안내 메시지 */}
+            <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+              <p className="text-sm text-blue-800">
+                💡 <strong>사용 방법:</strong> 뉴스 수집 → 감성 분석 → HOT 이슈 조회 순서로 진행하세요.
+              </p>
+            </div>
+
+            {lastUpdate && (
+              <p className="text-xs text-gray-500 text-center mt-4">
+                마지막 업데이트: {lastUpdate.toLocaleString('ko-KR')}
+              </p>
+            )}
+          </div>
+
+          {/* HOT 이슈 목록 */}
+          {hotIssues.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+              <div className="text-6xl mb-4">📭</div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">HOT 이슈가 없습니다</h3>
+              <p className="text-gray-600 mb-6">
+                상단의 "뉴스 수집" 버튼을 눌러 데이터를 수집하세요.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold">🔥 HOT 이슈 종목 ({hotIssues.length}개)</h3>
+                <div className="text-sm text-gray-600">
+                  S등급: {hotIssues.filter(s => s.grade === 'S').length}개 |
+                  A등급: {hotIssues.filter(s => s.grade === 'A').length}개
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {hotIssues.map((stock, index) => {
+                  const grade = getGradeBadge(stock.trendScore);
+                  return (
+                    <div
+                      key={stock.stockCode}
+                      className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-4 hover:shadow-xl transition-all cursor-pointer"
+                    >
+                      {/* 헤더 */}
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-900">{stock.stockName}</h4>
+                          <p className="text-xs text-gray-500">{stock.stockCode}</p>
+                        </div>
+                        <span className={`${grade.color} text-white px-3 py-1 rounded-full text-sm font-bold`}>
+                          {grade.label}등급
+                        </span>
+                      </div>
+
+                      {/* 총점 */}
+                      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg p-3 mb-3">
+                        <div className="text-xs opacity-90 mb-1">트렌드 점수</div>
+                        <div className="text-3xl font-bold">{stock.trendScore.toFixed(1)}점</div>
+                        <div className="text-xs opacity-75">60점 만점</div>
+                      </div>
+
+                      {/* 상세 점수 */}
+                      <div className="space-y-2">
+                        {/* 뉴스 점수 */}
+                        <div className="bg-blue-50 rounded-lg p-2">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-semibold text-blue-700">📰 뉴스</span>
+                            <span className="text-sm font-bold text-blue-900">{stock.breakdown.news.score}점</span>
+                          </div>
+                          <div className="text-xs text-blue-600">
+                            24시간 {stock.breakdown.news.mentions24h}건 ({stock.breakdown.news.mentionChangeRate > 0 ? '+' : ''}{stock.breakdown.news.mentionChangeRate}%)
+                          </div>
+                        </div>
+
+                        {/* 감성 점수 */}
+                        <div className="bg-purple-50 rounded-lg p-2">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs font-semibold text-purple-700">🤖 감성</span>
+                            <span className="text-sm font-bold text-purple-900">{stock.breakdown.sentiment.score}점</span>
+                          </div>
+                          <div className="text-xs text-purple-600">
+                            AI 감성 분석 (최대 20점)
+                          </div>
+                        </div>
+
+                        {/* 검색량 (비활성화) */}
+                        {stock.breakdown.search && stock.breakdown.search.score > 0 && (
+                          <div className="bg-gray-50 rounded-lg p-2">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs font-semibold text-gray-700">🔍 검색</span>
+                              <span className="text-sm font-bold text-gray-900">{stock.breakdown.search.score}점</span>
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              Google Trends (비활성화)
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 업데이트 시간 */}
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-xs text-gray-500 text-center">
+                          {new Date(stock.updatedAt).toLocaleString('ko-KR', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 점수 계산 가이드 */}
+          <div className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-6">
+            <h3 className="text-xl font-bold mb-4">📊 트렌드 점수 계산 방식</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="font-bold text-blue-900 mb-2">📰 뉴스 점수 (0-40점)</div>
+                <div className="text-sm text-blue-800 space-y-1">
+                  <div>• 절대 언급량: 24시간 10회 이상 = 20점</div>
+                  <div>• 증가율: 7일 평균의 3배 이상 = 20점</div>
+                </div>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="font-bold text-purple-900 mb-2">🤖 감성 점수 (0-20점)</div>
+                <div className="text-sm text-purple-800 space-y-1">
+                  <div>• 긍정 70% 이상 = 20점</div>
+                  <div>• 긍정+중립 80% 이상 = 15점</div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+              <p className="text-sm text-yellow-800">
+                <strong>💡 등급 기준:</strong> S등급(50점 이상) | A등급(42점 이상) | B등급(30점 이상) | C등급(30점 미만)
+              </p>
+            </div>
+          </div>
         </div>
       );
     }
