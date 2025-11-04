@@ -158,8 +158,8 @@ module.exports = async function handler(req, res) {
       const allStocks = [...kospiStocks, ...kosdaqStocks]
         .slice(0, limit)
         .map(stock => ({
-          stockCode: stock.stck_shrn_iscd || stock.code,
-          stockName: stock.hts_kor_isnm || stock.name
+          stockCode: stock.code || stock.stck_shrn_iscd,
+          stockName: stock.name || stock.hts_kor_isnm
         }));
 
       const result = await newsCollector.collectBatch(allStocks, newsPerStock);
@@ -196,8 +196,8 @@ module.exports = async function handler(req, res) {
       const allStocks = [...kospiStocks, ...kosdaqStocks]
         .slice(0, limit)
         .map(stock => ({
-          stockCode: stock.stck_shrn_iscd || stock.code,
-          stockName: stock.hts_kor_isnm || stock.name
+          stockCode: stock.code || stock.stck_shrn_iscd,
+          stockName: stock.name || stock.hts_kor_isnm
         }));
 
       const result = await sentimentAnalyzer.analyzeBatchStocks(allStocks);
