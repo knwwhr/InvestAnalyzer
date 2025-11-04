@@ -88,6 +88,31 @@ module.exports = async (req, res) => {
           const today = new Date();
           const daysSince = Math.floor((today - recDate) / (1000 * 60 * 60 * 24));
 
+          // 날짜별 가격 데이터 조회 (Supabase에서)
+          let dailyPrices = [];
+          try {
+            const { data: priceData, error: priceError } = await supabase
+              .from('recommendation_daily_prices')
+              .select('*')
+              .eq('recommendation_id', rec.id)
+              .order('price_date', { ascending: true });
+
+            if (!priceError && priceData) {
+              dailyPrices = priceData.map(p => ({
+                date: p.price_date,
+                price: p.close_price,
+                return: rec.recommended_price > 0
+                  ? ((p.close_price - rec.recommended_price) / rec.recommended_price * 100).toFixed(2)
+                  : 0,
+                volume: p.volume,
+                high: p.high_price,
+                low: p.low_price
+              }));
+            }
+          } catch (priceErr) {
+            console.warn(`일별 가격 조회 실패 [${rec.stock_code}]:`, priceErr.message);
+          }
+
           // 연속 상승일 계산 (최근 5일 차트 데이터로 확인)
           let consecutiveRiseDays = 0;
           try {
@@ -114,7 +139,8 @@ module.exports = async (req, res) => {
             days_since_recommendation: daysSince,
             consecutive_rise_days: consecutiveRiseDays,
             is_winning: returnPct > 0,
-            is_rising: consecutiveRiseDays >= 2 // 2일 이상 연속 상승
+            is_rising: consecutiveRiseDays >= 2, // 2일 이상 연속 상승
+            daily_prices: dailyPrices // 날짜별 가격 데이터 추가
           };
         } catch (error) {
           console.warn(`현재가 조회 실패 [${rec.stock_code}]:`, error.message);
@@ -125,7 +151,8 @@ module.exports = async (req, res) => {
             days_since_recommendation: 0,
             consecutive_rise_days: 0,
             is_winning: false,
-            is_rising: false
+            is_rising: false,
+            daily_prices: []
           };
         }
       })

@@ -1370,10 +1370,18 @@
       const [trackerData, setTrackerData] = useState(null);
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState(null);
+      const [expandedStocks, setExpandedStocks] = useState({});
 
       useEffect(() => {
         fetchPerformanceData();
       }, []);
+
+      const toggleExpand = (stockCode) => {
+        setExpandedStocks(prev => ({
+          ...prev,
+          [stockCode]: !prev[stockCode]
+        }));
+      };
 
       const fetchPerformanceData = async () => {
         setLoading(true);
@@ -1551,7 +1559,7 @@
             <SummaryCard
               title="분석 샘플"
               value={`${stats.totalCount}개`}
-              subtext={`${data.parameters?.lookbackDays || 30}일 기간`}
+              subtext={`${trackerData.parameters?.lookbackDays || 30}일 기간`}
               color="bg-gradient-to-br from-orange-500 to-orange-600"
               icon="📊"
             />
@@ -1642,6 +1650,116 @@
           </div>
 
           {/* 🔥 연속 급등주 (2일 이상 연속 상승) */}
+          {/* 날짜별 수익률 추이 */}
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              📅 날짜별 수익률 추이
+              <span className="text-sm font-normal text-gray-600">
+                (추천 종목의 일별 성과)
+              </span>
+            </h3>
+
+            <div className="space-y-4">
+              {trackerData.stocks.slice(0, 10).map((stock) => {
+                const expanded = expandedStocks[stock.stock_code] || false;
+
+                return (
+                  <div key={stock.stock_code} className="border rounded-lg overflow-hidden">
+                    {/* 종목 헤더 (클릭 가능) */}
+                    <button
+                      onClick={() => toggleExpand(stock.stock_code)}
+                      className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 flex justify-between items-center transition"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`px-2 py-1 rounded text-white text-xs font-bold grade-${stock.recommendation_grade}`}>
+                          {stock.recommendation_grade}
+                        </div>
+                        <div className="text-left">
+                          <div className="font-bold">{stock.stock_name}</div>
+                          <div className="text-xs text-gray-500">{stock.stock_code}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-sm text-gray-600">추천가 → 현재가</div>
+                          <div className="font-semibold">
+                            {stock.recommended_price.toLocaleString()}원 → {stock.current_price.toLocaleString()}원
+                          </div>
+                        </div>
+                        <div className={`text-2xl font-bold ${stock.current_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                          {stock.current_return >= 0 ? '+' : ''}{stock.current_return}%
+                        </div>
+                        <div className="text-gray-400">
+                          {expanded ? '▼' : '▶'}
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* 날짜별 상세 데이터 (펼쳤을 때만 보임) */}
+                    {expanded && stock.daily_prices && stock.daily_prices.length > 0 && (
+                      <div className="p-4 bg-white">
+                        <div className="text-sm text-gray-600 mb-3">
+                          📊 추천 이후 {stock.days_since_recommendation}일간의 가격 추이
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-3 py-2 text-left">날짜</th>
+                                <th className="px-3 py-2 text-right">종가</th>
+                                <th className="px-3 py-2 text-right">고가</th>
+                                <th className="px-3 py-2 text-right">저가</th>
+                                <th className="px-3 py-2 text-right">수익률</th>
+                                <th className="px-3 py-2 text-right">거래량</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {stock.daily_prices.map((dailyData, idx) => (
+                                <tr key={idx} className="border-b hover:bg-gray-50">
+                                  <td className="px-3 py-2">{dailyData.date}</td>
+                                  <td className="px-3 py-2 text-right font-semibold">
+                                    {dailyData.price.toLocaleString()}원
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-red-600">
+                                    {dailyData.high.toLocaleString()}원
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-blue-600">
+                                    {dailyData.low.toLocaleString()}원
+                                  </td>
+                                  <td className={`px-3 py-2 text-right font-bold ${dailyData.return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                    {dailyData.return >= 0 ? '+' : ''}{dailyData.return}%
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-gray-600">
+                                    {dailyData.volume ? dailyData.volume.toLocaleString() : '-'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 데이터 없을 때 */}
+                    {expanded && (!stock.daily_prices || stock.daily_prices.length === 0) && (
+                      <div className="p-4 bg-yellow-50 text-center text-gray-600">
+                        📊 아직 일별 가격 데이터가 수집되지 않았습니다.
+                        <br />
+                        <span className="text-sm">매일 16시 자동 업데이트됩니다.</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {trackerData.stocks.length > 10 && (
+              <div className="mt-4 text-center text-gray-500 text-sm">
+                상위 10개 종목만 표시됩니다. (전체 {trackerData.stocks.length}개)
+              </div>
+            )}
+          </div>
+
           {trackerData.risingStocks && trackerData.risingStocks.length > 0 && (
             <div className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-300 rounded-xl shadow-lg p-6">
               <h3 className="text-2xl font-bold mb-4 text-red-900 flex items-center gap-2">
