@@ -76,6 +76,35 @@
       const [activeTab, setActiveTab] = useState('screening'); // screening, performance, or patterns
       const [screeningMetadata, setScreeningMetadata] = useState(null); // 스크리닝 메타데이터
 
+      // 추천 종목을 Supabase에 저장 (성과 추적용)
+      const saveRecommendationsToSupabase = async (stocks) => {
+        try {
+          // 점수 40점 이상(B등급 이상)만 저장
+          const stocksToSave = stocks.filter(s => s.totalScore >= 40);
+
+          if (stocksToSave.length === 0) {
+            console.log('저장할 추천 종목 없음 (40점 이상 없음)');
+            return;
+          }
+
+          const response = await fetch(`${API_BASE_URL}/recommendations/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stocks: stocksToSave })
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            console.log(`✅ ${result.saved}개 추천 종목 저장 완료 (${result.date})`);
+          } else {
+            console.warn('추천 종목 저장 실패:', result.message);
+          }
+        } catch (err) {
+          console.warn('Supabase 저장 실패 (무시):', err.message);
+        }
+      };
+
       // 추천 종목 불러오기
       const fetchRecommendations = async (category = 'all') => {
         try {
@@ -91,9 +120,15 @@
           const result = await response.json();
 
           if (result.success) {
-            setRecommendations(result.recommendations || []);
+            const stocks = result.recommendations || [];
+            setRecommendations(stocks);
             setScreeningMetadata(result.metadata || null);
             setLastUpdate(new Date());
+
+            // 종합집계 카테고리일 때만 자동 저장
+            if (category === 'all' && stocks.length > 0) {
+              saveRecommendationsToSupabase(stocks);
+            }
           } else {
             setError(result.error || '데이터 로드 실패');
           }
@@ -1044,37 +1079,97 @@
         setError(null);
 
         try {
-          // 실시간 추적 데이터 - 패턴 분석 결과 사용
-          try {
-            const patternsRes = await fetch(`${apiBaseUrl}/patterns/list`);
-            if (patternsRes.ok) {
-              const patternsResult = await patternsRes.json();
-              if (patternsResult.success && patternsResult.patterns && patternsResult.patterns.length > 0) {
-                // 패턴 데이터를 추적 데이터 형식으로 변환
-                const mockTrackerData = {
-                  statistics: {
-                    overall: {
-                      totalSignals: patternsResult.patterns.reduce((sum, p) => sum + p.count, 0),
-                      avgWinRate: (patternsResult.patterns.reduce((sum, p) => sum + parseFloat(p.winRate), 0) / patternsResult.patterns.length).toFixed(1),
-                      avgReturn: (patternsResult.patterns.reduce((sum, p) => sum + parseFloat(p.avgReturn), 0) / patternsResult.patterns.length).toFixed(2),
-                      totalTrades: patternsResult.patterns.reduce((sum, p) => sum + p.count, 0)
-                    }
-                  },
-                  patterns: patternsResult.patterns
-                };
-                setTrackerData(mockTrackerData);
-              }
-            }
-          } catch (err) {
-            console.warn('패턴 데이터 로드 실패 (무시):', err.message);
+          // Supabase 기반 실전 추천 종목 성과 조회
+          const perfRes = await fetch(`${apiBaseUrl}/recommendations/performance?days=30`);
+
+          if (!perfRes.ok) {
+            throw new Error(`API 오류: ${perfRes.status}`);
           }
 
-          // 데이터가 없으면 에러 표시
-          if (!trackerData) {
-            setError('성과 데이터를 불러올 수 없습니다. 패턴 분석을 먼저 실행해주세요.');
+          const perfData = await perfRes.json();
+
+          if (!perfData.success) {
+            throw new Error(perfData.message || '데이터 로드 실패');
           }
+
+          // 데이터 없으면 안내
+          if (perfData.count === 0) {
+            setTrackerData({
+              statistics: {
+                overall: {
+                  totalSignals: 0,
+                  winRate: 0,
+                  avgReturn: 0,
+                  totalCount: 0,
+                  winCount: 0,
+                  maxReturn: 0,
+                  minReturn: 0
+                }
+              },
+              stocks: [],
+              isEmpty: true
+            });
+            setLoading(false);
+            return;
+          }
+
+          // 등급별 통계 계산
+          const byGrade = {};
+          perfData.stocks.forEach(stock => {
+            const grade = stock.recommendation_grade;
+            if (!byGrade[grade]) {
+              byGrade[grade] = {
+                count: 0,
+                winCount: 0,
+                returns: [],
+                maxReturn: 0
+              };
+            }
+            byGrade[grade].count++;
+            if (stock.is_winning) byGrade[grade].winCount++;
+            byGrade[grade].returns.push(stock.current_return);
+            if (stock.current_return > byGrade[grade].maxReturn) {
+              byGrade[grade].maxReturn = stock.current_return;
+            }
+          });
+
+          // 등급별 평균 계산
+          const gradeStats = {};
+          Object.entries(byGrade).forEach(([grade, data]) => {
+            gradeStats[grade] = {
+              count: data.count,
+              winRate: ((data.winCount / data.count) * 100).toFixed(1),
+              avgReturn: (data.returns.reduce((a, b) => a + b, 0) / data.count).toFixed(2),
+              maxReturn: data.maxReturn.toFixed(2)
+            };
+          });
+
+          // 연속 급등주 필터링 (2일 이상 연속 상승)
+          const risingStocks = perfData.stocks.filter(s => s.is_rising);
+
+          setTrackerData({
+            statistics: {
+              overall: {
+                totalSignals: perfData.count,
+                totalCount: perfData.count,
+                winRate: perfData.statistics.winRate,
+                winCount: perfData.statistics.winningCount,
+                avgReturn: perfData.statistics.avgReturn,
+                maxReturn: perfData.statistics.maxReturn,
+                minReturn: perfData.statistics.minReturn
+              },
+              byGrade: gradeStats
+            },
+            stocks: perfData.stocks,
+            risingStocks: risingStocks,
+            parameters: {
+              holdingDays: 'N/A (실시간)',
+              lookbackDays: 30
+            }
+          });
 
         } catch (err) {
+          console.error('성과 데이터 로드 실패:', err);
           setError('성과 데이터 로드 실패: ' + err.message);
         } finally {
           setLoading(false);
@@ -1101,10 +1196,20 @@
 
       const stats = trackerData?.statistics?.overall;
 
-      if (!stats) {
+      if (!stats || trackerData.isEmpty) {
         return (
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-4 py-3 rounded">
-            충분한 성과 데이터가 없습니다. 시스템이 종목을 추천하고 시간이 지나야 성과를 확인할 수 있습니다.
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-xl shadow-lg p-6 text-white">
+              <h2 className="text-3xl font-bold mb-2">📈 성과 검증</h2>
+              <p className="text-green-100">
+                실전 추천 종목의 실제 성과를 확인합니다
+              </p>
+            </div>
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-4 py-3 rounded">
+              <p className="font-bold mb-2">📊 추적 데이터 없음</p>
+              <p>아직 추천 종목이 데이터베이스에 저장되지 않았습니다.</p>
+              <p className="mt-2 text-sm">💡 <strong>종합집계</strong> 탭에서 종목을 조회하면 자동으로 저장되어 성과를 추적할 수 있습니다.</p>
+            </div>
           </div>
         );
       }
@@ -1234,6 +1339,74 @@
               </table>
             </div>
           </div>
+
+          {/* 🔥 연속 급등주 (2일 이상 연속 상승) */}
+          {trackerData.risingStocks && trackerData.risingStocks.length > 0 && (
+            <div className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-300 rounded-xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold mb-4 text-red-900 flex items-center gap-2">
+                🔥 연속 급등주
+                <span className="text-sm font-normal text-red-700">
+                  (2일 이상 연속 상승 중)
+                </span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {trackerData.risingStocks.map((stock) => (
+                  <div key={stock.stock_code} className="bg-white rounded-lg p-4 border-2 border-red-400 shadow-md hover:shadow-lg transition">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-bold text-lg">{stock.stock_name}</h4>
+                        <div className="text-xs text-gray-500">{stock.stock_code}</div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-white text-xs font-bold grade-${stock.recommendation_grade}`}>
+                        {stock.recommendation_grade}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      {/* 추천가 vs 현재가 */}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">추천가:</span>
+                        <span className="font-semibold">{stock.recommended_price.toLocaleString()}원</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">현재가:</span>
+                        <span className="font-semibold text-red-600">{stock.current_price.toLocaleString()}원</span>
+                      </div>
+
+                      {/* 수익률 */}
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <span className="text-gray-700 font-semibold">수익률:</span>
+                        <span className={`text-xl font-bold ${stock.current_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                          {stock.current_return >= 0 ? '+' : ''}{stock.current_return}%
+                        </span>
+                      </div>
+
+                      {/* 연속 상승일 */}
+                      <div className="bg-red-100 rounded px-3 py-2 mt-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-red-800 font-semibold text-xs">🔥 연속 상승:</span>
+                          <span className="text-red-900 font-bold">{stock.consecutive_rise_days}일째</span>
+                        </div>
+                      </div>
+
+                      {/* 추천 경과일 */}
+                      <div className="text-xs text-gray-500 text-center pt-2">
+                        추천 후 {stock.days_since_recommendation}일 경과
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 p-4 bg-red-100 rounded-lg">
+                <p className="text-sm text-red-900">
+                  💡 <strong>{trackerData.risingStocks.length}개 종목</strong>이 2일 이상 연속 상승 중입니다.
+                  강한 상승 추세가 지속되고 있으니 주목해주세요!
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* 카테고리별 성과 */}
           <div className="bg-white rounded-xl shadow-lg p-6">

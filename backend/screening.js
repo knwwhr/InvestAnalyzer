@@ -2,6 +2,7 @@ const kisApi = require('./kisApi');
 const volumeIndicators = require('./volumeIndicators');
 const advancedIndicators = require('./advancedIndicators');
 const smartPatternMiner = require('./smartPatternMining');
+const trendScoring = require('./trendScoring');
 
 /**
  * 전체 종목 스크리닝 및 추천
@@ -93,8 +94,11 @@ class StockScreener {
       // 추세 분석 (5일/10일/20일)
       const trendAnalysis = this.calculateTrendAnalysis(chartData);
 
-      // 종합 점수 계산
-      let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis);
+      // 트렌드 점수 조회 (Google Trends + 뉴스 + AI 감성)
+      const trendScore = await trendScoring.getStockTrendScore(stockCode);
+
+      // 종합 점수 계산 (기술적 지표 + 트렌드 점수)
+      let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore);
 
       // Phase 4C: 과열 감지 필터
       const volumeRatio = volumeAnalysis.current.volumeMA20
@@ -132,10 +136,18 @@ class StockScreener {
         volumeAnalysis,
         advancedAnalysis,
         trendAnalysis, // 추세 분석 추가
+        trendScore: trendScore ? { // 트렌드 점수 추가
+          total: trendScore.total_trend_score,
+          search: trendScore.search_score,
+          news: trendScore.news_score,
+          sentiment: trendScore.sentiment_score,
+          isHotIssue: trendScore.is_hot_issue,
+          searchSurge: trendScore.search_surge
+        } : null,
         overheating, // Phase 4C 과열 정보 추가
         patternMatch, // 패턴 매칭 정보 추가
         totalScore,
-        recommendation: this.getRecommendation(totalScore, advancedAnalysis.tier, overheating),
+        recommendation: this.getRecommendation(totalScore, advancedAnalysis.tier, overheating, trendScore),
         rankBadges: rankBadges || {}
       };
     } catch (error) {
@@ -145,45 +157,55 @@ class StockScreener {
   }
 
   /**
-   * 종합 점수 계산 (개선된 배점)
+   * 종합 점수 계산 (개선된 배점 + 트렌드 점수 통합)
+   * 기술적 지표 70% + 트렌드 점수 30%
    */
-  calculateTotalScore(volumeAnalysis, advancedAnalysis) {
-    let score = 0;
+  calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore = null) {
+    let technicalScore = 0;
 
     // 1. 창의적 지표 점수 (0-40점) - 가중치 40%로 감소
-    score += advancedAnalysis.totalScore * 0.4;
+    technicalScore += advancedAnalysis.totalScore * 0.4;
 
     // 2. 거래량 지표 (0-30점)
     if (volumeAnalysis.current.volumeMA20) {
       const volumeRatio = volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20;
-      if (volumeRatio >= 5) score += 30;      // 5배 이상 초대량
-      else if (volumeRatio >= 3) score += 20; // 3배 이상 대량
-      else if (volumeRatio >= 2) score += 12; // 2배 이상 급증
-      else if (volumeRatio >= 1.5) score += 5; // 1.5배 이상 증가
+      if (volumeRatio >= 5) technicalScore += 30;      // 5배 이상 초대량
+      else if (volumeRatio >= 3) technicalScore += 20; // 3배 이상 대량
+      else if (volumeRatio >= 2) technicalScore += 12; // 2배 이상 급증
+      else if (volumeRatio >= 1.5) technicalScore += 5; // 1.5배 이상 증가
     }
 
     // 3. MFI (자금흐름지수) (0-15점)
     const mfi = volumeAnalysis.indicators.mfi;
-    if (mfi <= 20) score += 15;      // 극과매도 -> 최대 기회
-    else if (mfi <= 30) score += 10; // 과매도 -> 매수 기회
-    else if (mfi >= 80) score += 8;  // 강한 상승세 인정
-    else if (mfi >= 70) score += 5;  // 상승세
+    if (mfi <= 20) technicalScore += 15;      // 극과매도 -> 최대 기회
+    else if (mfi <= 30) technicalScore += 10; // 과매도 -> 매수 기회
+    else if (mfi >= 80) technicalScore += 8;  // 강한 상승세 인정
+    else if (mfi >= 70) technicalScore += 5;  // 상승세
 
     // 4. OBV 추세 (0-10점)
     const obvTrend = volumeAnalysis.signals.obvTrend;
-    if (obvTrend && obvTrend.includes('상승')) score += 10;
-    else if (obvTrend && obvTrend.includes('횡보')) score += 5;
+    if (obvTrend && obvTrend.includes('상승')) technicalScore += 10;
+    else if (obvTrend && obvTrend.includes('횡보')) technicalScore += 5;
 
     // 5. 가격 모멘텀 (0-5점)
-    if (volumeAnalysis.signals.priceVsVWAP === '상승세') score += 5;
+    if (volumeAnalysis.signals.priceVsVWAP === '상승세') technicalScore += 5;
 
-    return Math.min(Math.max(score, 0), 100); // 0-100 범위 제한
+    technicalScore = Math.min(Math.max(technicalScore, 0), 100);
+
+    // 6. 트렌드 점수 통합 (70% 기술 + 30% 트렌드)
+    if (trendScore && trendScore.total_trend_score !== undefined) {
+      const finalScore = (technicalScore * 0.7) + (trendScore.total_trend_score * 0.3);
+      return Math.min(Math.max(finalScore, 0), 100);
+    }
+
+    // 트렌드 점수 없으면 기술적 점수만 반환
+    return technicalScore;
   }
 
   /**
-   * 추천 등급 산출 (Phase 4 티어 시스템 반영)
+   * 추천 등급 산출 (Phase 4 티어 시스템 + 트렌드 점수 반영)
    */
-  getRecommendation(score, tier, overheating) {
+  getRecommendation(score, tier, overheating, trendScore = null) {
     let grade, text, color;
 
     // 기본 등급 산정
@@ -207,6 +229,12 @@ class StockScreener {
       grade = 'D';
       text = '⚫ 관망';
       color = '#cccccc';
+    }
+
+    // HOT 이슈 배지 추가 (트렌드 점수 70점 이상)
+    if (trendScore && trendScore.total_trend_score >= 70) {
+      text = `🔥 HOT 이슈 - ${text}`;
+      grade = grade === 'S' ? 'S+' : grade; // S등급은 S+로 업그레이드
     }
 
     // Phase 4 티어 수정

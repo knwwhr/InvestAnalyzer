@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/update-patterns",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/recommendations/update-prices",
+      "schedule": "0 16 * * 1-5"
     }
   ]
 }

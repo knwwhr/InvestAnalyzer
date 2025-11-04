@@ -34,7 +34,10 @@ const apiRoutes = {
   '/api/patterns/matched-stocks': require('./api/patterns/matched-stocks'),
   '/api/backtest/hybrid': require('./api/backtest/hybrid'),
   '/api/tracking/today-signals': require('./api/tracking/today-signals'),
-  '/api/comparison/ab-test': require('./api/comparison/ab-test')
+  '/api/comparison/ab-test': require('./api/comparison/ab-test'),
+  '/api/recommendations/save': require('./api/recommendations/save'),
+  '/api/recommendations/performance': require('./api/recommendations/performance'),
+  '/api/recommendations/update-prices': require('./api/recommendations/update-prices')
 };
 
 // 라우트 등록
