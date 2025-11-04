@@ -1865,7 +1865,7 @@
           </div>
 
           {/* Phase 3: 포트폴리오 시뮬레이션 */}
-          {data.portfolio && (
+          {trackerData.portfolio && (
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 💼 포트폴리오 시뮬레이션 (5종목 균등 분산)
@@ -1874,19 +1874,19 @@
                 <div className="bg-green-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">포트폴리오 평균 수익률</p>
                   <p className="text-2xl font-bold text-green-700">
-                    {data.portfolio.summary.avgReturn > 0 ? '+' : ''}{data.portfolio.summary.avgReturn}%
+                    {trackerData.portfolio.summary.avgReturn > 0 ? '+' : ''}{trackerData.portfolio.summary.avgReturn}%
                   </p>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">총 누적 수익</p>
                   <p className="text-2xl font-bold text-blue-700">
-                    {data.portfolio.summary.totalProfit.toLocaleString()}원
+                    {trackerData.portfolio.summary.totalProfit.toLocaleString()}원
                   </p>
                 </div>
                 <div className="bg-purple-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">포트폴리오 수</p>
                   <p className="text-2xl font-bold text-purple-700">
-                    {data.portfolio.summary.portfolioCount}개
+                    {trackerData.portfolio.summary.portfolioCount}개
                   </p>
                 </div>
               </div>
@@ -1895,12 +1895,12 @@
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
                   <h4 className="font-bold text-green-900 mb-2">🏆 최고 성과 포트폴리오</h4>
-                  <p className="text-sm text-gray-600 mb-2">날짜: {data.portfolio.summary.bestPortfolio?.date}</p>
+                  <p className="text-sm text-gray-600 mb-2">날짜: {trackerData.portfolio.summary.bestPortfolio?.date}</p>
                   <p className="text-2xl font-bold text-green-700 mb-2">
-                    +{data.portfolio.summary.bestPortfolio?.portfolioReturn}%
+                    +{trackerData.portfolio.summary.bestPortfolio?.portfolioReturn}%
                   </p>
                   <div className="text-xs text-gray-700">
-                    {data.portfolio.summary.bestPortfolio?.stocks.map((s, i) => (
+                    {trackerData.portfolio.summary.bestPortfolio?.stocks.map((s, i) => (
                       <div key={i}>{s.name} ({s.return > 0 ? '+' : ''}{s.return}%)</div>
                     ))}
                   </div>
@@ -1908,12 +1908,12 @@
 
                 <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
                   <h4 className="font-bold text-red-900 mb-2">⚠️ 최저 성과 포트폴리오</h4>
-                  <p className="text-sm text-gray-600 mb-2">날짜: {data.portfolio.summary.worstPortfolio?.date}</p>
+                  <p className="text-sm text-gray-600 mb-2">날짜: {trackerData.portfolio.summary.worstPortfolio?.date}</p>
                   <p className="text-2xl font-bold text-red-700 mb-2">
-                    {data.portfolio.summary.worstPortfolio?.portfolioReturn}%
+                    {trackerData.portfolio.summary.worstPortfolio?.portfolioReturn}%
                   </p>
                   <div className="text-xs text-gray-700">
-                    {data.portfolio.summary.worstPortfolio?.stocks.map((s, i) => (
+                    {trackerData.portfolio.summary.worstPortfolio?.stocks.map((s, i) => (
                       <div key={i}>{s.name} ({s.return > 0 ? '+' : ''}{s.return}%)</div>
                     ))}
                   </div>
@@ -1923,11 +1923,11 @@
           )}
 
           {/* Phase 3: 시장 상황별 분석 */}
-          {data.byMarket && (
+          {trackerData.byMarket && (
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-2xl font-bold mb-6">📊 시장 상황별 성과</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {Object.entries(data.byMarket).map(([key, mstats]) => (
+                {Object.entries(trackerData.byMarket).map(([key, mstats]) => (
                   <div key={key} className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
                     <h4 className="font-bold text-gray-900 mb-2">{mstats.label}</h4>
                     <div className="space-y-1 text-sm">
