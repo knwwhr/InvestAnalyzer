@@ -941,11 +941,6 @@
                               </td>
                               <td className="text-center py-3 px-3">
                                 {(day.volume / 1000).toFixed(0)}K
-                                {isToday && (
-                                  <div className="text-xs text-orange-600 mt-1">
-                                    (누적)
-                                  </div>
-                                )}
                               </td>
                               <td className={`text-center py-3 px-3 font-bold ${volumeColor}`}>
                                 {day.volumeChange >= 0 ? '+' : ''}{day.volumeChange.toFixed(1)}%

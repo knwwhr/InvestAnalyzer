@@ -204,7 +204,7 @@ class KISApi {
           close: parseInt(item.stck_clpr),
           volume: parseInt(item.acml_vol),
           tradingValue: parseInt(item.acml_tr_pbmn)
-        })).reverse(); // 오래된 날짜부터 정렬
+        })); // 최신 날짜부터 정렬 (API 기본 순서)
 
         return chartData;
       } else {
