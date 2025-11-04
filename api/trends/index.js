@@ -7,11 +7,11 @@
  * POST /api/trends?action=analyze-sentiment
  */
 
-const trendCollector = require('../backend/trendCollector');
-const newsCollector = require('../backend/newsCollector');
-const sentimentAnalyzer = require('../backend/sentimentAnalyzer');
-const trendScoring = require('../backend/trendScoring');
-const kisApi = require('../backend/kisApi');
+const trendCollector = require('../../backend/trendCollector');
+const newsCollector = require('../../backend/newsCollector');
+const sentimentAnalyzer = require('../../backend/sentimentAnalyzer');
+const trendScoring = require('../../backend/trendScoring');
+const kisApi = require('../../backend/kisApi');
 
 module.exports = async function handler(req, res) {
   // CORS 헤더
