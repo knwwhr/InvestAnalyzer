@@ -37,14 +37,14 @@ class TrendScoring {
       const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
 
       // 24시간 언급 횟수
-      const { data: mentions24h, error: e1 } = await supabase
+      const { count: count24h, error: e1 } = await supabase
         .from('news_mentions')
         .select('id', { count: 'exact', head: true })
         .eq('stock_code', stockCode)
         .gte('published_at', oneDayAgo.toISOString());
 
       // 7일 언급 횟수
-      const { data: mentions7d, error: e2 } = await supabase
+      const { count: count7d, error: e2 } = await supabase
         .from('news_mentions')
         .select('id', { count: 'exact', head: true })
         .eq('stock_code', stockCode)
@@ -54,29 +54,29 @@ class TrendScoring {
         return { score: 0, mentions: 0 };
       }
 
-      const count24h = mentions24h?.length || 0;
-      const count7d = mentions7d?.length || 0;
+      const mentions24h = count24h || 0;
+      const mentions7d = count7d || 0;
 
       let score = 0;
 
       // 1. 절대 언급량 (0-20점)
       // 24시간 10회 이상 = 20점
-      score += Math.min((count24h / 10) * 20, 20);
+      score += Math.min((mentions24h / 10) * 20, 20);
 
       // 2. 증가율 (0-20점)
       // 24시간 언급이 7일 평균의 3배 이상 = 20점
-      const avg7d = count7d / 7;
-      if (avg7d > 0 && count24h > avg7d * 3) {
+      const avg7d = mentions7d / 7;
+      if (avg7d > 0 && mentions24h > avg7d * 3) {
         score += 20;
       } else if (avg7d > 0) {
-        score += Math.min((count24h / avg7d / 3) * 20, 20);
+        score += Math.min((mentions24h / avg7d / 3) * 20, 20);
       }
 
       return {
         score: Math.min(parseFloat(score.toFixed(2)), 40),
-        mentions24h: count24h,
-        mentions7d: count7d,
-        changeRate: avg7d > 0 ? ((count24h - avg7d) / avg7d * 100).toFixed(2) : 0
+        mentions24h,
+        mentions7d,
+        changeRate: avg7d > 0 ? ((mentions24h - avg7d) / avg7d * 100).toFixed(2) : 0
       };
 
     } catch (error) {
@@ -179,12 +179,13 @@ class TrendScoring {
 
       // Supabase에 저장
       if (supabase) {
-        await supabase
+        const { error } = await supabase
           .from('stock_trend_scores')
-          .upsert(scoreData, {
-            onConflict: 'stock_code,DATE(updated_at)',
-            ignoreDuplicates: false
-          });
+          .upsert(scoreData);
+
+        if (error) {
+          console.error(`⚠️  트렌드 점수 저장 실패 [${stockName}]:`, error.message);
+        }
       }
 
       return {

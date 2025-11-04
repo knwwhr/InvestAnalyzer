@@ -77,6 +77,9 @@ CREATE INDEX IF NOT EXISTS idx_news_stock ON news_mentions(stock_code);
 CREATE INDEX IF NOT EXISTS idx_news_published ON news_mentions(published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_news_source ON news_mentions(news_source);
 
+-- 중복 뉴스 방지 (news_url 기준)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_news_url_unique ON news_mentions(news_url);
+
 CREATE INDEX IF NOT EXISTS idx_trend_scores_code ON stock_trend_scores(stock_code);
 CREATE INDEX IF NOT EXISTS idx_trend_scores_hot ON stock_trend_scores(is_hot_issue) WHERE is_hot_issue = true;
 CREATE INDEX IF NOT EXISTS idx_trend_scores_score ON stock_trend_scores(total_trend_score DESC);
@@ -106,6 +109,9 @@ CREATE POLICY "Service can insert search trends" ON search_trends
 
 CREATE POLICY "Service can insert news mentions" ON news_mentions
   FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Service can update news mentions" ON news_mentions
+  FOR UPDATE USING (true) WITH CHECK (true);
 
 CREATE POLICY "Service can upsert trend scores" ON stock_trend_scores
   FOR ALL USING (true) WITH CHECK (true);
