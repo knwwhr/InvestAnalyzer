@@ -15,10 +15,6 @@
     {
       "path": "/api/recommendations/update-prices",
       "schedule": "0 16 * * 1-5"
-    },
-    {
-      "path": "/api/cron/cleanup-trends",
-      "schedule": "0 18 * * *"
     }
   ]
 }

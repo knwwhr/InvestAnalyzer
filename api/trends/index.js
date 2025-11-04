@@ -225,11 +225,75 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    // ========== 데이터 정리 (7일 이상 된 데이터 삭제) ==========
+    if (action === 'cleanup' && req.method === 'POST') {
+      const supabase = require('../../backend/supabaseClient');
+
+      if (!supabase) {
+        return res.status(500).json({
+          success: false,
+          error: 'Supabase not configured'
+        });
+      }
+
+      // 7일 전 날짜 계산
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      // 삭제 전 조회 (로깅용)
+      const { data: oldRecords, error: selectError } = await supabase
+        .from('stock_trend_scores')
+        .select('stock_code, stock_name, updated_at')
+        .lt('updated_at', sevenDaysAgo.toISOString());
+
+      if (selectError) {
+        return res.status(500).json({
+          success: false,
+          error: `조회 실패: ${selectError.message}`
+        });
+      }
+
+      const deleteCount = oldRecords ? oldRecords.length : 0;
+
+      if (deleteCount === 0) {
+        return res.status(200).json({
+          success: true,
+          deleted: 0,
+          message: '삭제할 데이터가 없습니다.',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // 7일 이상 된 데이터 삭제
+      const { error: deleteError } = await supabase
+        .from('stock_trend_scores')
+        .delete()
+        .lt('updated_at', sevenDaysAgo.toISOString());
+
+      if (deleteError) {
+        return res.status(500).json({
+          success: false,
+          error: `삭제 실패: ${deleteError.message}`
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        deleted: deleteCount,
+        deletedStocks: oldRecords.map(r => ({
+          code: r.stock_code,
+          name: r.stock_name,
+          updatedAt: r.updated_at
+        })),
+        cutoffDate: sevenDaysAgo.toISOString(),
+        timestamp: new Date().toISOString()
+      });
+    }
+
     // 지원하지 않는 action
     return res.status(400).json({
       success: false,
       error: `Unknown action: ${action}`,
-      supportedActions: ['hot-issues', 'scores', 'collect-search', 'collect-news', 'analyze-sentiment']
+      supportedActions: ['hot-issues', 'scores', 'collect-search', 'collect-news', 'analyze-sentiment', 'cleanup']
     });
 
   } catch (error) {
