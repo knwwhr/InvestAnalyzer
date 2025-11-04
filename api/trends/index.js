@@ -204,11 +204,17 @@ module.exports = async function handler(req, res) {
 
       const result = await sentimentAnalyzer.analyzeBatchStocks(allStocks);
 
+      // 감성 분석 완료 후 트렌드 점수 자동 계산 및 저장
+      console.log('📊 트렌드 점수 자동 계산 시작...');
+      const scoreResult = await trendScoring.calculateBatchScores(allStocks);
+      console.log(`✅ 트렌드 점수 계산 완료: ${scoreResult.length}개 종목`);
+
       return res.status(200).json({
         success: true,
         analyzed: {
           stocks: result.totalStocks,
-          newsItems: result.totalNewsAnalyzed
+          newsItems: result.totalNewsAnalyzed,
+          scoresCalculated: scoreResult.length
         },
         topResults: result.results
           .filter(r => r.analyzed > 0)
