@@ -142,8 +142,8 @@ class StockScreener {
       // 트렌드 점수 조회 (Google Trends + 뉴스 + AI 감성)
       const trendScore = await trendScoring.getStockTrendScore(stockCode);
 
-      // 종합 점수 계산 (기술적 지표 + 트렌드 점수)
-      let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore);
+      // 종합 점수 계산 (기술적 지표 + 트렌드 점수 + 고점 되돌림 페널티)
+      let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore, chartData, currentData.currentPrice);
 
       // ========================================
       // 점수 계산: 100점 만점 (스케일링 제거)
@@ -193,8 +193,8 @@ class StockScreener {
       // 가점/감점 상세 내역 (스코어 카드)
       // ========================================
       const scoreBreakdown = {
-        // 기본 점수 (0-20점: 거래량 + OBV + 가격모멘텀)
-        baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore)),
+        // 기본 점수 (0-20점: 거래량 + OBV + VWAP + 비대칭 - 되돌림)
+        baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore, chartData, currentData.currentPrice)),
 
         // 가점 요인 (선행 지표 중심, 총 80점)
         bonuses: [
@@ -262,28 +262,44 @@ class StockScreener {
   }
 
   /**
-   * 기본 점수 계산 (선행 지표 중심 단순화)
+   * 기본 점수 계산 (선행 지표 중심 단순화 + 비대칭 비율 추가)
    * 급등 '예정' 종목 발굴에 최적화
    */
-  calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore = null) {
+  calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore = null, chartData = null, currentPrice = null) {
     let baseScore = 0;
 
-    // 1. 거래량 비율 (0-12점) - 핵심 선행 지표
+    // 1. 거래량 비율 (0-8점) - 가중치 감소
     if (volumeAnalysis.current.volumeMA20) {
       const volumeRatio = volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20;
-      if (volumeRatio >= 5) baseScore += 12;      // 5배 이상 초대량
-      else if (volumeRatio >= 3) baseScore += 8;  // 3배 이상 대량
-      else if (volumeRatio >= 2) baseScore += 5;  // 2배 이상 급증
-      else if (volumeRatio >= 1.5) baseScore += 2; // 1.5배 이상 증가
+      if (volumeRatio >= 5) baseScore += 8;       // 5배 이상 초대량
+      else if (volumeRatio >= 3) baseScore += 5;  // 3배 이상 대량
+      else if (volumeRatio >= 2) baseScore += 3;  // 2배 이상 급증
+      else if (volumeRatio >= 1.5) baseScore += 1; // 1.5배 이상 증가
     }
 
-    // 2. OBV 추세 (0-5점) - 자금 흐름
+    // 2. OBV 추세 (0-7점) - 자금 흐름 가중치 증가
     const obvTrend = volumeAnalysis.signals.obvTrend;
-    if (obvTrend && obvTrend.includes('상승')) baseScore += 5;
-    else if (obvTrend && obvTrend.includes('횡보')) baseScore += 2;
+    if (obvTrend && obvTrend.includes('상승')) baseScore += 7;
+    else if (obvTrend && obvTrend.includes('횡보')) baseScore += 3;
 
-    // 3. 가격 모멘텀 (0-3점) - 현재 상승세
-    if (volumeAnalysis.signals.priceVsVWAP === '상승세') baseScore += 3;
+    // 3. VWAP 모멘텀 (0-5점) - 가중치 증가
+    if (volumeAnalysis.signals.priceVsVWAP === '상승세') baseScore += 5;
+
+    // 4. 비대칭 비율 (0-5점) - 신규 추가
+    const asymmetric = advancedAnalysis?.indicators?.asymmetric;
+    if (asymmetric && asymmetric.score) {
+      baseScore += Math.min(asymmetric.score / 10, 5); // 최대 5점
+    }
+
+    // 5. 고점 대비 되돌림 페널티 (-5~0점)
+    if (chartData && currentPrice) {
+      const recentHigh = Math.max(...chartData.slice(0, 30).map(d => d.high));
+      const drawdownPercent = ((recentHigh - currentPrice) / recentHigh) * 100;
+
+      if (drawdownPercent >= 20) baseScore -= 5;      // 20% 이상 되돌림: -5점
+      else if (drawdownPercent >= 15) baseScore -= 3; // 15% 이상 되돌림: -3점
+      else if (drawdownPercent >= 10) baseScore -= 2; // 10% 이상 되돌림: -2점
+    }
 
     // MFI 제거 (급등 예정 신호 아님 - 현재 상태 지표)
     // 창의적 지표 제거 (선행/후행 혼재)
