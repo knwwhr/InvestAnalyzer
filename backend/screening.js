@@ -149,16 +149,20 @@ class StockScreener {
       // 점수 계산: 100점 만점 (스케일링 제거)
       // ========================================
 
-      // 1. 신규 지표 점수 추가 (100% 적용, 페널티 전면 제거)
+      // 1. 신규 지표 점수 추가 (선행 지표 중심 강화, 총 80점)
+      // VPM (0-25점) - 가장 중요한 선행 지표
+      const vpmScore = Math.max(0, Math.min((vpm.score || 0) * 0.7, 25));
+      totalScore += vpmScore;
+
       totalScore += (institutionalFlow.score || 0); // 0-15점
-      totalScore += (breakoutConfirmation.score || 0); // 0-15점
-      totalScore += (anomaly.score || 0); // 0-10점
-      totalScore += (riskAdjusted.score || 0); // 0-10점
-      totalScore += (confluence.confluenceScore || 0); // 0-20점
-      totalScore += (freshness.freshnessScore || 0); // 0-15점
-      totalScore += (vpm.score || 0); // -20~35점
-      totalScore += (cupAndHandle.score || 0); // 0-20점
-      totalScore += (triangle.score || 0); // 0-15점
+      totalScore += Math.min((confluence.confluenceScore || 0) * 0.6, 12); // 0-12점
+      totalScore += Math.min((freshness.freshnessScore || 0) * 0.53, 8); // 0-8점
+      totalScore += Math.min((cupAndHandle.score || 0) * 0.25, 5); // 0-5점
+      totalScore += Math.min((breakoutConfirmation.score || 0) * 0.2, 3); // 0-3점
+      totalScore += Math.min((triangle.score || 0) * 0.13, 2); // 0-2점
+
+      // anomaly 제거 (이미 급등 중 신호)
+      // riskAdjusted 제거 (선행성 낮음)
 
       // 2. 페널티 전면 제거 (순수 가점 시스템)
       // - 유동성 페널티 제거 (NaN 오류 + 급등주 발굴에 역효과)
@@ -175,35 +179,33 @@ class StockScreener {
         volumeAnalysis.indicators.mfi
       );
 
-      // 3. 패턴 매칭 보너스 (100% 적용)
+      // 3. 패턴 매칭 보너스 (0-10점)
       const patternMatch = smartPatternMiner.checkPatternMatch(
         { volumeAnalysis, advancedAnalysis },
         this.savedPatterns
       );
-      totalScore += (patternMatch.bonusScore || 0); // 0-20점
+      totalScore += Math.min((patternMatch.bonusScore || 0) * 0.5, 10); // 0-10점
 
-      // 4. 최종 점수 (0-200점 범위, NaN 방지)
-      totalScore = isNaN(totalScore) ? 0 : Math.min(Math.max(totalScore, 0), 200);
+      // 4. 최종 점수 (0-100점 범위, NaN 방지)
+      totalScore = isNaN(totalScore) ? 0 : Math.min(Math.max(totalScore, 0), 100);
 
       // ========================================
       // 가점/감점 상세 내역 (스코어 카드)
       // ========================================
       const scoreBreakdown = {
-        // 기본 점수 (스케일링 제거)
+        // 기본 점수 (0-20점: 거래량 + OBV + 가격모멘텀)
         baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore)),
 
-        // 가점 요인 (100% 적용)
+        // 가점 요인 (선행 지표 중심, 총 80점)
         bonuses: [
+          { name: "VPM (거래량-가격 모멘텀)", value: Math.round(vpmScore), active: vpm.score > 0 },
           { name: "기관/외국인 수급", value: Math.round(institutionalFlow.score || 0), active: institutionalFlow.detected },
-          { name: "돌파 확인", value: Math.round(breakoutConfirmation.score || 0), active: breakoutConfirmation.detected },
-          { name: "이상 급등", value: Math.round(anomaly.score || 0), active: anomaly.detected },
-          { name: "위험조정 우수", value: Math.round(riskAdjusted.score || 0), active: parseFloat(riskAdjusted.sharpeRatio) > 1.0 },
-          { name: "합류점 (Confluence)", value: Math.round(confluence.confluenceScore || 0), active: confluence.confluenceCount >= 2 },
-          { name: "신호 신선도", value: Math.round(freshness.freshnessScore || 0), active: freshness.freshCount >= 2 },
-          { name: "VPM (거래량-가격 모멘텀)", value: Math.round(vpm.score || 0), active: vpm.score > 0 },
-          { name: "Cup&Handle 패턴", value: Math.round(cupAndHandle.score || 0), active: cupAndHandle.detected },
-          { name: "Triangle 패턴", value: Math.round(triangle.score || 0), active: triangle.detected },
-          { name: "패턴 매칭", value: Math.round(patternMatch.bonusScore || 0), active: patternMatch.matched }
+          { name: "합류점 (Confluence)", value: Math.round(Math.min((confluence.confluenceScore || 0) * 0.6, 12)), active: confluence.confluenceCount >= 2 },
+          { name: "패턴 매칭", value: Math.round(Math.min((patternMatch.bonusScore || 0) * 0.5, 10)), active: patternMatch.matched },
+          { name: "신호 신선도", value: Math.round(Math.min((freshness.freshnessScore || 0) * 0.53, 8)), active: freshness.freshCount >= 2 },
+          { name: "Cup&Handle 패턴", value: Math.round(Math.min((cupAndHandle.score || 0) * 0.25, 5)), active: cupAndHandle.detected },
+          { name: "돌파 확인", value: Math.round(Math.min((breakoutConfirmation.score || 0) * 0.2, 3)), active: breakoutConfirmation.detected },
+          { name: "Triangle 패턴", value: Math.round(Math.min((triangle.score || 0) * 0.13, 2)), active: triangle.detected }
         ].filter(b => b.active),
 
         // 감점 요인 (전면 제거 - 순수 가점 시스템)
@@ -260,71 +262,55 @@ class StockScreener {
   }
 
   /**
-   * 종합 점수 계산 (개선된 배점 + 트렌드 점수 통합)
-   * 기술적 지표 70% + 트렌드 점수 30%
+   * 기본 점수 계산 (선행 지표 중심 단순화)
+   * 급등 '예정' 종목 발굴에 최적화
    */
   calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore = null) {
-    let technicalScore = 0;
+    let baseScore = 0;
 
-    // 1. 창의적 지표 점수 (0-40점) - 가중치 40%로 감소
-    technicalScore += advancedAnalysis.totalScore * 0.4;
-
-    // 2. 거래량 지표 (0-30점)
+    // 1. 거래량 비율 (0-12점) - 핵심 선행 지표
     if (volumeAnalysis.current.volumeMA20) {
       const volumeRatio = volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20;
-      if (volumeRatio >= 5) technicalScore += 30;      // 5배 이상 초대량
-      else if (volumeRatio >= 3) technicalScore += 20; // 3배 이상 대량
-      else if (volumeRatio >= 2) technicalScore += 12; // 2배 이상 급증
-      else if (volumeRatio >= 1.5) technicalScore += 5; // 1.5배 이상 증가
+      if (volumeRatio >= 5) baseScore += 12;      // 5배 이상 초대량
+      else if (volumeRatio >= 3) baseScore += 8;  // 3배 이상 대량
+      else if (volumeRatio >= 2) baseScore += 5;  // 2배 이상 급증
+      else if (volumeRatio >= 1.5) baseScore += 2; // 1.5배 이상 증가
     }
 
-    // 3. MFI (자금흐름지수) (0-15점)
-    const mfi = volumeAnalysis.indicators.mfi;
-    if (mfi <= 20) technicalScore += 15;      // 극과매도 -> 최대 기회
-    else if (mfi <= 30) technicalScore += 10; // 과매도 -> 매수 기회
-    else if (mfi >= 80) technicalScore += 8;  // 강한 상승세 인정
-    else if (mfi >= 70) technicalScore += 5;  // 상승세
-
-    // 4. OBV 추세 (0-10점)
+    // 2. OBV 추세 (0-5점) - 자금 흐름
     const obvTrend = volumeAnalysis.signals.obvTrend;
-    if (obvTrend && obvTrend.includes('상승')) technicalScore += 10;
-    else if (obvTrend && obvTrend.includes('횡보')) technicalScore += 5;
+    if (obvTrend && obvTrend.includes('상승')) baseScore += 5;
+    else if (obvTrend && obvTrend.includes('횡보')) baseScore += 2;
 
-    // 5. 가격 모멘텀 (0-5점)
-    if (volumeAnalysis.signals.priceVsVWAP === '상승세') technicalScore += 5;
+    // 3. 가격 모멘텀 (0-3점) - 현재 상승세
+    if (volumeAnalysis.signals.priceVsVWAP === '상승세') baseScore += 3;
 
-    technicalScore = Math.min(Math.max(technicalScore, 0), 100);
+    // MFI 제거 (급등 예정 신호 아님 - 현재 상태 지표)
+    // 창의적 지표 제거 (선행/후행 혼재)
 
-    // 6. 트렌드 점수 통합 (70% 기술 + 30% 트렌드)
-    if (trendScore && trendScore.total_trend_score !== undefined) {
-      const finalScore = (technicalScore * 0.7) + (trendScore.total_trend_score * 0.3);
-      return Math.min(Math.max(finalScore, 0), 100);
-    }
-
-    // 트렌드 점수 없으면 기술적 점수만 반환
-    return technicalScore;
+    return Math.min(Math.max(baseScore, 0), 20);
   }
 
   /**
-   * 추천 등급 산출 (Phase 4 티어 시스템 + 트렌드 점수 반영)
+   * 추천 등급 산출 (100점 만점 기준, 선행 지표 중심)
    */
   getRecommendation(score, tier, overheating, trendScore = null) {
     let grade, text, color;
 
-    // 기본 등급 산정
-    if (score >= 70) {
+    // 기본 등급 산정 (100점 만점, 선행 지표 강화)
+    if (score >= 60) {
       grade = 'S';
       text = '🔥 최우선 매수';
       color = '#ff4444';
-    } else if (score >= 55) {
+    } else if (score >= 45) {
       grade = 'A';
       text = '🟢 적극 매수';
       color = '#00cc00';
-    } else if (score >= 40) {
+    } else if (score >= 30) {
       grade = 'B';
       text = '🟡 매수 고려';
       color = '#ffaa00';
-    } else if (score >= 30) {
+    } else if (score >= 20) {
       grade = 'C';
       text = '⚪ 주목';
       color = '#888888';
@@ -434,8 +420,8 @@ class StockScreener {
         const analysis = await this.analyzeStock(stockCode);
         analyzed++;
 
-        // skipScoreFilter가 true면 점수 무시, false면 10점 이상만 (임계값 더 낮춤)
-        if (analysis && (skipScoreFilter || analysis.totalScore >= 10)) {
+        // skipScoreFilter가 true면 점수 무시, false면 20점 이상만 (C등급 이상)
+        if (analysis && (skipScoreFilter || analysis.totalScore >= 20)) {
           results.push(analysis);
           console.log(`✅ [${results.length}] ${analysis.stockName} (${analysis.stockCode}) - 점수: ${analysis.totalScore.toFixed(1)}`);
         }
@@ -457,7 +443,7 @@ class StockScreener {
 
     console.log(`\n✅ 종합 스크리닝 완료!`);
     console.log(`  - 분석: ${analyzed}개`);
-    console.log(`  - 발견: ${results.length}개 (10점 이상)`);
+    console.log(`  - 발견: ${results.length}개 (20점 이상, C등급+)`);
     console.log(`  - 최종: ${limit ? `상위 ${limit}개` : `전체 ${results.length}개`} 반환\n`);
 
     const finalResults = limit ? results.slice(0, limit) : results;
