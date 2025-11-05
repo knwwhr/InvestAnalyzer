@@ -146,41 +146,24 @@ class StockScreener {
       let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore);
 
       // ========================================
-      // 점수 리밸런싱: 만점 100점 체계
+      // 점수 계산: 100점 만점 (스케일링 제거)
       // ========================================
 
-      // 1. 기존 기술적 점수 (0-100점 → 0-70점으로 스케일링)
-      totalScore = totalScore * 0.7;
+      // 1. 신규 지표 점수 추가 (100% 적용)
+      totalScore += (institutionalFlow.score || 0); // 0-15점
+      totalScore += (breakoutConfirmation.score || 0); // 0-15점
+      totalScore += (anomaly.score || 0); // 0-10점
+      totalScore += (riskAdjusted.score || 0); // 0-10점
+      totalScore += (confluence.confluenceScore || 0); // 0-20점
+      totalScore += (freshness.freshnessScore || 0); // 0-15점
+      totalScore += (vpm.score || 0); // -20~35점
+      totalScore += (cupAndHandle.score || 0); // 0-20점
+      totalScore += (triangle.score || 0); // 0-15점
 
-      // 2. 신규 지표 점수 (0-30점 범위로 조정)
-      let newIndicatorScore = 0;
+      // 2. 유동성 페널티만 적용 (나머지 제거)
+      totalScore += (liquidity.scorePenalty || 0); // -20~-40점
 
-      // 기본 지표 (50% 감소)
-      newIndicatorScore += institutionalFlow.score * 0.5; // 15 → 7.5점
-      newIndicatorScore += breakoutConfirmation.score * 0.5; // 15 → 7.5점
-      newIndicatorScore += anomaly.score * 0.5; // 10 → 5점
-      newIndicatorScore += riskAdjusted.score * 0.5; // 10 → 5점
-      newIndicatorScore += confluence.confluenceScore * 0.5; // 20 → 10점
-      newIndicatorScore += freshness.freshnessScore * 0.5; // 15 → 7.5점
-
-      // VPM 점수 (50% 감소)
-      newIndicatorScore += vpm.score * 0.5; // 35 → 17.5점, -20 → -10점
-
-      // 차트 패턴 점수 (50% 감소)
-      newIndicatorScore += cupAndHandle.score * 0.5; // 20 → 10점
-      newIndicatorScore += triangle.score * 0.5; // 15 → 7.5점
-
-      // 신규 지표 점수 상한 (최대 30점)
-      newIndicatorScore = Math.min(newIndicatorScore, 30);
-
-      totalScore += newIndicatorScore;
-
-      // 3. 필터링 페널티 적용
-      totalScore += manipulation.scorePenalty; // -30점
-      totalScore += liquidity.scorePenalty; // -40점
-      totalScore += previousSurge.scorePenalty; // -25점
-
-      // Phase 4C: 과열 감지 필터
+      // Phase 4C: 과열 감지 (정보용으로만 유지, 페널티 제거)
       const volumeRatio = volumeAnalysis.current.volumeMA20
         ? volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20
         : 1;
@@ -191,46 +174,40 @@ class StockScreener {
         volumeAnalysis.indicators.mfi
       );
 
-      // 4. 과열 페널티 적용
-      totalScore += overheating.scorePenalty; // -50점
-
-      // 5. 패턴 매칭 보너스 (50% 감소)
+      // 3. 패턴 매칭 보너스 (100% 적용)
       const patternMatch = smartPatternMiner.checkPatternMatch(
         { volumeAnalysis, advancedAnalysis },
         this.savedPatterns
       );
-      totalScore += patternMatch.bonusScore * 0.5; // 20 → 10점
+      totalScore += (patternMatch.bonusScore || 0); // 0-20점
 
-      // 6. 최종 점수 (0-100점 범위)
-      totalScore = Math.min(Math.max(totalScore, 0), 100);
+      // 4. 최종 점수 (0-200점 범위, NaN 방지)
+      totalScore = isNaN(totalScore) ? 0 : Math.min(Math.max(totalScore, 0), 200);
 
       // ========================================
       // 가점/감점 상세 내역 (스코어 카드)
       // ========================================
       const scoreBreakdown = {
-        // 기본 점수
-        baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore) * 0.7),
+        // 기본 점수 (스케일링 제거)
+        baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore)),
 
-        // 가점 요인
+        // 가점 요인 (100% 적용)
         bonuses: [
-          { name: "기관/외국인 수급", value: Math.round(institutionalFlow.score * 0.5), active: institutionalFlow.detected },
-          { name: "돌파 확인", value: Math.round(breakoutConfirmation.score * 0.5), active: breakoutConfirmation.detected },
-          { name: "이상 급등", value: Math.round(anomaly.score * 0.5), active: anomaly.detected },
-          { name: "위험조정 우수", value: Math.round(riskAdjusted.score * 0.5), active: parseFloat(riskAdjusted.sharpeRatio) > 1.0 },
-          { name: "합류점 (Confluence)", value: Math.round(confluence.confluenceScore * 0.5), active: confluence.confluenceCount >= 2 },
-          { name: "신호 신선도", value: Math.round(freshness.freshnessScore * 0.5), active: freshness.freshCount >= 2 },
-          { name: "VPM (거래량-가격 모멘텀)", value: Math.round(vpm.score * 0.5), active: vpm.score > 0 },
-          { name: "Cup&Handle 패턴", value: Math.round(cupAndHandle.score * 0.5), active: cupAndHandle.detected },
-          { name: "Triangle 패턴", value: Math.round(triangle.score * 0.5), active: triangle.detected },
-          { name: "패턴 매칭", value: Math.round(patternMatch.bonusScore * 0.5), active: patternMatch.matched }
+          { name: "기관/외국인 수급", value: Math.round(institutionalFlow.score || 0), active: institutionalFlow.detected },
+          { name: "돌파 확인", value: Math.round(breakoutConfirmation.score || 0), active: breakoutConfirmation.detected },
+          { name: "이상 급등", value: Math.round(anomaly.score || 0), active: anomaly.detected },
+          { name: "위험조정 우수", value: Math.round(riskAdjusted.score || 0), active: parseFloat(riskAdjusted.sharpeRatio) > 1.0 },
+          { name: "합류점 (Confluence)", value: Math.round(confluence.confluenceScore || 0), active: confluence.confluenceCount >= 2 },
+          { name: "신호 신선도", value: Math.round(freshness.freshnessScore || 0), active: freshness.freshCount >= 2 },
+          { name: "VPM (거래량-가격 모멘텀)", value: Math.round(vpm.score || 0), active: vpm.score > 0 },
+          { name: "Cup&Handle 패턴", value: Math.round(cupAndHandle.score || 0), active: cupAndHandle.detected },
+          { name: "Triangle 패턴", value: Math.round(triangle.score || 0), active: triangle.detected },
+          { name: "패턴 매칭", value: Math.round(patternMatch.bonusScore || 0), active: patternMatch.matched }
         ].filter(b => b.active),
 
-        // 감점 요인
+        // 감점 요인 (유동성만 유지)
         penalties: [
-          { name: "작전주 의심", value: manipulation.scorePenalty, active: manipulation.suspected },
-          { name: "유동성 부족", value: liquidity.scorePenalty, active: !liquidity.sufficient },
-          { name: "과거 급등", value: previousSurge.scorePenalty, active: previousSurge.alreadySurged },
-          { name: "과열 경고", value: overheating.scorePenalty, active: overheating.warning || overheating.pullbackWarning }
+          { name: "유동성 부족", value: liquidity.scorePenalty, active: !liquidity.sufficient }
         ].filter(p => p.active),
 
         // 최종 점수
