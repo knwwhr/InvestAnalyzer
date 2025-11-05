@@ -458,8 +458,8 @@ class StockScreener {
         const analysis = await this.analyzeStock(stockCode);
         analyzed++;
 
-        // skipScoreFilter가 true면 점수 무시, false면 20점 이상만 (임계값 낮춤)
-        if (analysis && (skipScoreFilter || analysis.totalScore >= 20)) {
+        // skipScoreFilter가 true면 점수 무시, false면 10점 이상만 (임계값 더 낮춤)
+        if (analysis && (skipScoreFilter || analysis.totalScore >= 10)) {
           results.push(analysis);
           console.log(`✅ [${results.length}] ${analysis.stockName} (${analysis.stockCode}) - 점수: ${analysis.totalScore.toFixed(1)}`);
         }
@@ -481,7 +481,7 @@ class StockScreener {
 
     console.log(`\n✅ 종합 스크리닝 완료!`);
     console.log(`  - 분석: ${analyzed}개`);
-    console.log(`  - 발견: ${results.length}개 (20점 이상)`);
+    console.log(`  - 발견: ${results.length}개 (10점 이상)`);
     console.log(`  - 최종: ${limit ? `상위 ${limit}개` : `전체 ${results.length}개`} 반환\n`);
 
     const finalResults = limit ? results.slice(0, limit) : results;
