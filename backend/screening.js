@@ -81,10 +81,11 @@ class StockScreener {
    */
   async analyzeStock(stockCode) {
     try {
-      // 현재가 및 일봉 데이터 가져오기
-      const [currentData, chartData] = await Promise.all([
+      // 현재가, 일봉, 투자자 데이터 가져오기
+      const [currentData, chartData, investorData] = await Promise.all([
         kisApi.getCurrentPrice(stockCode),
-        kisApi.getDailyChart(stockCode, 30)
+        kisApi.getDailyChart(stockCode, 30),
+        kisApi.getInvestorData(stockCode, 5).catch(() => null) // 실패해도 진행
       ]);
 
       // getCurrentPrice가 null 반환하면 스킵
@@ -98,6 +99,43 @@ class StockScreener {
       // 창의적 지표 분석 (Phase 4 신규 지표 포함)
       const advancedAnalysis = advancedIndicators.analyzeAdvanced(chartData);
 
+      // 신규 지표 추가
+      const institutionalFlow = advancedIndicators.checkInstitutionalFlow(investorData);
+      const breakoutConfirmation = advancedIndicators.detectBreakoutConfirmation(
+        chartData,
+        currentData.currentPrice,
+        currentData.volume
+      );
+      const anomaly = advancedIndicators.detectAnomaly(chartData);
+      const riskAdjusted = advancedIndicators.calculateRiskAdjustedScore(chartData);
+
+      // 신호 강도 개선: Confluence + Freshness
+      const additionalIndicators = {
+        institutionalFlow,
+        breakoutConfirmation,
+        anomaly,
+        riskAdjusted
+      };
+      const confluence = advancedIndicators.calculateConfluenceScore(advancedAnalysis, additionalIndicators);
+      const freshness = advancedIndicators.calculateSignalFreshness(chartData, advancedAnalysis, additionalIndicators);
+
+      // 필터링 강화: 작전주, 유동성, 과거급등
+      const manipulation = advancedIndicators.detectManipulation(chartData, currentData.marketCap);
+      const liquidity = advancedIndicators.checkLiquidity(chartData);
+      const previousSurge = advancedIndicators.checkPreviousSurge(chartData);
+
+      // VPM 통합 지표: 거래량 예측 + VPT + Divergence → 가격 방향 예측
+      const vpm = advancedIndicators.calculateVPM(
+        chartData,
+        currentData.currentPrice,
+        currentData.volume,
+        institutionalFlow
+      );
+
+      // 차트 패턴 인식
+      const cupAndHandle = advancedIndicators.detectCupAndHandle(chartData);
+      const triangle = advancedIndicators.detectTriangle(chartData);
+
       // 추세 분석 (5일/10일/20일) - 현재가 정보 포함
       const trendAnalysis = this.calculateTrendAnalysis(chartData, currentData);
 
@@ -106,6 +144,41 @@ class StockScreener {
 
       // 종합 점수 계산 (기술적 지표 + 트렌드 점수)
       let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore);
+
+      // ========================================
+      // 점수 리밸런싱: 만점 100점 체계
+      // ========================================
+
+      // 1. 기존 기술적 점수 (0-100점 → 0-70점으로 스케일링)
+      totalScore = totalScore * 0.7;
+
+      // 2. 신규 지표 점수 (0-30점 범위로 조정)
+      let newIndicatorScore = 0;
+
+      // 기본 지표 (50% 감소)
+      newIndicatorScore += institutionalFlow.score * 0.5; // 15 → 7.5점
+      newIndicatorScore += breakoutConfirmation.score * 0.5; // 15 → 7.5점
+      newIndicatorScore += anomaly.score * 0.5; // 10 → 5점
+      newIndicatorScore += riskAdjusted.score * 0.5; // 10 → 5점
+      newIndicatorScore += confluence.confluenceScore * 0.5; // 20 → 10점
+      newIndicatorScore += freshness.freshnessScore * 0.5; // 15 → 7.5점
+
+      // VPM 점수 (50% 감소)
+      newIndicatorScore += vpm.score * 0.5; // 35 → 17.5점, -20 → -10점
+
+      // 차트 패턴 점수 (50% 감소)
+      newIndicatorScore += cupAndHandle.score * 0.5; // 20 → 10점
+      newIndicatorScore += triangle.score * 0.5; // 15 → 7.5점
+
+      // 신규 지표 점수 상한 (최대 30점)
+      newIndicatorScore = Math.min(newIndicatorScore, 30);
+
+      totalScore += newIndicatorScore;
+
+      // 3. 필터링 페널티 적용
+      totalScore += manipulation.scorePenalty; // -30점
+      totalScore += liquidity.scorePenalty; // -40점
+      totalScore += previousSurge.scorePenalty; // -25점
 
       // Phase 4C: 과열 감지 필터
       const volumeRatio = volumeAnalysis.current.volumeMA20
@@ -118,17 +191,51 @@ class StockScreener {
         volumeAnalysis.indicators.mfi
       );
 
-      // 과열 페널티 적용
-      totalScore += overheating.scorePenalty;
+      // 4. 과열 페널티 적용
+      totalScore += overheating.scorePenalty; // -50점
 
-      // 패턴 매칭 보너스 (최대 +20점)
+      // 5. 패턴 매칭 보너스 (50% 감소)
       const patternMatch = smartPatternMiner.checkPatternMatch(
         { volumeAnalysis, advancedAnalysis },
         this.savedPatterns
       );
-      totalScore += patternMatch.bonusScore;
+      totalScore += patternMatch.bonusScore * 0.5; // 20 → 10점
 
+      // 6. 최종 점수 (0-100점 범위)
       totalScore = Math.min(Math.max(totalScore, 0), 100);
+
+      // ========================================
+      // 가점/감점 상세 내역 (스코어 카드)
+      // ========================================
+      const scoreBreakdown = {
+        // 기본 점수
+        baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore) * 0.7),
+
+        // 가점 요인
+        bonuses: [
+          { name: "기관/외국인 수급", value: Math.round(institutionalFlow.score * 0.5), active: institutionalFlow.detected },
+          { name: "돌파 확인", value: Math.round(breakoutConfirmation.score * 0.5), active: breakoutConfirmation.detected },
+          { name: "이상 급등", value: Math.round(anomaly.score * 0.5), active: anomaly.detected },
+          { name: "위험조정 우수", value: Math.round(riskAdjusted.score * 0.5), active: parseFloat(riskAdjusted.sharpeRatio) > 1.0 },
+          { name: "합류점 (Confluence)", value: Math.round(confluence.confluenceScore * 0.5), active: confluence.confluenceCount >= 2 },
+          { name: "신호 신선도", value: Math.round(freshness.freshnessScore * 0.5), active: freshness.freshCount >= 2 },
+          { name: "VPM (거래량-가격 모멘텀)", value: Math.round(vpm.score * 0.5), active: vpm.score > 0 },
+          { name: "Cup&Handle 패턴", value: Math.round(cupAndHandle.score * 0.5), active: cupAndHandle.detected },
+          { name: "Triangle 패턴", value: Math.round(triangle.score * 0.5), active: triangle.detected },
+          { name: "패턴 매칭", value: Math.round(patternMatch.bonusScore * 0.5), active: patternMatch.matched }
+        ].filter(b => b.active),
+
+        // 감점 요인
+        penalties: [
+          { name: "작전주 의심", value: manipulation.scorePenalty, active: manipulation.suspected },
+          { name: "유동성 부족", value: liquidity.scorePenalty, active: !liquidity.sufficient },
+          { name: "과거 급등", value: previousSurge.scorePenalty, active: previousSurge.alreadySurged },
+          { name: "과열 경고", value: overheating.scorePenalty, active: overheating.warning || overheating.pullbackWarning }
+        ].filter(p => p.active),
+
+        // 최종 점수
+        finalScore: Math.round(totalScore)
+      };
 
       // 랭킹 뱃지 가져오기
       const rankBadges = kisApi.getCachedRankBadges(stockCode);
@@ -142,6 +249,19 @@ class StockScreener {
         marketCap: currentData.marketCap,
         volumeAnalysis,
         advancedAnalysis,
+        institutionalFlow, // 신규: 기관/외국인 수급
+        breakoutConfirmation, // 신규: 돌파 확인
+        anomaly, // 신규: 이상 탐지
+        riskAdjusted, // 신규: 위험조정 점수
+        confluence, // 신규: Confluence 합류점
+        freshness, // 신규: 신호 신선도
+        manipulation, // 신규: 작전주 필터
+        liquidity, // 신규: 유동성 필터
+        previousSurge, // 신규: 과거급등 필터
+        vpm, // 신규: VPM 통합 지표 (거래량 예측 + 가격 방향)
+        cupAndHandle, // 신규: Cup&Handle 패턴
+        triangle, // 신규: Triangle 패턴
+        scoreBreakdown, // 신규: 가점/감점 상세 내역
         trendAnalysis, // 추세 분석 추가
         trendScore: trendScore ? { // 트렌드 점수 추가
           total: trendScore.total_trend_score,
