@@ -1,5 +1,6 @@
 // Vercel Serverless Function
 // GET /api/screening/recommend
+// Last updated: 2025-11-05 23:20 - Force redeploy to clear cache
 
 const screener = require('../../backend/screening');
 
