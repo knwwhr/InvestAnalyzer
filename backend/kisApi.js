@@ -45,6 +45,7 @@ class KISApi {
     this.appSecret = process.env.KIS_APP_SECRET;
     this.accessToken = null;
     this.tokenExpiry = null;
+    this.cachedAppKey = null; // 토큰 발급 시 사용한 APP_KEY 저장
     this.rateLimiter = new RateLimiter(18); // 전역 Rate Limiter
   }
 
@@ -52,6 +53,14 @@ class KISApi {
    * Access Token 발급
    */
   async getAccessToken() {
+    // 환경변수가 변경되었으면 토큰 무효화 (Vercel 환경변수 업데이트 대응)
+    if (this.cachedAppKey && this.cachedAppKey !== this.appKey) {
+      console.log('⚠️  환경변수 변경 감지 - Access Token 무효화');
+      this.accessToken = null;
+      this.tokenExpiry = null;
+      this.cachedAppKey = null;
+    }
+
     // 토큰이 유효하면 재사용
     if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
       return this.accessToken;
@@ -65,10 +74,11 @@ class KISApi {
       });
 
       this.accessToken = response.data.access_token;
-      // 토큰 유효기간 (24시간 - 여유시간 1시간)
-      this.tokenExpiry = Date.now() + (23 * 60 * 60 * 1000);
+      // 토큰 유효기간 (1시간) - Vercel 환경에서 빠른 갱신을 위해 짧게 설정
+      this.tokenExpiry = Date.now() + (60 * 60 * 1000);
+      this.cachedAppKey = this.appKey; // 현재 APP_KEY 저장
 
-      console.log('✅ Access Token 발급 성공');
+      console.log('✅ Access Token 발급 성공 (App Key:', this.appKey.substring(0, 10) + '...)');
       return this.accessToken;
     } catch (error) {
       console.error('❌ Access Token 발급 실패:', error.response?.data || error.message);
