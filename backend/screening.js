@@ -149,7 +149,7 @@ class StockScreener {
       // 점수 계산: 100점 만점 (스케일링 제거)
       // ========================================
 
-      // 1. 신규 지표 점수 추가 (100% 적용)
+      // 1. 신규 지표 점수 추가 (100% 적용, 페널티 전면 제거)
       totalScore += (institutionalFlow.score || 0); // 0-15점
       totalScore += (breakoutConfirmation.score || 0); // 0-15점
       totalScore += (anomaly.score || 0); // 0-10점
@@ -160,8 +160,9 @@ class StockScreener {
       totalScore += (cupAndHandle.score || 0); // 0-20점
       totalScore += (triangle.score || 0); // 0-15점
 
-      // 2. 유동성 페널티만 적용 (나머지 제거)
-      totalScore += (liquidity.scorePenalty || 0); // -20~-40점
+      // 2. 페널티 전면 제거 (순수 가점 시스템)
+      // - 유동성 페널티 제거 (NaN 오류 + 급등주 발굴에 역효과)
+      // - 과열/작전주/과거급등 페널티 제거 (사용자 요청)
 
       // Phase 4C: 과열 감지 (정보용으로만 유지, 페널티 제거)
       const volumeRatio = volumeAnalysis.current.volumeMA20
@@ -205,10 +206,8 @@ class StockScreener {
           { name: "패턴 매칭", value: Math.round(patternMatch.bonusScore || 0), active: patternMatch.matched }
         ].filter(b => b.active),
 
-        // 감점 요인 (유동성만 유지)
-        penalties: [
-          { name: "유동성 부족", value: liquidity.scorePenalty, active: !liquidity.sufficient }
-        ].filter(p => p.active),
+        // 감점 요인 (전면 제거 - 순수 가점 시스템)
+        penalties: [],
 
         // 최종 점수
         finalScore: Math.round(totalScore)
