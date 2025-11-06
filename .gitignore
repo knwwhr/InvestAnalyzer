@@ -27,3 +27,4 @@ data/*.json
 
 # Vercel
 .vercel
+.env.backup

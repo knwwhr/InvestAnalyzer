@@ -1,41 +1,41 @@
-# 🤖 Investar - 거래량 기반 AI 주식 스크리너
+# 🤖 Investar - AI 기반 주식 스크리닝 시스템
 
-**한국투자증권 OpenAPI 기반 주식 종목 발굴 시스템**
+**한국투자증권 OpenAPI 기반 거래량 종목 발굴 시스템**
 
-거래량 지표로 급등 가능성이 높은 종목을 자동 발굴하는 AI 스크리닝 시스템입니다.
+거래량 지표로 급등 가능성이 높은 종목을 자동 발굴하는 AI 스크리닝 시스템
 
 🌐 **배포 URL**: https://investar-xi.vercel.app
+📚 **상세 문서**: [CLAUDE.md](./CLAUDE.md)
 
 ---
 
 ## 🎯 핵심 기능
 
-### 📊 3개 카테고리 (2025-10-28 단순화)
+### 📊 3개 카테고리 스크리닝
 
 **1. 🏆 종합집계**
-- 모든 지표 종합 점수 순위
-- 30점 이상 전체 표시
+모든 지표 종합 점수 순위 (30점 이상)
 
 **2. 🐋 고래 감지**
-- 거래량 2.5배 + 가격 3% 상승
-- 세력 매수 신호 포착
+거래량 2.5배 + 가격 3% 상승 (기관/외국인 매수 신호)
 
 **3. 🤫 조용한 매집**
-- 가격 안정 + 거래량 20% 증가
-- 1~2주 후 급등 전조 (선행 지표)
+가격 횡보 + 거래량 증가 (세력 물량 모으기, 선행 지표)
 
-### ✅ 주요 특징
+---
 
-- **동적 종목 풀**: 53개 (KIS API 실시간)
-- **ETF 필터링**: 15개 키워드 차단
-- **Vercel 배포**: Serverless 최적화
-- **철학**: "적을수록 강하다" - 예측력 높은 지표만 유지
+## 📈 종합 점수 시스템
+
+```
+S등급 (70점+): 🔥 최우선 매수
+A등급 (55-69): 🟢 적극 매수
+B등급 (40-54): 🟡 매수 고려
+C등급 (30-39): ⚪ 주목
+```
 
 ---
 
 ## 🚀 빠른 시작
-
-### 1. 환경 설정
 
 ```bash
 # 저장소 클론
@@ -45,48 +45,18 @@ cd investar
 # 의존성 설치
 npm install
 
-# 환경변수 설정
-cp .env.example .env
-nano .env
-```
-
-`.env` 파일:
-```env
+# 환경변수 설정 (.env)
 KIS_APP_KEY=your_app_key
 KIS_APP_SECRET=your_app_secret
 
-# 패턴 영구 저장 (선택사항, Vercel 배포 시 필수)
-GITHUB_GIST_ID=your_gist_id
-GITHUB_TOKEN=your_github_token
-```
-
-> 📌 **패턴 저장소 설정**: Vercel Serverless는 stateless이므로 패턴 데이터를 영구 저장하려면 GitHub Gist 설정이 필요합니다. 자세한 내용은 [GIST_SETUP.md](./GIST_SETUP.md)를 참조하세요.
-
-### 2. 로컬 실행
-
-```bash
+# 로컬 서버 실행
 npm start
 # http://localhost:3001
-```
-
-### 3. API 테스트
-
-```bash
-# 종합집계
-curl http://localhost:3001/api/screening/recommend?limit=5
-
-# 고래 감지
-curl http://localhost:3001/api/screening/whale
-
-# 조용한 매집
-curl http://localhost:3001/api/screening/accumulation
 ```
 
 ---
 
 ## 📡 API 엔드포인트
-
-### 스크리닝 API
 
 ```bash
 # 종합집계
@@ -97,29 +67,17 @@ GET /api/screening/whale?market=KOSPI&limit=5
 
 # 조용한 매집
 GET /api/screening/accumulation?market=ALL&limit=5
-
-# 하이브리드 분석
-GET /api/screening/hybrid?limit=3
-
-# 오늘의 신호
-GET /api/tracking/today-signals?limit=5
 ```
 
-### 패턴 마이닝 API
+---
 
-```bash
-# 패턴 목록 (GitHub Gist에서 로드)
-GET /api/patterns/list
+## 🗄️ 주요 기능
 
-# 패턴 분석 실행 (GitHub Gist에 자동 저장)
-POST /api/patterns/analyze
-
-# D-5 선행 패턴 매칭 종목
-GET /api/patterns/matched-stocks?pattern=pre_5d_accumulation
-GET /api/patterns/matched-stocks?pattern=pre_5d_rsi_volume
-```
-
-> **D-5 선행 패턴**: 급등 5거래일 전 지표를 분석하여 미래 급등을 예측합니다.
+- ✅ **동적 종목 풀**: KIS API 4개 순위 순위 기반 53개 종목 확보
+- ✅ **ETF/ETN 필터링**: 15개 키워드로 특수 펀드/파생상품 차단
+- ✅ **거래량 DNA 시스템**: 과거 급등주 패턴 추출 및 현재 종목 매칭
+- ✅ **Supabase 성과 추적**: 추천 종목 실시간 성과 모니터링
+- ✅ **Vercel Serverless**: 자동 배포 및 Cron Job
 
 ---
 
@@ -127,126 +85,80 @@ GET /api/patterns/matched-stocks?pattern=pre_5d_rsi_volume
 
 ```
 investar/
-├── api/                # Vercel Serverless Functions (11개)
-│   ├── screening/     # 스크리닝 엔드포인트
-│   ├── patterns/      # 패턴 분석
-│   ├── tracking/      # 실전 추적
-│   ├── backtest/      # 백테스트
-│   └── comparison/    # A/B 테스트
-│
-├── backend/                    # 백엔드 로직
-│   ├── kisApi.js              # KIS OpenAPI 클라이언트
-│   ├── screening.js           # 스크리닝 엔진
-│   ├── smartPatternMining.js  # D-5 선행 패턴 분석
-│   ├── gistStorage.js         # GitHub Gist 저장소 ⭐ NEW
-│   └── hybridScoring.js       # 하이브리드 점수
-│
-├── index.html                 # React SPA
-├── server.js                  # 로컬 서버
-├── vercel.json                # Vercel 설정
-└── GIST_SETUP.md              # GitHub Gist 설정 가이드 ⭐ NEW
+├── api/                    # Vercel Serverless Functions (12개)
+│   ├── screening/         # 스크리닝 API
+│   ├── patterns/          # 패턴 분석 API
+│   └── cron/              # 정기 작업
+├── backend/               # 백엔드 로직
+│   ├── kisApi.js         # KIS OpenAPI 클라이언트
+│   ├── screening.js      # 스크리닝 엔진
+│   └── volumeIndicators.js  # 거래량 지표
+├── index.html            # React SPA 프론트엔드
+└── server.js             # 로컬 개발 서버
 ```
 
 ---
 
-## 📊 종목 풀 구성
+## ⚙️ 주요 설정
+
+### 환경변수 (Vercel)
 
 ```
-4개 순위 API × 2시장 = 240개 호출
-  ├─ 등락률 상승: 30개 × 2 = 60개
-  ├─ 거래량 증가율: 30개 × 2 = 60개
-  ├─ 거래량 순위: 30개 × 2 = 60개
-  └─ 거래대금 순위: 30개 × 2 = 60개
-
-ETF 필터링 (15개 키워드)
-  → plus, unicorn, POST IPO, 국채, 선물 등
-
-중복 제거 (78%)
-  → 최종 53개 확보
+KIS_APP_KEY=<한국투자증권 앱 키>
+KIS_APP_SECRET=<한국투자증권 앱 시크릿>
 ```
-
----
-
-## 🎓 사용 가이드
-
-### 등급 체계
-
-- **S등급** (70점+): 🔥 최우선 매수
-- **A등급** (55-69점): 🟢 적극 매수
-- **B등급** (40-54점): 🟡 매수 고려
-- **C등급** (30-39점): ⚪ 주목
-
-### 카테고리 해석
-
-**고래 감지**
-```
-✅ 거래량 2.5배 + 가격 3% 상승
-→ 세력 매수 신호
-⚠️ 윗꼬리 30% 이상 시 경고
-```
-
-**조용한 매집**
-```
-✅ 가격 변동 <3% + 거래량 +20%
-→ 세력이 물량을 조용히 모으는 중
-📈 1~2주 후 급등 가능성
-```
-
----
-
-## ⚠️ 주의사항
-
-### 투자 책임
-⚠️ **본 시스템은 투자 참고용 도구이며, 투자 결정의 책임은 전적으로 투자자에게 있습니다.**
 
 ### API 제한
-- KIS API: 초당 20회 (안전 마진 18회)
+
+- KIS API: 초당 18회 (안전 마진)
+- Vercel Timeout: 최대 60초
 - 순위 API: 최대 30건/호출
-- Vercel Timeout: 60초
 
 ---
 
-## 📝 변경 이력
+## ⚠️ 투자 주의사항
 
-### v3.1 (2025-10-28) - GitHub Gist 패턴 저장소 통합 ⭐
-- ✅ **GitHub Gist 영구 저장소**: Vercel stateless 문제 해결
-- ✅ **D-5 선행 패턴 분석**: 급등 5거래일 전 지표 추출
-- ✅ **패턴 API 개선**: 완전 매칭 + 부분 매칭 지원
-- ✅ **프론트엔드 수정**: D-5 패턴 UI 대응 완료
-- ✅ **자동 실행 제거**: 수동 버튼 클릭으로만 스크리닝 실행
+**본 시스템은 투자 참고용 도구이며, 투자 결정의 책임은 전적으로 투자자에게 있습니다.**
 
-### v3.0 (2025-10-28) - 지표 단순화
-- ✅ 카테고리 6개 → 3개 축소
-- ✅ ETF/ETN 필터링 강화
-- ✅ Unknown → [종목코드] 표시
-- ❌ 제거: 탈출 속도, 거래량 폭발, 유동성 고갈
+1. 과열 경고 확인 (거래량 10배 이상)
+2. 윗꼬리 주의 (고가 대비 낙폭 30% 이상)
+3. 분산 투자 (상위 5-10개 종목)
+4. 손절 설정 (-5~7% 권장)
 
-### v2.1 (2025-10-27)
-- ✅ KIS API 통합 완료
-- ✅ 4개 순위 API 정상 작동
+---
 
-### v1.0 (2025-10-25)
-- ✅ 기본 스크리닝 시스템
+## 📝 최신 업데이트
+
+### v3.3 (2025-11-06) - 🐛 Critical Bug Fix
+- **chartData 배열 인덱싱 버그 수정**
+  - 문제: 항상 9월 19일 데이터를 최신으로 잘못 인식
+  - 해결: 11월 6일 최신 데이터로 정확한 분석
+  - 영향: volumeAnalysis, advancedIndicators, backtest 전체 수정
+
+### v3.2 (2025-11-03) - Supabase 성과 추적
+- 추천 종목 자동 저장 및 성과 모니터링
+- 연속 급등주 감지 (2일 이상)
+- 등급별 성과 통계
+
+### v3.1 (2025-10-30) - 거래량 DNA 시스템
+- 과거 급등주 패턴 DNA 추출
+- 현재 시장에서 유사 종목 탐색
+- EMA + 구간별 + 최근5일 하이브리드 분석
 
 ---
 
 ## 📚 참고 자료
 
+- **상세 문서**: [CLAUDE.md](./CLAUDE.md) - 전체 시스템 설명
+- **Supabase 설정**: [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 - **KIS Developers**: https://apiportal.koreainvestment.com
 - **Vercel Docs**: https://vercel.com/docs/functions
 - **GitHub**: https://github.com/knwwhr/investar
-- **GitHub Gist 설정 가이드**: [GIST_SETUP.md](./GIST_SETUP.md) ⭐ NEW
 
 ---
 
-## 🤝 기여
+**Version**: 3.3 (Critical Bug Fix)
+**Author**: Claude Code with @knwwhr
+**Last Updated**: 2025-11-06
 
-버그 리포트, 기능 제안, Pull Request 환영합니다!
-
----
-
-**Last Updated**: 2025-10-28
-**Version**: 3.1
-**License**: MIT
-
-**✨ "선행 지표로 미래를 예측하다" - D-5 패턴 분석 ✨**
+**✨ "거래량이 주가에 선행한다" - DNA 기반 종목 발굴 + 실전 성과 추적**
