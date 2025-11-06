@@ -190,7 +190,7 @@ function calculateADLine(chartData) {
  * 종합 거래량 분석
  */
 function analyzeVolume(chartData) {
-  const latestData = chartData[chartData.length - 1];
+  const latestData = chartData[0];  // chartData는 내림차순 (최신 데이터가 0번 인덱스)
   const volumeMA20 = calculateVolumeMA(chartData, 20);
   const obv = calculateOBV(chartData);
   const mfi = calculateMFI(chartData, 14);

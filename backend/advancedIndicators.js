@@ -505,7 +505,7 @@ function detectBreakoutPreparation(chartData) {
  */
 function checkOverheating(chartData, currentPrice, volumeRatio, mfi) {
   const recent10 = chartData.slice(-10);
-  const latest = chartData[chartData.length - 1];
+  const latest = chartData[0];  // chartData는 내림차순 (최신 데이터가 0번 인덱스)
 
   // 1. 최근 10일간 30% 이상 급등
   const firstPrice = recent10[0].close;
@@ -950,8 +950,8 @@ function calculateConfluenceScore(analysisResult, additionalIndicators = {}) {
  */
 function calculateSignalFreshness(chartData, analysisResult, additionalIndicators = {}) {
   const recentData = chartData.slice(-2); // 최근 2일
-  const latestDate = chartData[chartData.length - 1].date;
-  const yesterdayDate = chartData.length >= 2 ? chartData[chartData.length - 2].date : null;
+  const latestDate = chartData[0].date;  // chartData는 내림차순 (최신 데이터가 0번 인덱스)
+  const yesterdayDate = chartData.length >= 2 ? chartData[1].date : null;  // 1번 인덱스가 어제
 
   const freshSignals = [];
   let freshnessScore = 0;

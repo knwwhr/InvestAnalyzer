@@ -96,8 +96,9 @@ class PerformanceVerifier {
       }
 
       // 최근 데이터를 기준으로 역산 (실제로는 날짜 매칭 필요)
-      const buyPrice = chartData[chartData.length - holdingDays - 1]?.close;
-      const sellPrice = chartData[chartData.length - 1]?.close;
+      // chartData는 내림차순 (최신=0, 과거=큰 인덱스)
+      const sellPrice = chartData[0]?.close;  // 최신 가격 (매도)
+      const buyPrice = chartData[holdingDays]?.close;  // holdingDays일 전 가격 (매수)
 
       if (!buyPrice || !sellPrice) {
         return null;
