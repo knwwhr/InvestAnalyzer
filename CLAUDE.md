@@ -7,7 +7,7 @@
 - **목적**: 거래량 지표로 급등 가능성이 높은 종목 자동 발굴
 - **기술 스택**: Node.js, React (CDN), Vercel Serverless, KIS OpenAPI
 - **배포 URL**: https://investar-xi.vercel.app
-- **버전**: 3.3 (Critical Bug Fix - chartData 인덱싱)
+- **버전**: 3.4 (시스템 통합 - 공매도 + 트렌드 + 선행지표)
 - **최종 업데이트**: 2025-11-06
 
 ---
@@ -20,11 +20,12 @@
 - **중복 제거율**: 78% (240개 → 53개)
 - **ETF/ETN 필터링**: 15개 키워드 차단 (plus, unicorn, POST IPO 등)
 
-### 🎯 핵심 성과
-- ✅ **지표 단순화** - 6개 → 3개 카테고리로 집중
-- ✅ **KIS API 통합** - 4개 순위 API 정상 작동
-- ✅ **ETF 필터링 강화** - 특수 펀드/파생상품 완벽 차단
-- ✅ **Vercel 배포** - Serverless 환경 최적화
+### 🎯 핵심 성과 (v3.4)
+- ✅ **시스템 통합 완료** - 공매도 + 트렌드 + 선행지표 (패턴+DNA) 통합
+- ✅ **점수 체계 강화** - 100점 → 120점 (공매도 +20, 트렌드 +15)
+- ✅ **공매도 분석** - 차트 기반 추정 시스템 + KRX API 경로 확보
+- ✅ **선행 지표 통합** - smartPatternMining + volumeDnaExtractor → leadingIndicators
+- ✅ **중복 모듈 정리** - 사용하지 않는 파일 삭제 (backtestEngine, screeningHybrid)
 
 ---
 
@@ -60,26 +61,45 @@
 
 ---
 
-### 2. 📈 종합 점수 계산
+### 2. 📈 종합 점수 계산 (v3.4 업데이트)
 
 ```javascript
-총점 =
-  창의적 지표 (0-40점) * 0.4 +
-  거래량 비율 (0-30점) +
-  MFI (0-15점) +
-  OBV 추세 (0-10점) +
-  가격 모멘텀 (0-5점) +
-  패턴 매칭 보너스 (0-20점) +
-  과열 페널티 (-30~0점)
+// 기본 점수 (0-20점)
+기본 점수 =
+  거래량 비율 (0-8점) +
+  OBV 추세 (0-7점) +
+  VWAP 모멘텀 (0-5점) +
+  비대칭 비율 (0-5점) -
+  고점 대비 되돌림 페널티 (-5~0점)
 
-최종 점수: 0~100점
+// 선행 지표 (0-80점)
+선행 지표 =
+  VPM (거래량-가격 모멘텀) (0-25점) +
+  기관/외국인 수급 (0-15점) +
+  합류점 (Confluence) (0-12점) +
+  선행 지표 (패턴+DNA) (0-10점) ⭐ NEW +
+  신호 신선도 (0-8점) +
+  Cup&Handle 패턴 (0-5점) +
+  돌파 확인 (0-3점) +
+  Triangle 패턴 (0-2점)
+
+// 보너스 (0-35점)
+보너스 =
+  트렌드 (뉴스+감성) (0-15점) ⭐ NEW +
+  공매도 (숏 커버링) (0-20점) ⭐ NEW
+
+최종 점수: 0~120점 (기존 100점에서 확장)
 ```
 
-#### 추천 등급
-- **S등급** (70점 이상): 🔥 최우선 매수
-- **A등급** (55~69점): 🟢 적극 매수
-- **B등급** (40~54점): 🟡 매수 고려
-- **C등급** (30~39점): ⚪ 주목
+#### 추천 등급 (120점 만점 기준)
+- **S등급** (90점 이상): 🔥 최우선 매수
+- **A등급** (70~89점): 🟢 적극 매수
+- **B등급** (50~69점): 🟡 매수 고려
+- **C등급** (30~49점): ⚪ 주목
+- **D등급** (30점 미만): ⚫ 관망
+
+**특수 등급**:
+- **S+등급**: S등급 + HOT 이슈 (트렌드 70점 이상)
 
 ---
 
@@ -128,7 +148,46 @@ GET /api/screening/whale?market=KOSPI&limit=5
 GET /api/screening/accumulation?market=ALL&limit=5
 ```
 
-### 🧬 거래량 DNA 시스템 (NEW - 2025-10-30)
+### 📊 공매도 분석 API (NEW - v3.4)
+
+**핵심 철학**: "공매도 비중이 높고 숏 커버링이 감지되면 급등 가능성 높음"
+
+```bash
+GET /api/shortselling?stockCode=005930&days=20
+```
+
+**응답**:
+```json
+{
+  "success": true,
+  "stockCode": "005930",
+  "data": {
+    "shortRatio": 12.5,
+    "shortVolumeChange": -5.2,
+    "shortTrend": "decreasing",
+    "isShortCovering": true,
+    "coveringStrength": "moderate",
+    "score": 15,
+    "summary": "📈 숏 커버링 신호 (공매도 12.5%)",
+    "confidence": 75,
+    "dataSource": "estimated"
+  }
+}
+```
+
+**시스템 특징**:
+- **Phase 1**: 차트 기반 공매도 추정 (즉시 사용 가능)
+  - 거래량 급증 + 하락 = 공매도 증가 추정
+  - 거래량 급증 + 상승 = 숏 커버링 추정
+- **Phase 2**: KRX 실제 API 연동 (환경변수 `KRX_API_KEY` 설정 시 자동 전환)
+
+**점수 체계** (0-20점):
+- 공매도 비중 10% 이상: +5점
+- 공매도 비중 15% 이상: +10점
+- 공매도 비중 20% 이상: +15점
+- 강력한 숏 커버링: +15점
+
+### 🧬 거래량 DNA 시스템 (2025-10-30)
 
 **핵심 철학**: "과거 급등주의 거래량 패턴에서 DNA를 추출하여, 현재 시장에서 같은 패턴을 가진 종목을 찾는다"
 
@@ -181,37 +240,6 @@ POST /api/patterns/volume-dna
 }
 ```
 
-**응답**:
-```json
-{
-  "success": true,
-  "mode": "scan",
-  "result": {
-    "matchedStocks": [
-      {
-        "stockCode": "900270",
-        "stockName": "900270",
-        "matchScore": 100,
-        "scoreDetails": {
-          "volumeRate": {
-            "score": 100,
-            "current": { "emaAvg": 792.09, "recent5d": 762.88 },
-            "threshold": { "emaMin": 1.134, "recent5dMin": -0.756 }
-          }
-        },
-        "pattern": {
-          "volumeRate": {
-            "segmented": { "trend": "accelerating" },
-            "compositeScore": 734.33,
-            "urgency": "low"
-          }
-        }
-      }
-    ]
-  }
-}
-```
-
 #### DNA 시스템 특징
 
 **시간 가중치 분석**:
@@ -224,10 +252,10 @@ POST /api/patterns/volume-dna
 2. **기관 순매수**: 연속 매수일, 강도 (strong/moderate/weak)
 3. **외국인 순매수**: 연속 매수일, 강도
 
-**매칭 로직**:
-- 각 종목의 현재 패턴을 추출된 DNA와 비교
-- 임계값 이상(기본 70점)인 종목만 반환
-- 매칭 점수 내림차순 정렬
+**선행 지표 통합** (v3.4):
+- volumeDnaExtractor + smartPatternMining → leadingIndicators.js
+- 패턴 50% + DNA 50% 하이브리드 점수
+- 강도 계산: very_high/high/moderate/low
 
 ---
 
@@ -247,6 +275,9 @@ npm install
 KIS_APP_KEY=your_app_key
 KIS_APP_SECRET=your_app_secret
 
+# 선택 (KRX API 연동 시)
+KRX_API_KEY=your_krx_api_key
+
 # 4. 로컬 서버 실행
 npm start
 # http://localhost:3001
@@ -263,50 +294,63 @@ curl http://localhost:3001/api/screening/whale
 
 # 조용한 매집
 curl http://localhost:3001/api/screening/accumulation
+
+# 공매도 분석 (v3.4 NEW)
+curl http://localhost:3001/api/shortselling?stockCode=005930
 ```
 
 ---
 
-## 📁 프로젝트 구조
+## 📁 프로젝트 구조 (v3.4 업데이트)
 
 ```
 investar/
-├── api/                          # Vercel Serverless Functions (12개)
+├── api/                          # Vercel Serverless Functions
 │   ├── screening/
 │   │   ├── recommend.js         # 종합집계
-│   │   ├── [category].js        # whale, accumulation
-│   │   └── hybrid.js            # 하이브리드 분석
+│   │   └── [category].js        # whale, accumulation
 │   ├── patterns/
-│   │   ├── analyze.js           # 패턴 분석
-│   │   ├── list.js              # 패턴 목록
-│   │   ├── matched-stocks.js    # 패턴 매칭 종목
-│   │   └── volume-dna.js        # 🧬 DNA 추출 + 스캔 (NEW)
-│   ├── tracking/
-│   │   └── today-signals.js     # 오늘의 신호
-│   ├── comparison/
-│   │   └── ab-test.js           # A/B 테스트
-│   ├── backtest/
-│   │   └── hybrid.js            # 백테스트
+│   │   ├── index.js             # D-5 선행 패턴 분석
+│   │   └── volume-dna.js        # 🧬 DNA 추출 + 스캔
+│   ├── shortselling/
+│   │   └── index.js             # 🆕 공매도 분석 (v3.4)
+│   ├── trends/
+│   │   └── index.js             # 트렌드 분석 (뉴스+AI 감성)
+│   ├── recommendations/
+│   │   ├── performance.js       # 성과 추적
+│   │   ├── save.js              # 추천 저장
+│   │   └── update-prices.js     # 가격 업데이트
 │   ├── cron/
 │   │   └── update-patterns.js   # 패턴 자동 업데이트
+│   ├── debug-env.js             # 환경변수 디버그
 │   └── health.js                # 헬스체크
 │
 ├── backend/                      # 백엔드 로직
 │   ├── kisApi.js                # KIS OpenAPI 클라이언트 ⭐
-│   ├── screening.js             # 스크리닝 엔진
+│   ├── screening.js             # 스크리닝 엔진 ⭐
+│   ├── leadingIndicators.js     # 🆕 선행지표 통합 (패턴+DNA) (v3.4)
+│   ├── shortSellingApi.js       # 🆕 공매도 분석 엔진 (v3.4)
 │   ├── volumeIndicators.js      # 거래량 지표
 │   ├── advancedIndicators.js    # 창의적 지표
-│   ├── smartPatternMining.js    # 패턴 마이닝
-│   ├── hybridScoring.js         # 하이브리드 점수
-│   ├── patternCache.js          # 패턴 캐시
-│   └── volumeDnaExtractor.js    # 🧬 DNA 추출 엔진 (NEW)
+│   ├── smartPatternMining.js    # D-5 선행 패턴 마이닝
+│   ├── volumeDnaExtractor.js    # 거래량 DNA 추출
+│   ├── patternMining.js         # 급등 패턴 분석 (후행)
+│   ├── backtest.js              # 백테스팅 엔진
+│   ├── trendScoring.js          # 트렌드 점수 (뉴스+AI)
+│   ├── patternCache.js          # 패턴 메모리 캐시
+│   └── gistStorage.js           # GitHub Gist 영구 저장
 │
 ├── index.html                    # React SPA 프론트엔드
 ├── server.js                     # 로컬 개발 서버
 ├── vercel.json                   # Vercel 설정
-├── test-volume-dna-full.js       # 🧬 DNA 통합 테스트 (NEW)
+├── test-leading-integration.js   # 🆕 선행지표 통합 테스트 (v3.4)
+├── INTEGRATION_COMPLETE_SUMMARY.md # 🆕 통합 완료 요약 (v3.4)
 └── CLAUDE.md                     # 이 문서
 ```
+
+**v3.4에서 삭제된 파일**:
+- ❌ `backend/backtestEngine.js` (사용하지 않음)
+- ❌ `backend/screeningHybrid.js` (screening.js와 중복)
 
 ---
 
@@ -333,8 +377,20 @@ investar/
 ### 환경변수 (Vercel)
 
 ```
+# 필수
 KIS_APP_KEY=<한국투자증권 앱 키>
 KIS_APP_SECRET=<한국투자증권 앱 시크릿>
+
+# 선택 (공매도 KRX API 연동 시)
+KRX_API_KEY=<KRX 데이터 포털 API 키>
+
+# 선택 (Gist 패턴 저장 시)
+GITHUB_GIST_ID=<GitHub Gist ID>
+GITHUB_TOKEN=<GitHub Personal Token>
+
+# 선택 (Supabase 성과 추적 시)
+SUPABASE_URL=<Supabase 프로젝트 URL>
+SUPABASE_KEY=<Supabase Anon Key>
 ```
 
 ---
@@ -349,23 +405,25 @@ KIS_APP_SECRET=<한국투자증권 앱 시크릿>
 2. **윗꼬리 주의**: 고래 감지 + 고가 대비 낙폭 30% 이상은 신중 진입
 3. **분산 투자**: 상위 5~10개 종목 분산 추천
 4. **손절 설정**: -5~7% 손절 기준 설정 권장
+5. **공매도 신뢰도**: 차트 기반 추정은 참고용, KRX API 연동 권장
 
 ### API 사용 제한
 
 - **KIS API 호출 제한**: 초당 20회 (안전 마진 18회 적용)
+- **토큰 발급 제한**: 1분당 1회
 - **순위 API 제한**: 최대 30건/호출
 - **Vercel Timeout**: 최대 60초
 
 ---
 
-### 🗄️ Supabase 성과 추적 시스템 (NEW - 2025-11-03)
+### 🗄️ Supabase 성과 추적 시스템 (2025-11-03)
 
-**핵심 철학**: \"추천했던 종목들의 실제 성과를 추적하여 시스템 신뢰도를 검증하고, 연속 급등주를 조기에 발견한다\"
+**핵심 철학**: "추천했던 종목들의 실제 성과를 추적하여 시스템 신뢰도를 검증하고, 연속 급등주를 조기에 발견한다"
 
 #### 자동 추천 저장
 ```javascript
 // 종합집계 조회 시 자동 저장
-fetchRecommendations('all') // B등급(40점) 이상 종목만 자동 저장
+fetchRecommendations('all') // B등급(50점) 이상 종목만 자동 저장
 ```
 
 #### 실시간 성과 조회
@@ -420,6 +478,7 @@ GET /api/recommendations/performance?days=30
 
 ### 공식 문서
 - **KIS Developers**: https://apiportal.koreainvestment.com
+- **KRX 데이터 포털**: https://data.krx.co.kr
 - **Vercel Serverless**: https://vercel.com/docs/functions
 - **Supabase**: https://supabase.com/docs
 
@@ -430,6 +489,33 @@ GET /api/recommendations/performance?days=30
 ---
 
 ## 📝 변경 이력
+
+### v3.4 (2025-11-06) - 🎯 시스템 통합 (공매도 + 트렌드 + 선행지표)
+- ✅ **Phase 1: 공매도 KRX API 통합**
+  - 차트 기반 공매도 추정 시스템 구현 (`shortSellingApi.js`)
+  - 숏 커버링 신호 자동 감지 (none/weak/moderate/strong)
+  - 점수 체계: 0-20점 (공매도 비중 + 커버링 강도)
+  - KRX API 연동 경로 확보 (환경변수 설정만으로 전환)
+- ✅ **Phase 2: 트렌드 통합 검증**
+  - 네이버 뉴스 + Gemini AI 감성 분석 정상 작동 확인
+  - 트렌드 점수 통합: 70점 이상 시 0-15점 보너스
+  - HOT 이슈 배지 자동 표시 (S등급 → S+등급 업그레이드)
+- ✅ **Phase 3: 패턴+DNA 통합**
+  - `leadingIndicators.js` 통합 모듈 생성 (387 lines)
+  - smartPatternMining (D-5 선행 패턴) + volumeDnaExtractor (DNA 분석) 통합
+  - 하이브리드 점수: 패턴 50% + DNA 50%
+  - 강도 계산: very_high/high/moderate/low
+  - screening.js에 완전 통합 (0-10점)
+- ✅ **Phase 4: 중복 모듈 정리**
+  - `backend/backtestEngine.js` 삭제 (사용 안 함)
+  - `backend/screeningHybrid.js` 삭제 (screening.js와 중복)
+- ✅ **점수 체계 강화**: 100점 → 120점
+  - 기본: 0-20점
+  - 선행 지표: 0-80점 (VPM, 기관 수급, Confluence, 패턴+DNA, 신선도 등)
+  - 보너스: 0-35점 (트렌드 +15, 공매도 +20)
+- ✅ **추천 등급 조정**: 120점 만점 기준
+  - S: 90+ (기존 70+ @ 100점), A: 70-89, B: 50-69, C: 30-49
+- 📄 **문서 작성**: INTEGRATION_COMPLETE_SUMMARY.md (Phase 1-4 전체 요약)
 
 ### v3.3 (2025-11-06) - 🐛 Critical Bug Fix
 - 🐛 **chartData 배열 인덱싱 버그 수정** - 시스템 전체에 영향을 주는 critical 버그 발견 및 수정
@@ -485,10 +571,10 @@ GET /api/recommendations/performance?days=30
 ---
 
 **Last Updated**: 2025-11-06
-**Version**: 3.3 (Critical Bug Fix - chartData Indexing)
+**Version**: 3.4 (시스템 통합 - 공매도 + 트렌드 + 선행지표)
 **Author**: Claude Code with @knwwhr
 
-**✨ "거래량이 주가에 선행한다" - DNA 기반 종목 발굴 + 실전 성과 추적**
+**✨ "거래량이 주가에 선행한다" - 통합 시스템으로 급등주 선행 발굴**
 
 ---
 
@@ -536,3 +622,19 @@ const latestDate = chartData[0].date;  // ✅ 11월 6일
 - ⚠️ KIS API는 **내림차순** 응답 (최신 데이터가 첫 번째)
 - ⚠️ 배열 인덱싱 시 API 응답 구조 명확히 확인 필요
 - ⚠️ 로컬과 Vercel 환경의 데이터 일관성 테스트 필요
+
+---
+
+## 🎉 v3.4 통합 완료
+
+**Phase 1-4 통합 완료!**
+
+- ✅ 공매도 시스템 구현 (차트 추정 + KRX API 경로)
+- ✅ 트렌드 점수 통합 (0-15점 보너스 + HOT 배지)
+- ✅ 패턴+DNA 통합 모듈 (leadingIndicators.js)
+- ✅ 0-120점 점수 체계 확립
+- ✅ 중복 모듈 정리
+
+**최종 목표**: "종목 스크리닝, 급등주 선행매매, 패턴 분석이 하나로 통합된 시스템" ✅ 달성!
+
+자세한 통합 내역: `INTEGRATION_COMPLETE_SUMMARY.md` 참조
