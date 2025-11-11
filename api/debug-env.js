@@ -21,6 +21,7 @@ module.exports = async function handler(req, res) {
 
   const appKey = process.env.KIS_APP_KEY;
   const appSecret = process.env.KIS_APP_SECRET;
+  const krxApiKey = process.env.KRX_API_KEY;
 
   const response = {
     success: true,
@@ -28,10 +29,13 @@ module.exports = async function handler(req, res) {
     envCheck: {
       hasKisAppKey: !!appKey,
       hasKisAppSecret: !!appSecret,
+      hasKrxApiKey: !!krxApiKey,
       appKeyPrefix: appKey ? appKey.substring(0, 10) + '...' : 'NOT SET',
       appSecretPrefix: appSecret ? appSecret.substring(0, 10) + '...' : 'NOT SET',
+      krxApiKeyPrefix: krxApiKey ? krxApiKey.substring(0, 10) + '...' : 'NOT SET',
       appKeyLength: appKey ? appKey.length : 0,
       appSecretLength: appSecret ? appSecret.length : 0,
+      krxApiKeyLength: krxApiKey ? krxApiKey.length : 0,
     },
     note: 'Check if the prefix matches your expected values'
   };
