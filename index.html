@@ -1753,7 +1753,7 @@
             </h3>
 
             <div className="space-y-4">
-              {trackerData.stocks.slice(0, 10).map((stock) => {
+              {trackerData.stocks.map((stock) => {
                 const expanded = expandedStocks[stock.stock_code] || false;
 
                 return (
@@ -1842,11 +1842,9 @@
               })}
             </div>
 
-            {trackerData.stocks.length > 10 && (
-              <div className="mt-4 text-center text-gray-500 text-sm">
-                상위 10개 종목만 표시됩니다. (전체 {trackerData.stocks.length}개)
-              </div>
-            )}
+            <div className="mt-4 text-center text-gray-600 text-sm">
+              총 {trackerData.stocks.length}개 종목 표시 중
+            </div>
           </div>
 
           {trackerData.risingStocks && trackerData.risingStocks.length > 0 && (

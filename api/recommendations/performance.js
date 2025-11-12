@@ -8,6 +8,23 @@
 const supabase = require('../../backend/supabaseClient');
 const kisApi = require('../../backend/kisApi');
 
+/**
+ * 기하평균 수익률 계산 (복리 수익률)
+ * @param {number[]} returns - 수익률 배열 (%)
+ * @returns {number} 기하평균 수익률 (%)
+ */
+function calculateGeometricMean(returns) {
+  if (!returns || returns.length === 0) return 0;
+
+  // (1 + r1/100) × (1 + r2/100) × ... × (1 + rn/100)
+  const product = returns.reduce((acc, r) => acc * (1 + r / 100), 1);
+
+  // n제곱근 - 1
+  const geometricMean = (Math.pow(product, 1 / returns.length) - 1) * 100;
+
+  return geometricMean;
+}
+
 module.exports = async (req, res) => {
   // CORS 헤더
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -214,7 +231,9 @@ module.exports = async (req, res) => {
       if (stats.count > 0) {
         const winningCount = stats.stocks.filter(s => s.is_winning).length;
         stats.winRate = parseFloat((winningCount / stats.count * 100).toFixed(1));
-        stats.avgReturn = parseFloat((stats.stocks.reduce((sum, s) => sum + s.current_return, 0) / stats.count).toFixed(2));
+        // 기하평균 계산 (복리 수익률)
+        const returns = stats.stocks.map(s => s.current_return);
+        stats.avgReturn = parseFloat(calculateGeometricMean(returns).toFixed(2));
         stats.maxReturn = parseFloat(Math.max(...stats.stocks.map(s => s.current_return)).toFixed(2));
       }
       delete stats.stocks; // 응답에서 stocks 제거 (중복)
@@ -250,9 +269,9 @@ module.exports = async (req, res) => {
     Object.values(byRecommendationDate).forEach(dateGroup => {
       const winningCount = dateGroup.stocks.filter(s => s.is_winning).length;
       dateGroup.winRate = parseFloat((winningCount / dateGroup.stocks.length * 100).toFixed(1));
-      dateGroup.avgReturn = parseFloat(
-        (dateGroup.stocks.reduce((sum, s) => sum + s.current_return, 0) / dateGroup.stocks.length).toFixed(2)
-      );
+      // 기하평균 계산 (복리 수익률)
+      const returns = dateGroup.stocks.map(s => s.current_return);
+      dateGroup.avgReturn = parseFloat(calculateGeometricMean(returns).toFixed(2));
     });
 
     // 추천일자별 정렬 (최신순)
@@ -284,7 +303,8 @@ module.exports = async (req, res) => {
       .filter(s => s.recommendation_count >= 2)
       .map(s => ({
         ...s,
-        avg_return: parseFloat((s.returns.reduce((sum, r) => sum + r, 0) / s.returns.length).toFixed(2))
+        // 기하평균 계산 (복리 수익률)
+        avg_return: parseFloat(calculateGeometricMean(s.returns).toFixed(2))
       }))
       .sort((a, b) => b.recommendation_count - a.recommendation_count || b.avg_return - a.avg_return);
 
