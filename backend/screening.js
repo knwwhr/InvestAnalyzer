@@ -3,7 +3,6 @@ const volumeIndicators = require('./volumeIndicators');
 const advancedIndicators = require('./advancedIndicators');
 const smartPatternMiner = require('./smartPatternMining');
 const trendScoring = require('./trendScoring');
-const shortSellingApi = require('./shortSellingApi');
 const leadingIndicators = require('./leadingIndicators');
 
 /**
@@ -162,9 +161,6 @@ class StockScreener {
       // 트렌드 점수 조회 (Google Trends + 뉴스 + AI 감성)
       const trendScore = await trendScoring.getStockTrendScore(stockCode);
 
-      // 공매도 데이터 조회 (KRX API 또는 추정)
-      const shortSellingData = await shortSellingApi.getShortSellingData(stockCode, 20);
-
       // 종합 점수 계산 (기술적 지표 + 트렌드 점수 + 고점 되돌림 페널티)
       let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore, chartData, currentData.currentPrice);
 
@@ -233,7 +229,7 @@ class StockScreener {
 
       totalScore += leadingPoints;
 
-      // 4. 트렌드 점수 (0-15점) ⭐ NEW
+      // 4. 트렌드 점수 (0-15점)
       let trendBonus = 0;
       if (trendScore && trendScore.total_trend_score >= 70) {
         trendBonus = Math.min((trendScore.total_trend_score - 70) / 2, 15);
@@ -241,14 +237,8 @@ class StockScreener {
       }
       totalScore += trendBonus;
 
-      // 5. 공매도 점수 (0-20점) ⭐ NEW
-      const shortSellingScore = shortSellingData
-        ? shortSellingApi.calculateCoveringScore(shortSellingData, chartData)
-        : 0;
-      totalScore += shortSellingScore;
-
-      // 6. 최종 점수 (0-120점 범위, NaN 방지)
-      totalScore = isNaN(totalScore) ? 0 : Math.min(Math.max(totalScore, 0), 120);
+      // 5. 최종 점수 (0-100점 범위, NaN 방지)
+      totalScore = isNaN(totalScore) ? 0 : Math.min(Math.max(totalScore, 0), 100);
 
       // ========================================
       // 가점/감점 상세 내역 (스코어 카드)
@@ -257,12 +247,11 @@ class StockScreener {
         // 기본 점수 (0-20점: 거래량 + OBV + VWAP + 비대칭 - 되돌림)
         baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore, chartData, currentData.currentPrice)),
 
-        // 가점 요인 (선행 지표 중심, 총 115점)
+        // 가점 요인 (선행 지표 중심, 총 95점)
         bonuses: [
           { name: "VPM (거래량-가격 모멘텀)", value: Math.round(vpmScore), active: vpm.score > 0 },
           { name: "기관/외국인 수급", value: Math.round(institutionalFlow.score || 0), active: institutionalFlow.detected },
-          { name: "트렌드 (뉴스+감성)", value: Math.round(trendBonus), active: trendBonus > 0 }, // ⭐ NEW
-          { name: "공매도 (숏 커버링)", value: Math.round(shortSellingScore), active: shortSellingScore > 0 }, // ⭐ NEW
+          { name: "트렌드 (뉴스+감성)", value: Math.round(trendBonus), active: trendBonus > 0 },
           { name: "합류점 (Confluence)", value: Math.round(Math.min((confluence.confluenceScore || 0) * 0.6, 12)), active: confluence.confluenceCount >= 2 },
           {
             name: leadingScore ? "선행 지표 (패턴+DNA)" : "패턴 매칭 (Fallback)",
@@ -321,17 +310,6 @@ class StockScreener {
           sentiment: trendScore.sentiment_score,
           isHotIssue: trendScore.is_hot_issue,
           searchSurge: trendScore.search_surge
-        } : null,
-        shortSelling: shortSellingData ? { // ⭐ 공매도 정보 추가 (NEW)
-          ratio: shortSellingData.shortRatio,
-          volumeChange: shortSellingData.shortVolumeChange,
-          trend: shortSellingData.shortTrend,
-          isCovering: shortSellingData.isShortCovering,
-          coveringStrength: shortSellingData.coveringStrength,
-          score: shortSellingScore,
-          summary: shortSellingApi.generateSummaryMessage(shortSellingData),
-          confidence: shortSellingData.confidence,
-          dataSource: shortSellingData.dataSource
         } : null,
         overheating, // Phase 4C 과열 정보 추가
         leadingIndicators: leadingScore ? { // ⭐ 선행 지표 통합 (NEW)
@@ -409,26 +387,26 @@ class StockScreener {
   }
 
   /**
-   * 추천 등급 산출 (120점 만점 기준, 선행 지표 중심)
-   * 트렌드(0-15점) + 공매도(0-20점) 통합으로 120점 만점
+   * 추천 등급 산출 (100점 만점 기준, 선행 지표 중심)
+   * 트렌드(0-15점) 통합으로 100점 만점
    */
   getRecommendation(score, tier, overheating, trendScore = null) {
     let grade, text, color;
 
-    // 기본 등급 산정 (120점 만점, 트렌드+공매도 통합)
-    if (score >= 90) {
+    // 기본 등급 산정 (100점 만점)
+    if (score >= 75) {
       grade = 'S';
       text = '🔥 최우선 매수';
       color = '#ff4444';
-    } else if (score >= 70) {
+    } else if (score >= 58) {
       grade = 'A';
       text = '🟢 적극 매수';
       color = '#00cc00';
-    } else if (score >= 50) {
+    } else if (score >= 42) {
       grade = 'B';
       text = '🟡 매수 고려';
       color = '#ffaa00';
-    } else if (score >= 30) {
+    } else if (score >= 25) {
       grade = 'C';
       text = '⚪ 주목';
       color = '#888888';
