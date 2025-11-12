@@ -92,13 +92,12 @@ function detectSilentAccumulation(chartData) {
   // 사용 가능한 모든 데이터 사용
   const recent = chartData.slice(-Math.min(20, dataLength));
 
-  // 가격 변동성 계산
+  // 종가 기준 가격 변동폭 계산
   const prices = recent.map(d => d.close);
   const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
-  const priceStdDev = Math.sqrt(
-    prices.reduce((sum, p) => sum + Math.pow(p - avgPrice, 2), 0) / prices.length
-  );
-  const priceVolatility = (priceStdDev / avgPrice) * 100;
+  const maxPrice = Math.max(...prices);
+  const minPrice = Math.min(...prices);
+  const priceRange = ((maxPrice - minPrice) / avgPrice) * 100;
 
   // 거래량 추세 계산 (데이터 양에 따라 동적 분할)
   let volumeGrowth = 0;
@@ -119,15 +118,17 @@ function detectSilentAccumulation(chartData) {
   }
 
   // 조용한 매집 조건 (완화):
-  // 1. 가격 변동성 낮음 (15% 미만) - 횡보 구간
+  // 1. 종가 기준 가격 변동 10% 이내 - 횡보 구간
   // 2. 거래량 증가 (0% 이상) - 증가 또는 유지
-  const isSilentAccumulation = priceVolatility < 15 && volumeGrowth > 0;
+  const isSilentAccumulation = priceRange <= 10 && volumeGrowth > 0;
 
   return {
     detected: isSilentAccumulation,
-    priceVolatility: priceVolatility.toFixed(2),
+    priceRange: priceRange.toFixed(2),
     volumeGrowth: volumeGrowth.toFixed(2),
     avgPrice: Math.round(avgPrice),
+    maxPrice: Math.round(maxPrice),
+    minPrice: Math.round(minPrice),
     signal: isSilentAccumulation ? '🤫 조용한 매집 진행중' : '없음',
     score: isSilentAccumulation ? Math.max(volumeGrowth, 10) : 0
   };
