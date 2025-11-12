@@ -76,7 +76,7 @@ module.exports = async (req, res) => {
         try {
           // 현재 가격 조회
           const currentData = await kisApi.getCurrentPrice(rec.stock_code);
-          const currentPrice = currentData?.price || rec.recommended_price;
+          const currentPrice = currentData?.currentPrice || rec.recommended_price;
 
           // 수익률 계산
           const returnPct = rec.recommended_price > 0
@@ -95,18 +95,18 @@ module.exports = async (req, res) => {
               .from('recommendation_daily_prices')
               .select('*')
               .eq('recommendation_id', rec.id)
-              .order('price_date', { ascending: true });
+              .order('tracking_date', { ascending: true });
 
             if (!priceError && priceData) {
               dailyPrices = priceData.map(p => ({
-                date: p.price_date,
-                price: p.close_price,
+                date: p.tracking_date,
+                price: p.closing_price,
                 return: rec.recommended_price > 0
-                  ? ((p.close_price - rec.recommended_price) / rec.recommended_price * 100).toFixed(2)
+                  ? ((p.closing_price - rec.recommended_price) / rec.recommended_price * 100).toFixed(2)
                   : 0,
                 volume: p.volume,
-                high: p.high_price,
-                low: p.low_price
+                cumulativeReturn: p.cumulative_return,
+                daysSince: p.days_since_recommendation
               }));
             }
           } catch (priceErr) {

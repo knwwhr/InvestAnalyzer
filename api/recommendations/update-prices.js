@@ -64,7 +64,7 @@ module.exports = async (req, res) => {
       try {
         // 현재가 조회
         const currentData = await kisApi.getCurrentPrice(rec.stock_code);
-        const closingPrice = currentData?.price || rec.recommended_price;
+        const closingPrice = currentData?.currentPrice || rec.recommended_price;
 
         // 경과일 계산
         const recDate = new Date(rec.recommendation_date);
