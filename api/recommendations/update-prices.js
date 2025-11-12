@@ -129,13 +129,13 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Supabase에 일괄 저장
+    // Supabase에 일괄 저장 (upsert = 있으면 업데이트, 없으면 삽입)
     if (dailyPrices.length > 0) {
       const { data: inserted, error: insertError } = await supabase
         .from('recommendation_daily_prices')
         .upsert(dailyPrices, {
           onConflict: 'recommendation_id,tracking_date',
-          ignoreDuplicates: true
+          ignoreDuplicates: false  // 항상 최신 데이터로 업데이트
         });
 
       if (insertError) {
