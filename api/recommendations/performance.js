@@ -75,9 +75,26 @@ module.exports = async (req, res) => {
 
     for (const rec of recommendations) {
       try {
-        // 현재 가격 조회
+        // 현재 가격 조회 (실시간 시세)
+        let currentPrice = rec.recommended_price; // 기본값
         const currentData = await kisApi.getCurrentPrice(rec.stock_code);
-        const currentPrice = currentData?.currentPrice || rec.recommended_price;
+
+        if (currentData?.currentPrice) {
+          // 실시간 시세 조회 성공
+          currentPrice = currentData.currentPrice;
+        } else {
+          // 폐장 시간 등으로 실시간 시세 조회 실패 → 최근 종가 조회
+          console.log(`⏰ 실시간 시세 없음 [${rec.stock_code}] - 최근 종가 조회 중...`);
+          try {
+            const chartData = await kisApi.getDailyChart(rec.stock_code, 1);
+            if (chartData && chartData.length > 0 && chartData[0].close) {
+              currentPrice = chartData[0].close;
+              console.log(`✅ 종가 조회 성공 [${rec.stock_code}]: ${currentPrice}원`);
+            }
+          } catch (chartError) {
+            console.warn(`❌ 종가 조회 실패 [${rec.stock_code}]:`, chartError.message);
+          }
+        }
 
         // 수익률 계산
         const returnPct = rec.recommended_price > 0
