@@ -1743,7 +1743,36 @@
 
           {/* 등급별 성과 */}
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-2xl font-bold mb-6">📊 등급별 성과</h3>
+            <h3 className="text-2xl font-bold mb-4">📊 등급별 성과</h3>
+
+            {/* 등급 기준 설명 */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+              <h4 className="font-bold text-blue-900 mb-3">🎯 등급 부여 기준 (100점 만점)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="bg-white p-3 rounded border-l-4 border-red-500">
+                  <div className="font-bold text-red-700 mb-1">S등급: 75점 이상</div>
+                  <div className="text-gray-700">🔥 최우선 매수 - 급등 예정 신호 강함</div>
+                </div>
+                <div className="bg-white p-3 rounded border-l-4 border-orange-500">
+                  <div className="font-bold text-orange-700 mb-1">A등급: 58~74점</div>
+                  <div className="text-gray-700">🟢 적극 매수 - 상승 가능성 높음</div>
+                </div>
+                <div className="bg-white p-3 rounded border-l-4 border-yellow-500">
+                  <div className="font-bold text-yellow-700 mb-1">B등급: 42~57점</div>
+                  <div className="text-gray-700">🟡 매수 고려 - 적정 상승 가능성</div>
+                </div>
+                <div className="bg-white p-3 rounded border-l-4 border-gray-400">
+                  <div className="font-bold text-gray-700 mb-1">C등급: 25~41점</div>
+                  <div className="text-gray-700">⚪ 주목 - 관망 필요</div>
+                </div>
+              </div>
+              <div className="mt-3 p-3 bg-blue-100 rounded text-xs text-blue-900">
+                <strong>💡 점수 구성:</strong> 기본 점수 (0-20점) + 선행 지표 (0-80점) = 총 100점<br/>
+                • 기본: 거래량 비율, OBV 추세, VWAP 모멘텀, 비대칭 비율<br/>
+                • 선행: VPM, 기관/외국인 수급, 합류점, 패턴+DNA, 신호 신선도, Cup&Handle, 돌파 확인
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-100">
@@ -1756,137 +1785,83 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(trackerData.statistics?.byGrade || {}).map(([grade, gstats]) => (
-                    <tr key={grade} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <span className={`inline-block px-3 py-1 rounded-full text-white font-bold grade-${grade}`}>
-                          {grade}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">{gstats.count}개</td>
-                      <td className="px-4 py-3">
-                        <span className={gstats.winRate >= 70 ? 'text-green-600 font-bold' : gstats.winRate >= 50 ? 'text-blue-600' : 'text-gray-600'}>
-                          {gstats.winRate}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={gstats.avgReturn > 0 ? 'text-red-600 font-bold' : 'text-blue-600'}>
-                          {gstats.avgReturn > 0 ? '+' : ''}{gstats.avgReturn}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-green-600 font-semibold">+{gstats.maxReturn}%</td>
-                    </tr>
-                  ))}
+                  {Object.entries(trackerData.statistics?.byGrade || {}).map(([grade, gstats]) => {
+                    const gradeStocks = trackerData.stocks.filter(s => s.recommendation_grade === grade);
+                    const isExpanded = expandedGrades[grade] || false;
+
+                    return (
+                      <React.Fragment key={grade}>
+                        <tr
+                          className="border-b hover:bg-gray-50 cursor-pointer transition"
+                          onClick={() => toggleGradeExpand(grade)}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-500">{isExpanded ? '▼' : '▶'}</span>
+                              <span className={`inline-block px-3 py-1 rounded-full text-white font-bold grade-${grade}`}>
+                                {grade}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">{gstats.count}개</td>
+                          <td className="px-4 py-3">
+                            <span className={gstats.winRate >= 70 ? 'text-green-600 font-bold' : gstats.winRate >= 50 ? 'text-blue-600' : 'text-gray-600'}>
+                              {gstats.winRate}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={gstats.avgReturn > 0 ? 'text-red-600 font-bold' : 'text-blue-600'}>
+                              {gstats.avgReturn > 0 ? '+' : ''}{gstats.avgReturn}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-green-600 font-semibold">+{gstats.maxReturn}%</td>
+                        </tr>
+
+                        {/* 확장된 종목 목록 */}
+                        {isExpanded && gradeStocks.length > 0 && (
+                          <tr>
+                            <td colSpan="5" className="px-4 py-4 bg-gray-50">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {gradeStocks.map(stock => (
+                                  <div key={stock.stock_code} className="bg-white rounded-lg p-3 border shadow-sm hover:shadow-md transition">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div>
+                                        <div className="font-bold text-sm">{stock.stock_name}</div>
+                                        <div className="text-xs text-gray-500">{stock.stock_code}</div>
+                                      </div>
+                                      <div className={`text-lg font-bold ${stock.current_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                        {stock.current_return >= 0 ? '+' : ''}{stock.current_return}%
+                                      </div>
+                                    </div>
+                                    <div className="text-xs space-y-1">
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">추천가:</span>
+                                        <span>{stock.recommended_price.toLocaleString()}원</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">현재가:</span>
+                                        <span className="font-semibold">{stock.current_price.toLocaleString()}원</span>
+                                      </div>
+                                      <div className="flex justify-between text-gray-500 pt-1 border-t">
+                                        <span>추천일:</span>
+                                        <span>{stock.recommendation_date}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
 
           {/* 🔥 연속 급등주 (2일 이상 연속 상승) */}
-          {/* 날짜별 수익률 추이 */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-              📅 날짜별 수익률 추이
-              <span className="text-sm font-normal text-gray-600">
-                (추천 종목의 일별 성과)
-              </span>
-            </h3>
-
-            <div className="space-y-4">
-              {trackerData.stocks.map((stock) => {
-                const expanded = expandedStocks[stock.stock_code] || false;
-
-                return (
-                  <div key={stock.stock_code} className="border rounded-lg overflow-hidden">
-                    {/* 종목 헤더 (클릭 가능) */}
-                    <button
-                      onClick={() => toggleExpand(stock.stock_code)}
-                      className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 flex justify-between items-center transition"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`px-2 py-1 rounded text-white text-xs font-bold grade-${stock.recommendation_grade}`}>
-                          {stock.recommendation_grade}
-                        </div>
-                        <div className="text-left">
-                          <div className="font-bold">{stock.stock_name}</div>
-                          <div className="text-xs text-gray-500">{stock.stock_code}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="text-sm text-gray-600">추천가 → 현재가</div>
-                          <div className="font-semibold">
-                            {stock.recommended_price.toLocaleString()}원 → {stock.current_price.toLocaleString()}원
-                          </div>
-                        </div>
-                        <div className={`text-2xl font-bold ${stock.current_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
-                          {stock.current_return >= 0 ? '+' : ''}{stock.current_return}%
-                        </div>
-                        <div className="text-gray-400">
-                          {expanded ? '▼' : '▶'}
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* 날짜별 상세 데이터 (펼쳤을 때만 보임) */}
-                    {expanded && stock.daily_prices && stock.daily_prices.length > 0 && (
-                      <div className="p-4 bg-white">
-                        <div className="text-sm text-gray-600 mb-3">
-                          📊 추천 이후 {stock.days_since_recommendation}일간의 가격 추이
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead className="bg-gray-100">
-                              <tr>
-                                <th className="px-3 py-2 text-left">날짜</th>
-                                <th className="px-3 py-2 text-center">경과일</th>
-                                <th className="px-3 py-2 text-right">종가</th>
-                                <th className="px-3 py-2 text-right">수익률</th>
-                                <th className="px-3 py-2 text-right">거래량</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {stock.daily_prices.map((dailyData, idx) => (
-                                <tr key={idx} className="border-b hover:bg-gray-50">
-                                  <td className="px-3 py-2">{dailyData.date}</td>
-                                  <td className="px-3 py-2 text-center text-gray-500">
-                                    D+{dailyData.daysSince}
-                                  </td>
-                                  <td className="px-3 py-2 text-right font-semibold">
-                                    {dailyData.price.toLocaleString()}원
-                                  </td>
-                                  <td className={`px-3 py-2 text-right font-bold ${dailyData.return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
-                                    {dailyData.return >= 0 ? '+' : ''}{dailyData.return}%
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-gray-600">
-                                    {dailyData.volume ? dailyData.volume.toLocaleString() : '-'}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 데이터 없을 때 */}
-                    {expanded && (!stock.daily_prices || stock.daily_prices.length === 0) && (
-                      <div className="p-4 bg-yellow-50 text-center text-gray-600">
-                        📊 아직 일별 가격 데이터가 수집되지 않았습니다.
-                        <br />
-                        <span className="text-sm">매일 16시 자동 업데이트됩니다.</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 text-center text-gray-600 text-sm">
-              총 {trackerData.stocks.length}개 종목 표시 중
-            </div>
-          </div>
-
           {trackerData.risingStocks && trackerData.risingStocks.length > 0 && (
             <div className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-300 rounded-xl shadow-lg p-6">
               <h3 className="text-2xl font-bold mb-4 text-red-900 flex items-center gap-2">
@@ -1956,7 +1931,30 @@
 
           {/* 카테고리별 성과 */}
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-2xl font-bold mb-6">🎯 카테고리별 성과</h3>
+            <h3 className="text-2xl font-bold mb-4">🎯 카테고리별 성과</h3>
+
+            {/* 카테고리 상세 설명 */}
+            <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(categoryDescriptions).map(([key, desc]) => (
+                <div key={key} className="p-4 bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-lg hover:shadow-md transition">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{desc.icon}</span>
+                    <h4 className="font-bold text-lg text-gray-800">{desc.label}</h4>
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed">{desc.description}</p>
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="text-xs text-gray-600">
+                      <strong>판별 조건:</strong>
+                      {key === 'whale' && ' whale_detected = true (거래량 2.5배+ && 가격 3%+)'}
+                      {key === 'accumulation' && ' accumulation_detected = true (가격 <3% && 거래량 20%+)'}
+                      {key === 'both' && ' whale_detected && accumulation_detected 모두 true'}
+                      {key === 'normal' && ' 둘 다 false (Volume-Price Divergence 기준)'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-100">
@@ -1969,23 +1967,87 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(trackerData.statistics?.byCategory || {}).map(([key, cstats]) => (
-                    <tr key={key} className="border-b hover:bg-gray-50">
-                      <td className="px-4 py-3 font-semibold">{cstats.label}</td>
-                      <td className="px-4 py-3">{cstats.count}개</td>
-                      <td className="px-4 py-3">
-                        <span className={cstats.winRate >= 70 ? 'text-green-600 font-bold' : cstats.winRate >= 50 ? 'text-blue-600' : 'text-gray-600'}>
-                          {cstats.winRate}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={cstats.avgReturn > 0 ? 'text-red-600 font-bold' : 'text-blue-600'}>
-                          {cstats.avgReturn > 0 ? '+' : ''}{cstats.avgReturn}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-green-600 font-semibold">+{cstats.maxReturn}%</td>
-                    </tr>
-                  ))}
+                  {Object.entries(trackerData.statistics?.byCategory || {}).map(([key, cstats]) => {
+                    // 카테고리별 종목 필터링
+                    const categoryStocks = trackerData.stocks.filter(stock => {
+                      if (key === 'whale') return stock.whale_detected && !stock.accumulation_detected;
+                      if (key === 'accumulation') return stock.accumulation_detected && !stock.whale_detected;
+                      if (key === 'both') return stock.whale_detected && stock.accumulation_detected;
+                      if (key === 'normal') return !stock.whale_detected && !stock.accumulation_detected;
+                      return false;
+                    });
+                    const isExpanded = expandedCategories[key] || false;
+
+                    return (
+                      <React.Fragment key={key}>
+                        <tr
+                          className="border-b hover:bg-gray-50 cursor-pointer transition"
+                          onClick={() => toggleCategoryExpand(key)}
+                        >
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-500">{isExpanded ? '▼' : '▶'}</span>
+                              <span className="font-semibold">{cstats.label}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">{cstats.count}개</td>
+                          <td className="px-4 py-3">
+                            <span className={cstats.winRate >= 70 ? 'text-green-600 font-bold' : cstats.winRate >= 50 ? 'text-blue-600' : 'text-gray-600'}>
+                              {cstats.winRate}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={cstats.avgReturn > 0 ? 'text-red-600 font-bold' : 'text-blue-600'}>
+                              {cstats.avgReturn > 0 ? '+' : ''}{cstats.avgReturn}%
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-green-600 font-semibold">+{cstats.maxReturn}%</td>
+                        </tr>
+
+                        {/* 확장된 종목 목록 */}
+                        {isExpanded && categoryStocks.length > 0 && (
+                          <tr>
+                            <td colSpan="5" className="px-4 py-4 bg-gray-50">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {categoryStocks.map(stock => (
+                                  <div key={stock.stock_code} className="bg-white rounded-lg p-3 border shadow-sm hover:shadow-md transition">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div>
+                                        <div className="font-bold text-sm">{stock.stock_name}</div>
+                                        <div className="text-xs text-gray-500">{stock.stock_code}</div>
+                                      </div>
+                                      <div className="flex flex-col items-end gap-1">
+                                        <div className={`px-2 py-0.5 rounded text-white text-xs font-bold grade-${stock.recommendation_grade}`}>
+                                          {stock.recommendation_grade}
+                                        </div>
+                                        <div className={`text-lg font-bold ${stock.current_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                          {stock.current_return >= 0 ? '+' : ''}{stock.current_return}%
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs space-y-1">
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">추천가:</span>
+                                        <span>{stock.recommended_price.toLocaleString()}원</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">현재가:</span>
+                                        <span className="font-semibold">{stock.current_price.toLocaleString()}원</span>
+                                      </div>
+                                      <div className="flex justify-between text-gray-500 pt-1 border-t">
+                                        <span>추천일:</span>
+                                        <span>{stock.recommendation_date}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -2020,34 +2082,96 @@
                       </div>
                     </div>
 
-                    {/* 종목 목록 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {dateGroup.stocks.map((stock, sIdx) => (
-                        <div key={sIdx} className="bg-gray-50 rounded p-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <div className="font-semibold text-sm">{stock.stock_name}</div>
-                              <div className="text-xs text-gray-500">{stock.stock_code}</div>
-                            </div>
-                            <div className={`px-2 py-1 rounded text-white text-xs font-bold grade-${stock.recommendation_grade}`}>
-                              {stock.recommendation_grade}
-                            </div>
+                    {/* 종목 목록 (클릭하면 일별 가격 추이 표시) */}
+                    <div className="grid grid-cols-1 gap-3">
+                      {dateGroup.stocks.map((stock, sIdx) => {
+                        const stockKey = `${dateGroup.date}_${stock.stock_code}`;
+                        const expanded = expandedStocks[stockKey] || false;
+
+                        return (
+                          <div key={sIdx} className="bg-gray-50 rounded overflow-hidden">
+                            {/* 종목 헤더 (클릭 가능) */}
+                            <button
+                              onClick={() => toggleExpand(stockKey)}
+                              className="w-full px-3 py-2 hover:bg-gray-100 transition flex justify-between items-center"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`px-2 py-1 rounded text-white text-xs font-bold grade-${stock.recommendation_grade}`}>
+                                  {stock.recommendation_grade}
+                                </div>
+                                <div className="text-left">
+                                  <div className="font-semibold text-sm">{stock.stock_name}</div>
+                                  <div className="text-xs text-gray-500">{stock.stock_code}</div>
+                                </div>
+                                {stock.is_rising && (
+                                  <div className="text-xs text-red-600 font-semibold">
+                                    🔥 {stock.consecutive_rise_days}일 연속
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="text-right text-xs">
+                                  <div className="text-gray-600">
+                                    {stock.recommended_price.toLocaleString()}원 → {stock.current_price.toLocaleString()}원
+                                  </div>
+                                  <div className={`font-bold ${stock.current_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                    {stock.current_return >= 0 ? '+' : ''}{stock.current_return}%
+                                  </div>
+                                </div>
+                                <div className="text-gray-400 text-xs">
+                                  {expanded ? '▼' : '▶'}
+                                </div>
+                              </div>
+                            </button>
+
+                            {/* 일별 가격 추이 (펼쳤을 때만 보임) */}
+                            {expanded && stock.daily_prices && stock.daily_prices.length > 0 && (
+                              <div className="p-3 bg-white border-t">
+                                <div className="text-xs text-gray-600 mb-2">
+                                  📊 추천 이후 {stock.daily_prices.length}일간의 가격 추이
+                                </div>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-xs">
+                                    <thead className="bg-gray-100">
+                                      <tr>
+                                        <th className="px-2 py-1 text-left">날짜</th>
+                                        <th className="px-2 py-1 text-center">D+</th>
+                                        <th className="px-2 py-1 text-right">종가</th>
+                                        <th className="px-2 py-1 text-right">수익률</th>
+                                        <th className="px-2 py-1 text-right">거래량</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {stock.daily_prices.map((dailyData, dIdx) => (
+                                        <tr key={dIdx} className="border-b hover:bg-gray-50">
+                                          <td className="px-2 py-1">{dailyData.date}</td>
+                                          <td className="px-2 py-1 text-center text-gray-500">{dailyData.daysSince}</td>
+                                          <td className="px-2 py-1 text-right font-semibold">{dailyData.price.toLocaleString()}원</td>
+                                          <td className={`px-2 py-1 text-right font-bold ${dailyData.return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                            {dailyData.return >= 0 ? '+' : ''}{dailyData.return}%
+                                          </td>
+                                          <td className="px-2 py-1 text-right text-gray-600">
+                                            {dailyData.volume ? dailyData.volume.toLocaleString() : '-'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 데이터 없을 때 */}
+                            {expanded && (!stock.daily_prices || stock.daily_prices.length === 0) && (
+                              <div className="p-3 bg-yellow-50 text-center text-gray-600 border-t text-xs">
+                                📊 아직 일별 가격 데이터가 수집되지 않았습니다.
+                                <br />
+                                <span className="text-xs">매일 16시 자동 업데이트됩니다.</span>
+                              </div>
+                            )}
                           </div>
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-gray-600">
-                              {stock.recommended_price.toLocaleString()}원 → {stock.current_price.toLocaleString()}원
-                            </span>
-                            <span className={`font-bold ${stock.current_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
-                              {stock.current_return >= 0 ? '+' : ''}{stock.current_return}%
-                            </span>
-                          </div>
-                          {stock.is_rising && (
-                            <div className="mt-1 text-xs text-red-600 font-semibold">
-                              🔥 {stock.consecutive_rise_days}일 연속 상승
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
