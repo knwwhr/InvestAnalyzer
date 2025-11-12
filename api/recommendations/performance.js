@@ -86,10 +86,13 @@ module.exports = async (req, res) => {
           // 폐장 시간 등으로 실시간 시세 조회 실패 → 최근 종가 조회
           console.log(`⏰ 실시간 시세 없음 [${rec.stock_code}] - 최근 종가 조회 중...`);
           try {
-            const chartData = await kisApi.getDailyChart(rec.stock_code, 1);
+            // 2일치 데이터를 받아서 확실하게 종가 확보
+            const chartData = await kisApi.getDailyChart(rec.stock_code, 2);
             if (chartData && chartData.length > 0 && chartData[0].close) {
               currentPrice = chartData[0].close;
-              console.log(`✅ 종가 조회 성공 [${rec.stock_code}]: ${currentPrice}원`);
+              console.log(`✅ 종가 조회 성공 [${rec.stock_code}]: ${currentPrice}원 (${chartData[0].date})`);
+            } else {
+              console.warn(`⚠️ 차트 데이터 없음 [${rec.stock_code}]`);
             }
           } catch (chartError) {
             console.warn(`❌ 종가 조회 실패 [${rec.stock_code}]:`, chartError.message);
