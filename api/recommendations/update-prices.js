@@ -5,8 +5,16 @@
  * 활성 추천 종목의 오늘 종가를 기록 (Cron Job용)
  */
 
-const supabase = require('../../backend/supabaseClient');
+const { createClient } = require('@supabase/supabase-js');
 const kisApi = require('../../backend/kisApi');
+
+// Supabase 서비스 롤 클라이언트 (RLS 우회 가능)
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+
+const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
 module.exports = async (req, res) => {
   // CORS 헤더
