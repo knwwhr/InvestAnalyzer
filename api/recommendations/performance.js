@@ -75,28 +75,35 @@ module.exports = async (req, res) => {
 
     for (const rec of recommendations) {
       try {
-        // 현재 가격 조회 (실시간 시세)
+        // 날짜별 가격 데이터 조회 (Supabase에서)
+        let dailyPrices = [];
         let currentPrice = rec.recommended_price; // 기본값
-        const currentData = await kisApi.getCurrentPrice(rec.stock_code);
 
-        if (currentData?.currentPrice) {
-          // 실시간 시세 조회 성공
-          currentPrice = currentData.currentPrice;
-        } else {
-          // 폐장 시간 등으로 실시간 시세 조회 실패 → 최근 종가 조회
-          console.log(`⏰ 실시간 시세 없음 [${rec.stock_code}] - 최근 종가 조회 중...`);
-          try {
-            // 2일치 데이터를 받아서 확실하게 종가 확보
-            const chartData = await kisApi.getDailyChart(rec.stock_code, 2);
-            if (chartData && chartData.length > 0 && chartData[0].close) {
-              currentPrice = chartData[0].close;
-              console.log(`✅ 종가 조회 성공 [${rec.stock_code}]: ${currentPrice}원 (${chartData[0].date})`);
-            } else {
-              console.warn(`⚠️ 차트 데이터 없음 [${rec.stock_code}]`);
-            }
-          } catch (chartError) {
-            console.warn(`❌ 종가 조회 실패 [${rec.stock_code}]:`, chartError.message);
+        try {
+          const { data: priceData, error: priceError } = await supabase
+            .from('recommendation_daily_prices')
+            .select('*')
+            .eq('recommendation_id', rec.id)
+            .order('tracking_date', { ascending: true });
+
+          if (!priceError && priceData && priceData.length > 0) {
+            // daily_prices 데이터 가공
+            dailyPrices = priceData.map(p => ({
+              date: p.tracking_date,
+              price: p.closing_price,
+              return: rec.recommended_price > 0
+                ? ((p.closing_price - rec.recommended_price) / rec.recommended_price * 100).toFixed(2)
+                : 0,
+              volume: p.volume,
+              cumulativeReturn: p.cumulative_return,
+              daysSince: p.days_since_recommendation
+            }));
+
+            // 가장 최근 가격을 현재가로 사용 (KIS API 호출 제거)
+            currentPrice = priceData[priceData.length - 1].closing_price;
           }
+        } catch (priceErr) {
+          console.warn(`일별 가격 조회 실패 [${rec.stock_code}]:`, priceErr.message);
         }
 
         // 수익률 계산
@@ -109,48 +116,19 @@ module.exports = async (req, res) => {
         const today = new Date();
         const daysSince = Math.floor((today - recDate) / (1000 * 60 * 60 * 24));
 
-        // 날짜별 가격 데이터 조회 (Supabase에서)
-        let dailyPrices = [];
-        try {
-          const { data: priceData, error: priceError } = await supabase
-            .from('recommendation_daily_prices')
-            .select('*')
-            .eq('recommendation_id', rec.id)
-            .order('tracking_date', { ascending: true });
-
-          if (!priceError && priceData) {
-            dailyPrices = priceData.map(p => ({
-              date: p.tracking_date,
-              price: p.closing_price,
-              return: rec.recommended_price > 0
-                ? ((p.closing_price - rec.recommended_price) / rec.recommended_price * 100).toFixed(2)
-                : 0,
-              volume: p.volume,
-              cumulativeReturn: p.cumulative_return,
-              daysSince: p.days_since_recommendation
-            }));
-          }
-        } catch (priceErr) {
-          console.warn(`일별 가격 조회 실패 [${rec.stock_code}]:`, priceErr.message);
-        }
-
-        // 연속 상승일 계산 (최근 5일 차트 데이터로 확인)
+        // 연속 상승일 계산 (daily_prices 데이터에서)
         let consecutiveRiseDays = 0;
-        try {
-          const chartData = await kisApi.getDailyChart(rec.stock_code, 5);
-          if (chartData && chartData.length > 1) {
-            for (let i = 0; i < chartData.length - 1; i++) {
-              const todayData = chartData[i];
-              const yesterdayData = chartData[i + 1];
-              if (todayData.close > yesterdayData.close) {
-                consecutiveRiseDays++;
-              } else {
-                break;
-              }
+        if (dailyPrices.length > 1) {
+          // 최신 데이터부터 역순으로 확인 (마지막 인덱스부터)
+          for (let i = dailyPrices.length - 1; i > 0; i--) {
+            const todayPrice = dailyPrices[i].price;
+            const yesterdayPrice = dailyPrices[i - 1].price;
+            if (todayPrice > yesterdayPrice) {
+              consecutiveRiseDays++;
+            } else {
+              break;
             }
           }
-        } catch (chartError) {
-          console.warn(`차트 데이터 조회 실패 [${rec.stock_code}]:`, chartError.message);
         }
 
         stocksWithPerformance.push({
@@ -164,8 +142,7 @@ module.exports = async (req, res) => {
           daily_prices: dailyPrices // 날짜별 가격 데이터 추가
         });
 
-        // Rate limit 방지 (초당 18회 안전 마진)
-        await new Promise(resolve => setTimeout(resolve, 120));
+        // Supabase만 조회하므로 Rate limit 대기 불필요 (KIS API 호출 제거됨)
 
       } catch (error) {
         console.warn(`현재가 조회 실패 [${rec.stock_code}]:`, error.message);

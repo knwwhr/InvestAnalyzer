@@ -1479,7 +1479,7 @@
 
         try {
           // Supabase 기반 실전 추천 종목 성과 조회
-          const perfRes = await fetch(`${apiBaseUrl}/recommendations/performance?days=30`);
+          const perfRes = await fetch(`${apiBaseUrl}/recommendations/performance?days=7`);
 
           if (!perfRes.ok) {
             throw new Error(`API 오류: ${perfRes.status}`);
@@ -1557,13 +1557,16 @@
                 maxReturn: perfData.statistics.maxReturn,
                 minReturn: perfData.statistics.minReturn
               },
-              byGrade: gradeStats
+              byGrade: gradeStats,
+              byCategory: perfData.statistics?.byCategory || {}
             },
             stocks: perfData.stocks,
             risingStocks: risingStocks,
+            recommendationDates: perfData.recommendationDates || [],
+            commonStocks: perfData.commonStocks || [],
             parameters: {
               holdingDays: 'N/A (실시간)',
-              lookbackDays: 30
+              lookbackDays: 7
             }
           });
 
@@ -1649,7 +1652,7 @@
             <SummaryCard
               title="분석 샘플"
               value={`${stats.totalCount}개`}
-              subtext={`${trackerData.parameters?.lookbackDays || 30}일 기간`}
+              subtext={`최근 ${trackerData.parameters?.lookbackDays || 7}일`}
               color="bg-gradient-to-br from-orange-500 to-orange-600"
               icon="📊"
             />
@@ -1796,9 +1799,8 @@
                             <thead className="bg-gray-100">
                               <tr>
                                 <th className="px-3 py-2 text-left">날짜</th>
+                                <th className="px-3 py-2 text-center">경과일</th>
                                 <th className="px-3 py-2 text-right">종가</th>
-                                <th className="px-3 py-2 text-right">고가</th>
-                                <th className="px-3 py-2 text-right">저가</th>
                                 <th className="px-3 py-2 text-right">수익률</th>
                                 <th className="px-3 py-2 text-right">거래량</th>
                               </tr>
@@ -1807,14 +1809,11 @@
                               {stock.daily_prices.map((dailyData, idx) => (
                                 <tr key={idx} className="border-b hover:bg-gray-50">
                                   <td className="px-3 py-2">{dailyData.date}</td>
+                                  <td className="px-3 py-2 text-center text-gray-500">
+                                    D+{dailyData.daysSince}
+                                  </td>
                                   <td className="px-3 py-2 text-right font-semibold">
                                     {dailyData.price.toLocaleString()}원
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-red-600">
-                                    {dailyData.high.toLocaleString()}원
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-blue-600">
-                                    {dailyData.low.toLocaleString()}원
                                   </td>
                                   <td className={`px-3 py-2 text-right font-bold ${dailyData.return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
                                     {dailyData.return >= 0 ? '+' : ''}{dailyData.return}%
@@ -1953,6 +1952,136 @@
               </table>
             </div>
           </div>
+
+          {/* 추천일자별 성과 */}
+          {trackerData.recommendationDates && trackerData.recommendationDates.length > 0 && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold mb-6">📅 추천일자별 성과</h3>
+              <div className="space-y-4">
+                {trackerData.recommendationDates.map((dateGroup, idx) => (
+                  <div key={idx} className="border rounded-lg p-4 hover:bg-gray-50 transition">
+                    {/* 날짜 헤더 */}
+                    <div className="flex justify-between items-center mb-3 pb-3 border-b">
+                      <div className="flex items-center gap-3">
+                        <div className="text-lg font-bold text-gray-800">{dateGroup.date}</div>
+                        <div className="text-sm text-gray-500">({dateGroup.stocks.length}개 종목)</div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500">평균 수익률</div>
+                          <div className={`text-xl font-bold ${dateGroup.avgReturn >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                            {dateGroup.avgReturn >= 0 ? '+' : ''}{dateGroup.avgReturn}%
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500">승률</div>
+                          <div className={`text-xl font-bold ${dateGroup.winRate >= 70 ? 'text-green-600' : dateGroup.winRate >= 50 ? 'text-blue-600' : 'text-gray-600'}`}>
+                            {dateGroup.winRate}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 종목 목록 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {dateGroup.stocks.map((stock, sIdx) => (
+                        <div key={sIdx} className="bg-gray-50 rounded p-3">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <div className="font-semibold text-sm">{stock.stock_name}</div>
+                              <div className="text-xs text-gray-500">{stock.stock_code}</div>
+                            </div>
+                            <div className={`px-2 py-1 rounded text-white text-xs font-bold grade-${stock.recommendation_grade}`}>
+                              {stock.recommendation_grade}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-gray-600">
+                              {stock.recommended_price.toLocaleString()}원 → {stock.current_price.toLocaleString()}원
+                            </span>
+                            <span className={`font-bold ${stock.current_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                              {stock.current_return >= 0 ? '+' : ''}{stock.current_return}%
+                            </span>
+                          </div>
+                          {stock.is_rising && (
+                            <div className="mt-1 text-xs text-red-600 font-semibold">
+                              🔥 {stock.consecutive_rise_days}일 연속 상승
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 공통 추천 종목 (2회 이상 추천) */}
+          {trackerData.commonStocks && trackerData.commonStocks.length > 0 && (
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl shadow-lg p-6">
+              <h3 className="text-2xl font-bold mb-4 text-purple-900 flex items-center gap-2">
+                🔄 공통 추천 종목
+                <span className="text-sm font-normal text-purple-700">
+                  (2회 이상 추천된 종목)
+                </span>
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {trackerData.commonStocks.map((stock, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-4 border-2 border-purple-400 shadow-md hover:shadow-lg transition">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-bold text-lg">{stock.stock_name}</h4>
+                        <div className="text-xs text-gray-500">{stock.stock_code}</div>
+                      </div>
+                      <div className="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        {stock.recommendation_count}회 추천
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">평균 수익률:</span>
+                        <span className={`text-lg font-bold ${stock.avg_return >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                          {stock.avg_return >= 0 ? '+' : ''}{stock.avg_return}%
+                        </span>
+                      </div>
+
+                      <div className="pt-2 border-t">
+                        <div className="text-xs text-gray-600 mb-1">추천 날짜:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {stock.recommendation_dates.map((date, dIdx) => (
+                            <span key={dIdx} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+                              {date}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t">
+                        <div className="text-xs text-gray-600 mb-1">각 추천별 수익률:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {stock.returns.map((ret, rIdx) => (
+                            <span key={rIdx} className={`px-2 py-1 rounded text-xs font-semibold ${ret >= 0 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {ret >= 0 ? '+' : ''}{ret}%
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 p-4 bg-purple-100 rounded-lg">
+                <p className="text-sm text-purple-900">
+                  💡 <strong>{trackerData.commonStocks.length}개 종목</strong>이 여러 번 추천되었습니다.
+                  시스템이 일관성 있게 선정하는 종목들로, 특히 주목할 만합니다!
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Phase 3: 포트폴리오 시뮬레이션 */}
           {trackerData.portfolio && (
