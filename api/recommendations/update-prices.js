@@ -62,9 +62,37 @@ module.exports = async (req, res) => {
 
     for (const rec of activeRecs) {
       try {
-        // 현재가 조회
+        // 현재가 조회 (실시간 시세)
+        let closingPrice = rec.recommended_price; // 기본값
+        let changeRate = 0;
+        let volume = 0;
+
         const currentData = await kisApi.getCurrentPrice(rec.stock_code);
-        const closingPrice = currentData?.currentPrice || rec.recommended_price;
+
+        if (currentData?.currentPrice) {
+          // 실시간 시세 조회 성공 (장 시간)
+          closingPrice = currentData.currentPrice;
+          changeRate = currentData.changeRate || 0;
+          volume = currentData.volume || 0;
+        } else {
+          // 폐장 시간 등으로 실시간 시세 조회 실패 → 최근 종가 조회
+          console.log(`⏰ 실시간 시세 없음 [${rec.stock_code}] - 최근 종가 조회 중...`);
+          try {
+            const chartData = await kisApi.getDailyChart(rec.stock_code, 1);
+            if (chartData && chartData.length > 0) {
+              closingPrice = chartData[0].close || rec.recommended_price;
+              volume = chartData[0].volume || 0;
+              // changeRate는 getDailyChart에서 제공하지 않으므로 직접 계산
+              if (chartData.length > 1) {
+                const prevClose = chartData[1].close;
+                changeRate = prevClose > 0 ? ((closingPrice - prevClose) / prevClose * 100) : 0;
+              }
+              console.log(`✅ 종가 조회 성공 [${rec.stock_code}]: ${closingPrice}원`);
+            }
+          } catch (chartError) {
+            console.warn(`❌ 종가 조회 실패 [${rec.stock_code}]:`, chartError.message);
+          }
+        }
 
         // 경과일 계산
         const recDate = new Date(rec.recommendation_date);
@@ -81,16 +109,16 @@ module.exports = async (req, res) => {
           recommendation_id: rec.id,
           tracking_date: today,
           closing_price: closingPrice,
-          change_rate: currentData?.changeRate || 0,
-          volume: currentData?.volume || 0,
+          change_rate: parseFloat(changeRate.toFixed(2)),
+          volume: volume,
           cumulative_return: parseFloat(cumulativeReturn.toFixed(2)),
           days_since_recommendation: daysSince
         });
 
         successCount++;
 
-        // Rate limit 방지 (초당 18회)
-        await new Promise(resolve => setTimeout(resolve, 60));
+        // Rate limit 방지 (초당 8회 안전 마진)
+        await new Promise(resolve => setTimeout(resolve, 120));
 
       } catch (error) {
         console.warn(`가격 조회 실패 [${rec.stock_code}]:`, error.message);

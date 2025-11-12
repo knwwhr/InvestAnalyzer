@@ -10,11 +10,11 @@
   "crons": [
     {
       "path": "/api/cron/update-patterns",
-      "schedule": "0 9 * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/recommendations/update-prices",
-      "schedule": "0 16 * * 1-5"
+      "schedule": "0 7 * * 1-5"
     }
   ]
 }
