@@ -143,12 +143,10 @@ class StockScreener {
       const liquidity = advancedIndicators.checkLiquidity(chartData);
       const previousSurge = advancedIndicators.checkPreviousSurge(chartData);
 
-      // VPM 통합 지표: 거래량 예측 + VPT + Divergence → 가격 방향 예측
-      const vpm = advancedIndicators.calculateVPM(
+      // Volume-Price Divergence: "거래량 폭발 + 가격 미반영" 신호 (VPM 대체)
+      const volumePriceDivergence = volumeIndicators.calculateVolumePriceDivergence(
         chartData,
-        currentData.currentPrice,
-        currentData.volume,
-        institutionalFlow
+        currentData.currentPrice
       );
 
       // 차트 패턴 인식
@@ -169,9 +167,10 @@ class StockScreener {
       // ========================================
 
       // 1. 신규 지표 점수 추가 (선행 지표 중심 강화, 총 80점)
-      // VPM (0-25점) - 가장 중요한 선행 지표
-      const vpmScore = Math.max(0, Math.min((vpm.score || 0) * 0.7, 25));
-      totalScore += vpmScore;
+      // Volume-Price Divergence (0-35점) - 최우선 선행 지표
+      // 35점을 25점으로 스케일링 (100점 만점 유지)
+      const vpdScore = Math.max(0, Math.min((volumePriceDivergence.score || 0) * 0.714, 25));
+      totalScore += vpdScore;
 
       totalScore += (institutionalFlow.score || 0); // 0-15점
       totalScore += Math.min((confluence.confluenceScore || 0) * 0.6, 12); // 0-12점
@@ -249,7 +248,17 @@ class StockScreener {
 
         // 가점 요인 (선행 지표 중심, 총 95점)
         bonuses: [
-          { name: "VPM (거래량-가격 모멘텀)", value: Math.round(vpmScore), active: vpm.score > 0 },
+          {
+            name: "Volume-Price Divergence (거래량 폭발)",
+            value: Math.round(vpdScore),
+            active: volumePriceDivergence.score !== 0,
+            details: {
+              divergence: volumePriceDivergence.divergence,
+              volumeRatio: volumePriceDivergence.volumeRatio,
+              priceChange: volumePriceDivergence.priceChange,
+              signal: volumePriceDivergence.signal
+            }
+          },
           { name: "기관/외국인 수급", value: Math.round(institutionalFlow.score || 0), active: institutionalFlow.detected },
           { name: "트렌드 (뉴스+감성)", value: Math.round(trendBonus), active: trendBonus > 0 },
           { name: "합류점 (Confluence)", value: Math.round(Math.min((confluence.confluenceScore || 0) * 0.6, 12)), active: confluence.confluenceCount >= 2 },
@@ -298,7 +307,7 @@ class StockScreener {
         manipulation, // 신규: 작전주 필터
         liquidity, // 신규: 유동성 필터
         previousSurge, // 신규: 과거급등 필터
-        vpm, // 신규: VPM 통합 지표 (거래량 예측 + 가격 방향)
+        volumePriceDivergence, // ⭐ Volume-Price Divergence (거래량 폭발 + 가격 미반영)
         cupAndHandle, // 신규: Cup&Handle 패턴
         triangle, // 신규: Triangle 패턴
         scoreBreakdown, // 신규: 가점/감점 상세 내역

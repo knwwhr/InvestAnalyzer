@@ -25,16 +25,6 @@ const apiRoutes = {
   '/api/screening/recommend': require('./api/screening/recommend'),
   '/api/screening/whale': (req, res) => { req.params = { category: 'whale' }; return categoryHandler(req, res); },
   '/api/screening/accumulation': (req, res) => { req.params = { category: 'accumulation' }; return categoryHandler(req, res); },
-  '/api/screening/escape': (req, res) => { req.params = { category: 'escape' }; return categoryHandler(req, res); },
-  '/api/screening/drain': (req, res) => { req.params = { category: 'drain' }; return categoryHandler(req, res); },
-  '/api/screening/volume-surge': (req, res) => { req.params = { category: 'volume-surge' }; return categoryHandler(req, res); },
-  '/api/screening/hybrid': require('./api/screening/hybrid'),
-  '/api/patterns/list': require('./api/patterns/list'),
-  '/api/patterns/analyze': require('./api/patterns/analyze'),
-  '/api/patterns/matched-stocks': require('./api/patterns/matched-stocks'),
-  '/api/backtest/hybrid': require('./api/backtest/hybrid'),
-  '/api/tracking/today-signals': require('./api/tracking/today-signals'),
-  '/api/comparison/ab-test': require('./api/comparison/ab-test'),
   '/api/recommendations/save': require('./api/recommendations/save'),
   '/api/recommendations/performance': require('./api/recommendations/performance'),
   '/api/recommendations/update-prices': require('./api/recommendations/update-prices')
@@ -76,7 +66,7 @@ app.listen(PORT, () => {
   console.log(`========================================`);
   console.log(`📍 URL: http://localhost:${PORT}`);
   console.log(`📊 API: http://localhost:${PORT}/api/health`);
-  console.log(`🔥 하이브리드: http://localhost:${PORT}/api/screening/hybrid?limit=3`);
+  console.log(`🔥 스크리닝: http://localhost:${PORT}/api/screening/recommend?limit=3`);
   console.log(`========================================\n`);
 });
 

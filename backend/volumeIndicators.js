@@ -252,6 +252,154 @@ function getOBVTrend(obvData) {
   return '➡️ 횡보';
 }
 
+/**
+ * VPT (Volume Price Trend) 계산
+ * 거래량과 가격의 상관관계를 누적으로 추적
+ */
+function calculateVPT(chartData) {
+  const vpt = [];
+  let vptValue = 0;
+
+  for (let i = 0; i < chartData.length; i++) {
+    if (i === 0) {
+      vptValue = chartData[i].volume;
+    } else {
+      const priceChange = (chartData[i].close - chartData[i - 1].close) / chartData[i - 1].close;
+      vptValue += chartData[i].volume * priceChange;
+    }
+
+    vpt.push({
+      date: chartData[i].date,
+      vpt: vptValue
+    });
+  }
+
+  return vpt;
+}
+
+/**
+ * VPT Slope 계산 (5일 기준)
+ * 양수: 상승 추세, 음수: 하락 추세
+ */
+function calculateVPTSlope(vptData) {
+  if (vptData.length < 5) return 0;
+
+  const recent = vptData[vptData.length - 1].vpt;
+  const fiveDaysAgo = vptData[vptData.length - 5].vpt;
+
+  return (recent - fiveDaysAgo) / 5;
+}
+
+/**
+ * Volume-Price Divergence 분석
+ * 핵심 철학: "거래량 폭발 + 가격 미반영 = 급등 예정 신호"
+ *
+ * @param {Array} chartData - 차트 데이터 (내림차순: [0] = 최신)
+ * @param {number} currentPrice - 현재가
+ * @returns {Object} divergence 분석 결과
+ */
+function calculateVolumePriceDivergence(chartData, currentPrice) {
+  if (chartData.length < 20) {
+    return {
+      score: 0,
+      signal: '데이터 부족',
+      divergence: 0,
+      volumeRatio: 0,
+      priceRatio: 1.0,
+      priceChange: 0,
+      details: '최소 20일 데이터 필요'
+    };
+  }
+
+  // 최근 20일 평균 거래량
+  const recentVolumes = chartData.slice(0, 20).map(d => d.volume);
+  const avgVolume = recentVolumes.reduce((sum, v) => sum + v, 0) / 20;
+
+  // 최근 20일 평균 가격
+  const recentPrices = chartData.slice(0, 20).map(d => d.close);
+  const avgPrice = recentPrices.reduce((sum, p) => sum + p, 0) / 20;
+
+  // 최신 데이터
+  const latestVolume = chartData[0].volume;
+
+  // Volume Ratio 계산
+  const volumeRatio = latestVolume / avgVolume;
+
+  // Price Ratio 계산 (절대값 사용 + 1.0)
+  const priceChange = ((currentPrice - avgPrice) / avgPrice) * 100;
+  const priceRatio = Math.abs(currentPrice - avgPrice) / avgPrice + 1.0;
+
+  // Divergence 계산
+  const divergence = volumeRatio - priceRatio;
+
+  // VPT Slope 계산 (하락 추세 필터링)
+  const vpt = calculateVPT(chartData);
+  const vptSlope = calculateVPTSlope(vpt);
+
+  // 점수 계산 로직
+  let score = 0;
+  let signal = '';
+  let details = '';
+
+  // 1. Quiet Accumulation (최고 점수: 28-35점)
+  // 거래량 3배 이상 && 가격 변동 ±10% 이내 && VPT 상승
+  if (divergence >= 3.0 && Math.abs(priceChange) <= 10 && vptSlope >= 0) {
+    score = 28 + Math.min(divergence * 2, 7);  // 28~35점
+    signal = '🔥 최우선 매수 - 거래량 폭발, 가격 미반영';
+    details = `조용한 매집 (Quiet Accumulation): divergence ${divergence.toFixed(2)}`;
+  }
+  // 2. Early Stage (20-27점)
+  // divergence 2.0-3.0 && 가격 ±15% 이내 && VPT 상승
+  else if (divergence >= 2.0 && divergence < 3.0 && Math.abs(priceChange) <= 15 && vptSlope >= 0) {
+    score = 20 + Math.min(divergence * 2, 7);  // 20~27점
+    signal = '🟢 적극 매수 - 초기 단계 매집';
+    details = `초기 매집 (Early Stage): divergence ${divergence.toFixed(2)}`;
+  }
+  // 3. Moderate (12-19점)
+  // divergence 1.0-2.0 && VPT 상승
+  else if (divergence >= 1.0 && divergence < 2.0 && vptSlope >= 0) {
+    score = 12 + Math.min(divergence * 4, 7);  // 12~19점
+    signal = '🟡 매수 고려 - 관심 필요';
+    details = `보통 수준 (Moderate): divergence ${divergence.toFixed(2)}`;
+  }
+  // 4. Weak Signal (5-11점)
+  // divergence 0.5-1.0 && VPT 상승
+  else if (divergence >= 0.5 && divergence < 1.0 && vptSlope >= 0) {
+    score = 5 + Math.min(divergence * 6, 6);  // 5~11점
+    signal = '⚪ 약한 신호';
+    details = `약한 신호 (Weak): divergence ${divergence.toFixed(2)}`;
+  }
+  // 5. Already Surged (페널티: -15~-25점)
+  // 가격 20% 이상 급등 또는 VPT 하락 추세
+  else if (Math.abs(priceChange) > 20 || vptSlope < 0) {
+    const penalty = Math.min(Math.abs(priceChange - 20), 10);
+    score = -15 - penalty;  // -15~-25점
+    signal = '🔴 관망 - 이미 급등 또는 하락 추세';
+    details = vptSlope < 0
+      ? `하락 추세 (VPT slope: ${vptSlope.toFixed(2)})`
+      : `이미 급등 (가격 변동: ${priceChange.toFixed(1)}%)`;
+  }
+  // 6. No Signal (0점)
+  else {
+    score = 0;
+    signal = '⚫ 신호 없음';
+    details = `divergence ${divergence.toFixed(2)} (기준 미달)`;
+  }
+
+  return {
+    score: Math.round(score),
+    signal,
+    divergence: parseFloat(divergence.toFixed(2)),
+    volumeRatio: parseFloat(volumeRatio.toFixed(2)),
+    priceRatio: parseFloat(priceRatio.toFixed(2)),
+    priceChange: parseFloat(priceChange.toFixed(2)),
+    vptSlope: parseFloat(vptSlope.toFixed(2)),
+    avgVolume: Math.round(avgVolume),
+    avgPrice: Math.round(avgPrice),
+    details
+  };
+}
+
 module.exports = {
   calculateOBV,
   calculateVolumeMA,
@@ -259,5 +407,8 @@ module.exports = {
   calculateVWAP,
   calculateADLine,
   detectVolumeSurge,
-  analyzeVolume
+  analyzeVolume,
+  calculateVPT,
+  calculateVPTSlope,
+  calculateVolumePriceDivergence
 };

@@ -4,11 +4,11 @@
 
 **Investar**는 한국투자증권 OpenAPI를 활용한 거래량 기반 주식 종목 발굴 시스템입니다.
 
-- **목적**: 거래량 지표로 급등 가능성이 높은 종목 자동 발굴
+- **목적**: 거래량 지표로 급등 "예정" 종목 선행 발굴 (Volume-Price Divergence)
 - **기술 스택**: Node.js, React (CDN), Vercel Serverless, KIS OpenAPI
 - **배포 URL**: https://investar-xi.vercel.app
-- **버전**: 3.4 (시스템 통합 - 공매도 + 트렌드 + 선행지표)
-- **최종 업데이트**: 2025-11-06
+- **버전**: 3.5 (Volume-Price Divergence 시스템)
+- **최종 업데이트**: 2025-11-12
 
 ---
 
@@ -20,12 +20,13 @@
 - **중복 제거율**: 78% (240개 → 53개)
 - **ETF/ETN 필터링**: 15개 키워드 차단 (plus, unicorn, POST IPO 등)
 
-### 🎯 핵심 성과 (v3.4)
-- ✅ **시스템 통합 완료** - 공매도 + 트렌드 + 선행지표 (패턴+DNA) 통합
-- ✅ **점수 체계 강화** - 100점 → 120점 (공매도 +20, 트렌드 +15)
-- ✅ **공매도 분석** - 차트 기반 추정 시스템 + KRX API 경로 확보
+### 🎯 핵심 철학 (v3.5)
+**"거래량 폭발 + 가격 미반영 = 급등 예정 신호"**
+
+- ✅ **Volume-Price Divergence** - 거래량 증가율 높은데 급등 안 한 주식 우선 발굴
 - ✅ **선행 지표 통합** - smartPatternMining + volumeDnaExtractor → leadingIndicators
-- ✅ **중복 모듈 정리** - 사용하지 않는 파일 삭제 (backtestEngine, screeningHybrid)
+- ✅ **점수 체계** - 100점 만점 (기본 20 + 선행지표 80)
+- ✅ **중복 모듈 정리** - 사용하지 않는 파일 삭제
 
 ---
 
@@ -61,7 +62,9 @@
 
 ---
 
-### 2. 📈 종합 점수 계산 (v3.4 업데이트)
+### 2. 📈 종합 점수 계산 (v3.5 - Volume-Price Divergence)
+
+**핵심 철학**: "거래량 증가율이 높은 주식 중에 급등하지 않은 주식에 더 많은 점수"
 
 ```javascript
 // 기본 점수 (0-20점)
@@ -77,29 +80,33 @@
   VPM (거래량-가격 모멘텀) (0-25점) +
   기관/외국인 수급 (0-15점) +
   합류점 (Confluence) (0-12점) +
-  선행 지표 (패턴+DNA) (0-10점) ⭐ NEW +
+  선행 지표 (패턴+DNA) (0-10점) +
   신호 신선도 (0-8점) +
   Cup&Handle 패턴 (0-5점) +
   돌파 확인 (0-3점) +
   Triangle 패턴 (0-2점)
 
-// 보너스 (0-35점)
-보너스 =
-  트렌드 (뉴스+감성) (0-15점) ⭐ NEW +
-  공매도 (숏 커버링) (0-20점) ⭐ NEW
-
-최종 점수: 0~120점 (기존 100점에서 확장)
+최종 점수: 0~100점
 ```
 
-#### 추천 등급 (120점 만점 기준)
-- **S등급** (90점 이상): 🔥 최우선 매수
-- **A등급** (70~89점): 🟢 적극 매수
-- **B등급** (50~69점): 🟡 매수 고려
-- **C등급** (30~49점): ⚪ 주목
-- **D등급** (30점 미만): ⚫ 관망
+#### Volume-Price Divergence 핵심 로직
 
-**특수 등급**:
-- **S+등급**: S등급 + HOT 이슈 (트렌드 70점 이상)
+```javascript
+divergence = volumeRatio - priceRatio
+
+// 최우선 신호 (28-35점)
+거래량 3배+ && 가격 변동 ±10% 이내 → "조용한 매집" → 최고 점수
+
+// 페널티 (-15~-25점)
+거래량 증가 && 가격 20% 이상 급등 → "이미 급등" → 점수 차감
+```
+
+#### 추천 등급 (100점 만점 기준)
+- **S등급** (75점 이상): 🔥 최우선 매수 (급등 예정)
+- **A등급** (58~74점): 🟢 적극 매수
+- **B등급** (42~57점): 🟡 매수 고려
+- **C등급** (25~41점): ⚪ 주목
+- **D등급** (25점 미만): ⚫ 관망
 
 ---
 
@@ -148,44 +155,27 @@ GET /api/screening/whale?market=KOSPI&limit=5
 GET /api/screening/accumulation?market=ALL&limit=5
 ```
 
-### 📊 공매도 분석 API (NEW - v3.4)
+### 📊 Volume-Price Divergence 분석
 
-**핵심 철학**: "공매도 비중이 높고 숏 커버링이 감지되면 급등 가능성 높음"
+**핵심 철학**: "거래량 폭발 + 가격 미반영 = 곧 급등할 신호"
 
-```bash
-GET /api/shortselling?stockCode=005930&days=20
+**Divergence 계산**:
+```javascript
+volumeRatio = 최근 거래량 / 평균 거래량
+priceRatio = abs(현재가 - 평균가) / 평균가 + 1.0
+divergence = volumeRatio - priceRatio
+
+// 예시
+거래량 5배 증가 (volumeRatio=5.0)
+가격 5% 상승 (priceRatio=1.05)
+→ divergence = 3.95 → 35점 (최고 점수)
 ```
 
-**응답**:
-```json
-{
-  "success": true,
-  "stockCode": "005930",
-  "data": {
-    "shortRatio": 12.5,
-    "shortVolumeChange": -5.2,
-    "shortTrend": "decreasing",
-    "isShortCovering": true,
-    "coveringStrength": "moderate",
-    "score": 15,
-    "summary": "📈 숏 커버링 신호 (공매도 12.5%)",
-    "confidence": 75,
-    "dataSource": "estimated"
-  }
-}
-```
-
-**시스템 특징**:
-- **Phase 1**: 차트 기반 공매도 추정 (즉시 사용 가능)
-  - 거래량 급증 + 하락 = 공매도 증가 추정
-  - 거래량 급증 + 상승 = 숏 커버링 추정
-- **Phase 2**: KRX 실제 API 연동 (환경변수 `KRX_API_KEY` 설정 시 자동 전환)
-
-**점수 체계** (0-20점):
-- 공매도 비중 10% 이상: +5점
-- 공매도 비중 15% 이상: +10점
-- 공매도 비중 20% 이상: +15점
-- 강력한 숏 커버링: +15점
+**점수 체계**:
+- **Quiet Accumulation** (28-35점): divergence 3.0+ && 가격 ±10%
+- **Early Stage** (20-27점): divergence 2.0-3.0 && 가격 ±15%
+- **Moderate** (12-19점): divergence 1.0-2.0
+- **Already Surged** (-15~-25점): 가격 20%+ 급등 → 페널티
 
 ### 🧬 거래량 DNA 시스템 (2025-10-30)
 
@@ -381,9 +371,6 @@ investar/
 KIS_APP_KEY=<한국투자증권 앱 키>
 KIS_APP_SECRET=<한국투자증권 앱 시크릿>
 
-# 선택 (공매도 KRX API 연동 시)
-KRX_API_KEY=<KRX 데이터 포털 API 키>
-
 # 선택 (Gist 패턴 저장 시)
 GITHUB_GIST_ID=<GitHub Gist ID>
 GITHUB_TOKEN=<GitHub Personal Token>
@@ -490,32 +477,30 @@ GET /api/recommendations/performance?days=30
 
 ## 📝 변경 이력
 
-### v3.4 (2025-11-06) - 🎯 시스템 통합 (공매도 + 트렌드 + 선행지표)
-- ✅ **Phase 1: 공매도 KRX API 통합**
-  - 차트 기반 공매도 추정 시스템 구현 (`shortSellingApi.js`)
-  - 숏 커버링 신호 자동 감지 (none/weak/moderate/strong)
-  - 점수 체계: 0-20점 (공매도 비중 + 커버링 강도)
-  - KRX API 연동 경로 확보 (환경변수 설정만으로 전환)
-- ✅ **Phase 2: 트렌드 통합 검증**
-  - 네이버 뉴스 + Gemini AI 감성 분석 정상 작동 확인
-  - 트렌드 점수 통합: 70점 이상 시 0-15점 보너스
-  - HOT 이슈 배지 자동 표시 (S등급 → S+등급 업그레이드)
-- ✅ **Phase 3: 패턴+DNA 통합**
-  - `leadingIndicators.js` 통합 모듈 생성 (387 lines)
-  - smartPatternMining (D-5 선행 패턴) + volumeDnaExtractor (DNA 분석) 통합
-  - 하이브리드 점수: 패턴 50% + DNA 50%
-  - 강도 계산: very_high/high/moderate/low
-  - screening.js에 완전 통합 (0-10점)
-- ✅ **Phase 4: 중복 모듈 정리**
-  - `backend/backtestEngine.js` 삭제 (사용 안 함)
-  - `backend/screeningHybrid.js` 삭제 (screening.js와 중복)
-- ✅ **점수 체계 강화**: 100점 → 120점
+### v3.5 (2025-11-12) - 🎯 Volume-Price Divergence 시스템
+- ✅ **공매도 로직 완전 제거**
+  - KRX API가 공매도 데이터 미제공 확인
+  - `shortSellingApi.js`, `api/shortselling/index.js` 삭제
+  - screening.js에서 공매도 점수 제거
+- ✅ **점수 체계 복원**: 120점 → 100점
   - 기본: 0-20점
-  - 선행 지표: 0-80점 (VPM, 기관 수급, Confluence, 패턴+DNA, 신선도 등)
-  - 보너스: 0-35점 (트렌드 +15, 공매도 +20)
-- ✅ **추천 등급 조정**: 120점 만점 기준
-  - S: 90+ (기존 70+ @ 100점), A: 70-89, B: 50-69, C: 30-49
-- 📄 **문서 작성**: INTEGRATION_COMPLETE_SUMMARY.md (Phase 1-4 전체 요약)
+  - 선행 지표: 0-80점
+  - 보너스 제거 (공매도, 트렌드)
+- ✅ **추천 등급 조정**: 100점 만점 기준
+  - S: 75+ (75/100 = 90/120 비율 유지)
+  - A: 58-74, B: 42-57, C: 25-41
+- ✅ **Volume-Price Divergence 철학 확립**
+  - "거래량 증가율 높은데 급등 안 한 주식 = 최고 점수"
+  - divergence = volumeRatio - priceRatio
+  - 조용한 매집 (Quiet Accumulation) 우선 발굴
+
+### v3.4 (2025-11-06) - 시스템 통합 (이후 v3.5에서 공매도 제거)
+- ✅ **패턴+DNA 통합**
+  - `leadingIndicators.js` 통합 모듈 생성
+  - smartPatternMining + volumeDnaExtractor 통합
+  - 하이브리드 점수: 패턴 50% + DNA 50%
+- ✅ **중복 모듈 정리**
+  - backtestEngine.js, screeningHybrid.js 삭제
 
 ### v3.3 (2025-11-06) - 🐛 Critical Bug Fix
 - 🐛 **chartData 배열 인덱싱 버그 수정** - 시스템 전체에 영향을 주는 critical 버그 발견 및 수정
@@ -570,11 +555,11 @@ GET /api/recommendations/performance?days=30
 
 ---
 
-**Last Updated**: 2025-11-06
-**Version**: 3.4 (시스템 통합 - 공매도 + 트렌드 + 선행지표)
+**Last Updated**: 2025-11-12
+**Version**: 3.5 (Volume-Price Divergence)
 **Author**: Claude Code with @knwwhr
 
-**✨ "거래량이 주가에 선행한다" - 통합 시스템으로 급등주 선행 발굴**
+**✨ "거래량 폭발 + 가격 미반영 = 급등 예정" - Volume-Price Divergence로 선행 발굴**
 
 ---
 
@@ -625,16 +610,14 @@ const latestDate = chartData[0].date;  // ✅ 11월 6일
 
 ---
 
-## 🎉 v3.4 통합 완료
+## 🎉 v3.5 Volume-Price Divergence 완료
 
-**Phase 1-4 통합 완료!**
+**핵심 철학 확립!**
 
-- ✅ 공매도 시스템 구현 (차트 추정 + KRX API 경로)
-- ✅ 트렌드 점수 통합 (0-15점 보너스 + HOT 배지)
-- ✅ 패턴+DNA 통합 모듈 (leadingIndicators.js)
-- ✅ 0-120점 점수 체계 확립
-- ✅ 중복 모듈 정리
+- ✅ Volume-Price Divergence 로직 구현
+- ✅ "거래량 폭발 + 가격 미반영" 우선 발굴
+- ✅ 조용한 매집 (Quiet Accumulation) 신호
+- ✅ 100점 만점 시스템 (75점 이상 = S등급)
+- ✅ 이미 급등한 종목 페널티 (-15~-25점)
 
-**최종 목표**: "종목 스크리닝, 급등주 선행매매, 패턴 분석이 하나로 통합된 시스템" ✅ 달성!
-
-자세한 통합 내역: `INTEGRATION_COMPLETE_SUMMARY.md` 참조
+**최종 목표**: "곧 급등할 종목을 거래량 선행 신호로 발굴" ✅ 달성!
