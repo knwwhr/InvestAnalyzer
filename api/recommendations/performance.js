@@ -187,12 +187,115 @@ module.exports = async (req, res) => {
       ? (winningStocks.length / stocksWithPerformance.length * 100)
       : 0;
 
+    // 카테고리별 성과 계산
+    const categoryStats = {
+      whale: { label: '🐋 고래 감지', stocks: [], count: 0, winRate: 0, avgReturn: 0, maxReturn: 0 },
+      accumulation: { label: '🤫 조용한 매집', stocks: [], count: 0, winRate: 0, avgReturn: 0, maxReturn: 0 },
+      both: { label: '🔥 고래 + 매집', stocks: [], count: 0, winRate: 0, avgReturn: 0, maxReturn: 0 },
+      normal: { label: '📊 일반', stocks: [], count: 0, winRate: 0, avgReturn: 0, maxReturn: 0 }
+    };
+
+    stocksWithPerformance.forEach(stock => {
+      if (stock.whale_detected && stock.accumulation_detected) {
+        categoryStats.both.stocks.push(stock);
+      } else if (stock.whale_detected) {
+        categoryStats.whale.stocks.push(stock);
+      } else if (stock.accumulation_detected) {
+        categoryStats.accumulation.stocks.push(stock);
+      } else {
+        categoryStats.normal.stocks.push(stock);
+      }
+    });
+
+    Object.keys(categoryStats).forEach(key => {
+      const stats = categoryStats[key];
+      stats.count = stats.stocks.length;
+      if (stats.count > 0) {
+        const winningCount = stats.stocks.filter(s => s.is_winning).length;
+        stats.winRate = parseFloat((winningCount / stats.count * 100).toFixed(1));
+        stats.avgReturn = parseFloat((stats.stocks.reduce((sum, s) => sum + s.current_return, 0) / stats.count).toFixed(2));
+        stats.maxReturn = parseFloat(Math.max(...stats.stocks.map(s => s.current_return)).toFixed(2));
+      }
+      delete stats.stocks; // 응답에서 stocks 제거 (중복)
+    });
+
+    // 추천일자별 그룹화
+    const byRecommendationDate = {};
+    stocksWithPerformance.forEach(stock => {
+      const date = stock.recommendation_date;
+      if (!byRecommendationDate[date]) {
+        byRecommendationDate[date] = {
+          date,
+          stocks: [],
+          avgReturn: 0,
+          winRate: 0
+        };
+      }
+      byRecommendationDate[date].stocks.push({
+        stock_code: stock.stock_code,
+        stock_name: stock.stock_name,
+        recommendation_grade: stock.recommendation_grade,
+        recommended_price: stock.recommended_price,
+        current_price: stock.current_price,
+        current_return: stock.current_return,
+        daily_prices: stock.daily_prices,
+        consecutive_rise_days: stock.consecutive_rise_days,
+        is_winning: stock.is_winning,
+        is_rising: stock.is_rising
+      });
+    });
+
+    // 각 추천일별 통계 계산
+    Object.values(byRecommendationDate).forEach(dateGroup => {
+      const winningCount = dateGroup.stocks.filter(s => s.is_winning).length;
+      dateGroup.winRate = parseFloat((winningCount / dateGroup.stocks.length * 100).toFixed(1));
+      dateGroup.avgReturn = parseFloat(
+        (dateGroup.stocks.reduce((sum, s) => sum + s.current_return, 0) / dateGroup.stocks.length).toFixed(2)
+      );
+    });
+
+    // 추천일자별 정렬 (최신순)
+    const recommendationDates = Object.values(byRecommendationDate).sort((a, b) =>
+      new Date(b.date) - new Date(a.date)
+    );
+
+    // 공통 추천 종목 찾기 (2회 이상 추천된 종목)
+    const stockFrequency = {};
+    stocksWithPerformance.forEach(stock => {
+      const key = stock.stock_code;
+      if (!stockFrequency[key]) {
+        stockFrequency[key] = {
+          stock_code: stock.stock_code,
+          stock_name: stock.stock_name,
+          recommendation_count: 0,
+          recommendation_dates: [],
+          avg_return: 0,
+          returns: []
+        };
+      }
+      stockFrequency[key].recommendation_count++;
+      stockFrequency[key].recommendation_dates.push(stock.recommendation_date);
+      stockFrequency[key].returns.push(stock.current_return);
+    });
+
+    // 2회 이상 추천된 종목만 필터링
+    const commonStocks = Object.values(stockFrequency)
+      .filter(s => s.recommendation_count >= 2)
+      .map(s => ({
+        ...s,
+        avg_return: parseFloat((s.returns.reduce((sum, r) => sum + r, 0) / s.returns.length).toFixed(2))
+      }))
+      .sort((a, b) => b.recommendation_count - a.recommendation_count || b.avg_return - a.avg_return);
+
     console.log(`✅ 성과 추적 완료: 승률 ${winRate.toFixed(1)}%, 평균 수익률 ${avgReturn.toFixed(2)}%`);
 
     return res.status(200).json({
       success: true,
       count: stocksWithPerformance.length,
       stocks: stocksWithPerformance,
+      recommendationDates, // 추천일자별 그룹화 추가
+      commonStocks, // 공통 추천 종목 추가
+      risingStocks, // 연속 급등주 추가 (기존 로직 유지)
       statistics: {
         totalRecommendations: stocksWithPerformance.length,
         winningCount: winningStocks.length,
@@ -203,7 +306,8 @@ module.exports = async (req, res) => {
         avgLossReturn: parseFloat(avgLossReturn.toFixed(2)),
         maxReturn: parseFloat(maxReturn.toFixed(2)),
         minReturn: parseFloat(minReturn.toFixed(2)),
-        winRate: parseFloat(winRate.toFixed(1))
+        winRate: parseFloat(winRate.toFixed(1)),
+        byCategory: categoryStats // 카테고리별 성과 추가
       }
     });
 
