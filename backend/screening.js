@@ -2,7 +2,6 @@ const kisApi = require('./kisApi');
 const volumeIndicators = require('./volumeIndicators');
 const advancedIndicators = require('./advancedIndicators');
 const smartPatternMiner = require('./smartPatternMining');
-const trendScoring = require('./trendScoring');
 const leadingIndicators = require('./leadingIndicators');
 
 /**
@@ -170,11 +169,8 @@ class StockScreener {
       // 추세 분석 (5일/10일/20일) - 현재가 정보 포함
       const trendAnalysis = this.calculateTrendAnalysis(chartData, currentData);
 
-      // 트렌드 점수 조회 (Google Trends + 뉴스 + AI 감성)
-      const trendScore = await trendScoring.getStockTrendScore(stockCode);
-
-      // 종합 점수 계산 (기술적 지표 + 트렌드 점수 + 고점 되돌림 페널티)
-      let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore, chartData, currentData.currentPrice);
+      // 종합 점수 계산 (기술적 지표 + 고점 되돌림 페널티)
+      let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice);
 
       // ========================================
       // 점수 계산: 100점 만점 (스케일링 제거)
@@ -242,25 +238,17 @@ class StockScreener {
 
       totalScore += leadingPoints;
 
-      // 4. 트렌드 점수 (0-15점)
-      let trendBonus = 0;
-      if (trendScore && trendScore.total_trend_score >= 70) {
-        trendBonus = Math.min((trendScore.total_trend_score - 70) / 2, 15);
-        // 트렌드 점수 70점: +0, 100점: +15
-      }
-      totalScore += trendBonus;
-
-      // 5. 최종 점수 (0-100점 범위, NaN 방지, 소수점 2자리)
-      totalScore = isNaN(totalScore) ? 0 : parseFloat(Math.min(Math.max(totalScore, 0), 100).toFixed(2));
+      // 4. 최종 점수 (0-85점 범위, NaN 방지, 소수점 2자리)
+      totalScore = isNaN(totalScore) ? 0 : parseFloat(Math.min(Math.max(totalScore, 0), 85).toFixed(2));
 
       // ========================================
       // 가점/감점 상세 내역 (스코어 카드)
       // ========================================
       const scoreBreakdown = {
         // 기본 점수 (0-20점: 거래량 + OBV + VWAP + 비대칭 - 되돌림)
-        baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore, chartData, currentData.currentPrice)),
+        baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice)),
 
-        // 가점 요인 (선행 지표 중심, 총 95점)
+        // 가점 요인 (선행 지표 중심, 총 65점)
         bonuses: [
           {
             name: "Volume-Price Divergence (거래량 폭발)",
@@ -274,7 +262,6 @@ class StockScreener {
             }
           },
           { name: "기관/외국인 수급", value: Math.round(institutionalFlow.score || 0), active: institutionalFlow.detected },
-          { name: "트렌드 (뉴스+감성)", value: Math.round(trendBonus), active: trendBonus > 0 },
           { name: "합류점 (Confluence)", value: Math.round(Math.min((confluence.confluenceScore || 0) * 0.6, 12)), active: confluence.confluenceCount >= 2 },
           {
             name: leadingScore ? "선행 지표 (패턴+DNA)" : "패턴 매칭 (Fallback)",
@@ -296,7 +283,7 @@ class StockScreener {
         // 감점 요인 (전면 제거 - 순수 가점 시스템)
         penalties: [],
 
-        // 최종 점수 (소수점 2자리)
+        // 최종 점수 (소수점 2자리, 85점 만점)
         finalScore: parseFloat(totalScore.toFixed(2))
       };
 
@@ -326,14 +313,6 @@ class StockScreener {
         triangle, // 신규: Triangle 패턴
         scoreBreakdown, // 신규: 가점/감점 상세 내역
         trendAnalysis, // 추세 분석 추가
-        trendScore: trendScore ? { // 트렌드 점수 추가
-          total: trendScore.total_trend_score,
-          search: trendScore.search_score,
-          news: trendScore.news_score,
-          sentiment: trendScore.sentiment_score,
-          isHotIssue: trendScore.is_hot_issue,
-          searchSurge: trendScore.search_surge
-        } : null,
         overheating, // Phase 4C 과열 정보 추가
         leadingIndicators: leadingScore ? { // ⭐ 선행 지표 통합 (NEW)
           total: leadingScore.total,
@@ -354,7 +333,7 @@ class StockScreener {
           points: Math.round(leadingPoints)
         } : null,
         totalScore,
-        recommendation: this.getRecommendation(totalScore, advancedAnalysis.tier, overheating, trendScore),
+        recommendation: this.getRecommendation(totalScore, advancedAnalysis.tier, overheating),
         rankBadges: rankBadges || {}
       };
     } catch (error) {
@@ -410,26 +389,26 @@ class StockScreener {
   }
 
   /**
-   * 추천 등급 산출 (100점 만점 기준, 선행 지표 중심)
-   * 트렌드(0-15점) 통합으로 100점 만점
+   * 추천 등급 산출 (85점 만점 기준, 선행 지표 중심)
    */
-  getRecommendation(score, tier, overheating, trendScore = null) {
+  getRecommendation(score, tier, overheating) {
     let grade, text, color;
 
-    // 기본 등급 산정 (100점 만점)
-    if (score >= 75) {
+    // 기본 등급 산정 (85점 만점)
+    // S: 64점 (75%), A: 49점 (58%), B: 36점 (42%), C: 21점 (25%)
+    if (score >= 64) {
       grade = 'S';
       text = '🔥 최우선 매수';
       color = '#ff4444';
-    } else if (score >= 58) {
+    } else if (score >= 49) {
       grade = 'A';
       text = '🟢 적극 매수';
       color = '#00cc00';
-    } else if (score >= 42) {
+    } else if (score >= 36) {
       grade = 'B';
       text = '🟡 매수 고려';
       color = '#ffaa00';
-    } else if (score >= 25) {
+    } else if (score >= 21) {
       grade = 'C';
       text = '⚪ 주목';
       color = '#888888';
@@ -439,17 +418,11 @@ class StockScreener {
       color = '#cccccc';
     }
 
-    // HOT 이슈 배지 추가 (트렌드 점수 70점 이상)
-    if (trendScore && trendScore.total_trend_score >= 70) {
-      text = `🔥 HOT 이슈 - ${text}`;
-      grade = grade === 'S' ? 'S+' : grade; // S등급은 S+로 업그레이드
-    }
-
     // Phase 4 티어 수정
     if (tier === 'watch') {
       text = '👁️ 관심종목 (선행지표)';
       color = '#9966ff'; // 보라색
-    } else if (tier === 'buy' && score >= 60) {
+    } else if (tier === 'buy' && score >= 51) {
       text = '🚀 매수신호 (트리거 발동)';
       color = '#ff6600'; // 주황색
     }
