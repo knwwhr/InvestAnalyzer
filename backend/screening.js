@@ -82,15 +82,29 @@ class StockScreener {
       });
     }
 
+    // 기하평균 계산 함수
+    const calculateGeometricMean = (changes) => {
+      if (changes.length === 0) return 0;
+      // 변동율을 승수로 변환 (예: +5% → 1.05, -3% → 0.97)
+      const multipliers = changes.map(c => 1 + (c / 100));
+      // 모든 승수를 곱함
+      const product = multipliers.reduce((acc, val) => acc * val, 1);
+      // n제곱근
+      const geometricMean = Math.pow(product, 1 / multipliers.length);
+      // 다시 백분율로 변환
+      return ((geometricMean - 1) * 100).toFixed(2);
+    };
+
     return {
       dailyData: dailyData, // 최근 5일 (0=오늘, 1=어제, 2=그저께, ...)
       summary: {
         totalPriceChange: dailyData.length > 0 ? dailyData[dailyData.length - 1].periodPriceChange : 0,
         totalVolumeChange: dailyData.length > 0 ? dailyData[dailyData.length - 1].periodVolumeChange : 0,
+        // 기하평균 적용
         avgDailyPriceChange: dailyData.length > 0 ?
-          (dailyData.reduce((sum, d) => sum + d.priceChange, 0) / dailyData.length).toFixed(2) : 0,
+          calculateGeometricMean(dailyData.map(d => d.priceChange)) : 0,
         avgDailyVolumeChange: dailyData.length > 0 ?
-          (dailyData.reduce((sum, d) => sum + d.volumeChange, 0) / dailyData.length).toFixed(2) : 0
+          calculateGeometricMean(dailyData.map(d => d.volumeChange)) : 0
       }
     };
   }
