@@ -1159,7 +1159,7 @@
                   <h3 className="text-2xl font-bold mb-4 text-orange-900 flex items-center gap-2">
                     🎯 점수 산출 기준
                     <span className="text-lg font-normal text-gray-700">
-                      (총 {stock.scoreBreakdown.finalScore}점 / 100점)
+                      (총 {typeof stock.scoreBreakdown.finalScore === 'number' ? stock.scoreBreakdown.finalScore.toFixed(2) : stock.scoreBreakdown.finalScore}점 / 100점)
                     </span>
                   </h3>
 
@@ -1256,7 +1256,7 @@
                   <div className="mt-4 p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg border-2 border-purple-300">
                     <div className="text-center text-lg font-bold text-purple-900">
                       최종 점수 = 기본 {stock.scoreBreakdown.baseScore}점 + 가점 {stock.scoreBreakdown.bonuses.reduce((sum, b) => sum + b.value, 0)}점
-                      = <span className="text-2xl text-purple-600">{stock.scoreBreakdown.finalScore}점</span>
+                      = <span className="text-2xl text-purple-600">{typeof stock.scoreBreakdown.finalScore === 'number' ? stock.scoreBreakdown.finalScore.toFixed(2) : stock.scoreBreakdown.finalScore}점</span>
                     </div>
                     <div className="text-center text-sm text-gray-700 mt-2">
                       등급: <span className={`inline-block px-3 py-1 rounded-full text-white font-bold grade-${stock.recommendation.grade}`}>
