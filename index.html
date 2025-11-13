@@ -533,12 +533,14 @@
                   </div>
                 )}
                 {stock.advancedAnalysis.indicators.escape.detected && (
-                  <div className="relative group inline-block">
-                    <span className="cursor-help border-b border-dotted border-gray-400">
+                  <div className="relative inline-flex items-center gap-1">
+                    <span>
                       🚀 탈출속도 (30일): 저항선 {stock.advancedAnalysis.indicators.escape.resistance.toLocaleString()}원 → 현재 +{stock.advancedAnalysis.indicators.escape.priceBreakout}% | 거래량 {stock.advancedAnalysis.indicators.escape.volumeRatio}x | 종가강도 {stock.advancedAnalysis.indicators.escape.closingStrength}%
                     </span>
-                    {/* 툴팁 - 중앙 정렬 */}
-                    <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    <span className="relative group inline-flex items-center justify-center w-4 h-4 bg-gray-700 text-white rounded-full text-xs cursor-help font-bold">
+                      ⓘ
+                      {/* 툴팁 - 중앙 정렬 */}
+                      <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <div className="font-bold mb-1">🚀 탈출 속도 [30일 분석]</div>
                       <div className="space-y-1">
                         <div className="text-yellow-300">✅ 패턴 감지됨 - 강한 돌파!</div>
@@ -567,15 +569,18 @@
                         <div className="border-4 border-transparent border-t-gray-900"></div>
                       </div>
                     </div>
+                    </span>
                   </div>
                 )}
                 {!stock.advancedAnalysis.indicators.escape.detected && stock.advancedAnalysis.indicators.escape.warning && (
-                  <div className="relative group inline-block">
-                    <span className="cursor-help border-b border-dotted border-red-400 text-orange-600">
+                  <div className="relative inline-flex items-center gap-1">
+                    <span className="text-orange-600">
                       {stock.advancedAnalysis.indicators.escape.signal}
                     </span>
-                    {/* 경고 툴팁 */}
-                    <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-red-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    <span className="relative group inline-flex items-center justify-center w-4 h-4 bg-red-700 text-white rounded-full text-xs cursor-help font-bold">
+                      ⓘ
+                      {/* 경고 툴팁 */}
+                      <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-red-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <div className="font-bold mb-1">⚠️ 탈출 실패 경고</div>
                       <div className="space-y-1">
                         <div className="text-yellow-300">{stock.advancedAnalysis.indicators.escape.warning}</div>
@@ -591,15 +596,18 @@
                         <div className="border-4 border-transparent border-t-red-900"></div>
                       </div>
                     </div>
+                    </span>
                   </div>
                 )}
                 {stock.advancedAnalysis.indicators.drain.detected && (
-                  <div className="relative group inline-block">
-                    <span className="cursor-help border-b border-dotted border-gray-400">
+                  <div className="relative inline-flex items-center gap-1">
+                    <span>
                       💧 유동성고갈: 최근10일 vs 이전20일 | 거래량 {stock.advancedAnalysis.indicators.drain.volumeDecline}% | 변동성 {stock.advancedAnalysis.indicators.drain.volatilityDecline}%
                     </span>
-                    {/* 툴팁 - 오른쪽 정렬 */}
-                    <div className="absolute right-0 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                    <span className="relative group inline-flex items-center justify-center w-4 h-4 bg-gray-700 text-white rounded-full text-xs cursor-help font-bold">
+                      ⓘ
+                      {/* 툴팁 - 중앙 정렬 */}
+                      <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                       <div className="font-bold mb-1">💧 유동성 고갈 [30일 분석]</div>
                       <div className="space-y-1">
                         <div className="text-yellow-300">✅ 패턴 감지됨</div>
@@ -617,19 +625,22 @@
                         <div>거래량 급감 + 변동성 축소</div>
                         <div>곧 큰 움직임 전조 (상승/하락 불확실)</div>
                       </div>
-                      {/* 화살표 - 오른쪽 */}
-                      <div className="absolute top-full right-6 transform -mt-1">
+                      {/* 화살표 - 중앙 */}
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                         <div className="border-4 border-transparent border-t-gray-900"></div>
                       </div>
                     </div>
+                    </span>
                   </div>
                 )}
-                <div className="relative group inline-block">
-                  <span className="cursor-help border-b border-dotted border-gray-400">
+                <div className="relative inline-flex items-center gap-1">
+                  <span>
                     📊 비대칭비율 (최근20일): {stock.advancedAnalysis.indicators.asymmetric.ratio}배 (상승{stock.advancedAnalysis.indicators.asymmetric.upDays}일 vs 하락{stock.advancedAnalysis.indicators.asymmetric.downDays}일)
                   </span>
-                  {/* 툴팁 - 중앙 정렬 (항상 표시되므로) */}
-                  <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                  <span className="relative group inline-flex items-center justify-center w-4 h-4 bg-gray-700 text-white rounded-full text-xs cursor-help font-bold">
+                    ⓘ
+                    {/* 툴팁 - 중앙 정렬 */}
+                    <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
                     <div className="font-bold mb-1">📊 비대칭 비율 [최근 20일 분석]</div>
                     <div className="space-y-1">
                       <div className="text-yellow-300">✅ 상승일 거래량이 {stock.advancedAnalysis.indicators.asymmetric.ratio}배 더 많음</div>
@@ -652,6 +663,7 @@
                       <div className="border-4 border-transparent border-t-gray-900"></div>
                     </div>
                   </div>
+                  </span>
                 </div>
               </div>
             </div>
