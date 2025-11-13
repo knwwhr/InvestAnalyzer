@@ -236,8 +236,8 @@ class StockScreener {
       }
       totalScore += trendBonus;
 
-      // 5. 최종 점수 (0-100점 범위, NaN 방지)
-      totalScore = isNaN(totalScore) ? 0 : Math.min(Math.max(totalScore, 0), 100);
+      // 5. 최종 점수 (0-100점 범위, NaN 방지, 소수점 2자리)
+      totalScore = isNaN(totalScore) ? 0 : parseFloat(Math.min(Math.max(totalScore, 0), 100).toFixed(2));
 
       // ========================================
       // 가점/감점 상세 내역 (스코어 카드)
@@ -282,8 +282,8 @@ class StockScreener {
         // 감점 요인 (전면 제거 - 순수 가점 시스템)
         penalties: [],
 
-        // 최종 점수
-        finalScore: Math.round(totalScore)
+        // 최종 점수 (소수점 2자리)
+        finalScore: parseFloat(totalScore.toFixed(2))
       };
 
       // 랭킹 뱃지 가져오기
