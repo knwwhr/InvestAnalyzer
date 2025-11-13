@@ -460,70 +460,76 @@
                   const latestWhale = stock.advancedAnalysis.indicators.whale[stock.advancedAnalysis.indicators.whale.length - 1];
                   const hasWarning = latestWhale.warning;
                   return (
-                    <div className="relative group inline-block">
-                      <span className={`cursor-help border-b border-dotted ${hasWarning ? 'border-orange-400 text-orange-600' : 'border-gray-400'}`}>
+                    <div className="relative inline-flex items-center gap-1">
+                      <span className={hasWarning ? 'text-orange-600' : ''}>
                         🐋 고래감지 (최근10일): {stock.advancedAnalysis.indicators.whale.length}건 | 강도 {latestWhale.intensity.toFixed(1)}{hasWarning ? ' ⚠️' : ''}
                       </span>
-                      {/* 툴팁 - 왼쪽 정렬 */}
-                      <div className="absolute left-0 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                        <div className="font-bold mb-1">🐋 고래 감지 [최근 10일 분석]</div>
-                        <div className="space-y-1">
-                          <div className="text-yellow-300">✅ 패턴 감지됨</div>
-                          {hasWarning && <div className="text-orange-300">{latestWhale.warning}</div>}
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>📊 분석 기간: 최근 10일</div>
-                          <div>📈 비교 대상: 이전 20일 평균 거래량</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="font-bold text-green-300">📌 감지 조건:</div>
-                          <div>• 거래량이 평균 대비 2.5배 이상</div>
-                          <div>• 가격 변동률 3% 이상</div>
-                          <div>• 감지 횟수: {stock.advancedAnalysis.indicators.whale.length}회</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="font-bold text-cyan-300">🎯 마감 분석:</div>
-                          <div>• 고가 대비 낙폭: -{latestWhale.highDecline}%</div>
-                          {hasWarning && <div className="text-orange-300">  (30% 이상 윗꼬리 = 되돌림 주의)</div>}
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="font-bold text-blue-300">💡 의미:</div>
-                          <div>기관/외국인 등 큰 손이 매수 중</div>
-                          <div>{hasWarning ? '장중 급등 후 되돌림 - 신중 진입' : '단기 급등 가능성 높음'}</div>
+                      <span className="relative group inline-flex items-center justify-center w-4 h-4 bg-gray-700 text-white rounded-full text-xs cursor-help font-bold">
+                        ⓘ
+                        {/* 툴팁 - 아이콘에서 나옴 */}
+                        <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                          <div className="font-bold mb-1">🐋 고래 감지 [최근 10일 분석]</div>
+                          <div className="space-y-1">
+                            <div className="text-yellow-300">✅ 패턴 감지됨</div>
+                            {hasWarning && <div className="text-orange-300">{latestWhale.warning}</div>}
+                            <div className="border-t border-gray-700 my-1"></div>
+                            <div>📊 분석 기간: 최근 10일</div>
+                            <div>📈 비교 대상: 이전 20일 평균 거래량</div>
+                            <div className="border-t border-gray-700 my-1"></div>
+                            <div className="font-bold text-green-300">📌 감지 조건:</div>
+                            <div>• 거래량이 평균 대비 2.5배 이상</div>
+                            <div>• 가격 변동률 3% 이상</div>
+                            <div>• 감지 횟수: {stock.advancedAnalysis.indicators.whale.length}회</div>
+                            <div className="border-t border-gray-700 my-1"></div>
+                            <div className="font-bold text-cyan-300">🎯 마감 분석:</div>
+                            <div>• 고가 대비 낙폭: -{latestWhale.highDecline}%</div>
+                            {hasWarning && <div className="text-orange-300">  (30% 이상 윗꼬리 = 되돌림 주의)</div>}
+                            <div className="border-t border-gray-700 my-1"></div>
+                            <div className="font-bold text-blue-300">💡 의미:</div>
+                            <div>기관/외국인 등 큰 손이 매수 중</div>
+                            <div>{hasWarning ? '장중 급등 후 되돌림 - 신중 진입' : '단기 급등 가능성 높음'}</div>
+                          </div>
+                          {/* 화살표 - 중앙 */}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                            <div className="border-4 border-transparent border-t-gray-900"></div>
+                          </div>
                         </div>
-                        {/* 화살표 - 왼쪽 */}
-                        <div className="absolute top-full left-6 transform -mt-1">
-                          <div className="border-4 border-transparent border-t-gray-900"></div>
-                        </div>
-                      </div>
+                      </span>
                     </div>
                   );
                 })()}
                 {stock.advancedAnalysis.indicators.accumulation.detected && (
-                  <div className="relative group inline-block">
-                    <span className="cursor-help border-b border-dotted border-gray-400">
+                  <div className="relative inline-flex items-center gap-1">
+                    <span>
                       🤫 조용한매집 (20일): 후반10일 vs 전반10일 | 거래량 +{stock.advancedAnalysis.indicators.accumulation.volumeGrowth}% | 가격변동 {stock.advancedAnalysis.indicators.accumulation.priceRange}%
                     </span>
-                    {/* 툴팁 - 중앙 정렬 */}
-                    <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                      <div className="font-bold mb-1">🤫 조용한 매집 [20일 분석]</div>
-                      <div className="space-y-1">
-                        <div className="text-yellow-300">✅ 패턴 감지됨</div>
-                        <div className="border-t border-gray-700 my-1"></div>
-                        <div>📊 분석 기간: 최근 20일</div>
-                        <div>📈 비교 방식: 전반 10일 vs 후반 10일</div>
-                        <div className="border-t border-gray-700 my-1"></div>
-                        <div className="font-bold text-green-300">📌 측정 지표:</div>
-                        <div>• 거래량 증가: +{stock.advancedAnalysis.indicators.accumulation.volumeGrowth}%</div>
-                        <div>  (후반 10일 평균 > 전반 10일 평균)</div>
-                        <div>• 가격 변동폭: {stock.advancedAnalysis.indicators.accumulation.priceRange}%</div>
-                        <div>  (10% 이내 = 횡보 구간)</div>
-                        <div className="border-t border-gray-700 my-1"></div>
-                        <div className="font-bold text-blue-300">💡 의미:</div>
-                        <div>세력이 가격 자극 없이 물량 모으는 중</div>
-                        <div>1~2주 후 급등 가능성</div>
+                    <span className="relative group inline-flex items-center justify-center w-4 h-4 bg-gray-700 text-white rounded-full text-xs cursor-help font-bold">
+                      ⓘ
+                      {/* 툴팁 - 아이콘에서 나옴 */}
+                      <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-1 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                        <div className="font-bold mb-1">🤫 조용한 매집 [20일 분석]</div>
+                        <div className="space-y-1">
+                          <div className="text-yellow-300">✅ 패턴 감지됨</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div>📊 분석 기간: 최근 20일</div>
+                          <div>📈 비교 방식: 전반 10일 vs 후반 10일</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div className="font-bold text-green-300">📌 측정 지표:</div>
+                          <div>• 거래량 증가: +{stock.advancedAnalysis.indicators.accumulation.volumeGrowth}%</div>
+                          <div>  (후반 10일 평균 > 전반 10일 평균)</div>
+                          <div>• 가격 변동폭: {stock.advancedAnalysis.indicators.accumulation.priceRange}%</div>
+                          <div>  (10% 이내 = 횡보 구간)</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div className="font-bold text-blue-300">💡 의미:</div>
+                          <div>세력이 가격 자극 없이 물량 모으는 중</div>
+                          <div>1~2주 후 급등 가능성</div>
+                        </div>
+                        {/* 화살표 - 중앙 */}
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                          <div className="border-4 border-transparent border-t-gray-900"></div>
+                        </div>
                       </div>
-                      {/* 화살표 - 중앙 */}
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    </div>
+                    </span>
                   </div>
                 )}
                 {stock.advancedAnalysis.indicators.escape.detected && (
@@ -1118,9 +1124,19 @@
                     desc={`${stock.advancedAnalysis.indicators.asymmetric.signal} | 상승 ${stock.advancedAnalysis.indicators.asymmetric.upDays}일(${(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(0)}M) vs 하락 ${stock.advancedAnalysis.indicators.asymmetric.downDays}일(${(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(0)}M)`}
                   />
                   <StatBox
-                    label="시가총액"
-                    value={(stock.marketCap / 100000000).toFixed(0) + '억'}
-                    desc="원"
+                    label="최근 5일 거래량 변동율"
+                    value={stock.trendAnalysis && stock.trendAnalysis.dailyData.length >= 5 ?
+                      (() => {
+                        // 기하평균 계산: (v1 * v2 * v3 * v4 * v5)^(1/5)
+                        const changes = stock.trendAnalysis.dailyData.slice(0, 5).map(d => d.volumeChange);
+                        const positiveChanges = changes.map(c => 1 + (c / 100)); // 변동율을 승수로 변환
+                        const product = positiveChanges.reduce((acc, val) => acc * val, 1);
+                        const geometricMean = Math.pow(product, 1 / positiveChanges.length);
+                        const avgChange = (geometricMean - 1) * 100;
+                        return (avgChange >= 0 ? '+' : '') + avgChange.toFixed(1) + '%';
+                      })()
+                      : 'N/A'}
+                    desc="5일 기하평균"
                   />
                 </div>
               </div>
@@ -1136,6 +1152,121 @@
                   ))}
                 </div>
               </div>
+
+              {/* 점수 산출 기준 */}
+              {stock.scoreBreakdown && (
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-6">
+                  <h3 className="text-2xl font-bold mb-4 text-orange-900 flex items-center gap-2">
+                    🎯 점수 산출 기준
+                    <span className="text-lg font-normal text-gray-700">
+                      (총 {stock.scoreBreakdown.finalScore}점 / 100점)
+                    </span>
+                  </h3>
+
+                  {/* 기본 점수 */}
+                  <div className="bg-white rounded-lg p-4 mb-4 border-2 border-blue-200">
+                    <h4 className="font-bold text-lg text-blue-900 mb-3 flex items-center gap-2">
+                      📊 기본 점수: {stock.scoreBreakdown.baseScore}점
+                      <span className="text-sm font-normal text-gray-600">(0-20점 범위)</span>
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-start p-2 bg-blue-50 rounded">
+                        <div className="flex-1">
+                          <div className="font-semibold text-blue-900">1. 거래량 비율 (0-8점)</div>
+                          <div className="text-gray-700 mt-1">
+                            • 현재 거래량: {(stock.volume / 1000).toFixed(0)}K<br/>
+                            • 20일 평균: {stock.volumeAnalysis.current.volumeMA20 ? (stock.volumeAnalysis.current.volumeMA20 / 1000).toFixed(0) + 'K' : 'N/A'}<br/>
+                            • 비율: {stock.volumeAnalysis.current.volumeMA20 ? (stock.volume / stock.volumeAnalysis.current.volumeMA20).toFixed(2) + '배' : 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-start p-2 bg-blue-50 rounded">
+                        <div className="flex-1">
+                          <div className="font-semibold text-blue-900">2. OBV 추세 (0-7점)</div>
+                          <div className="text-gray-700 mt-1">
+                            • OBV 값: {(stock.volumeAnalysis.indicators.obv / 1000000).toFixed(1)}M<br/>
+                            • 추세: {stock.volumeAnalysis.signals.obvTrend}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-start p-2 bg-blue-50 rounded">
+                        <div className="flex-1">
+                          <div className="font-semibold text-blue-900">3. VWAP 모멘텀 (0-5점)</div>
+                          <div className="text-gray-700 mt-1">
+                            • VWAP: {stock.volumeAnalysis.indicators.vwap?.toLocaleString()}원<br/>
+                            • 현재가: {stock.currentPrice.toLocaleString()}원<br/>
+                            • 모멘텀: {stock.volumeAnalysis.signals.priceVsVWAP}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-start p-2 bg-blue-50 rounded">
+                        <div className="flex-1">
+                          <div className="font-semibold text-blue-900">4. 비대칭 비율 (0-5점)</div>
+                          <div className="text-gray-700 mt-1">
+                            • 상승일: {stock.advancedAnalysis.indicators.asymmetric.upDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1)}M)<br/>
+                            • 하락일: {stock.advancedAnalysis.indicators.asymmetric.downDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M)<br/>
+                            • 비율: {stock.advancedAnalysis.indicators.asymmetric.ratio}배 ({stock.advancedAnalysis.indicators.asymmetric.signal})
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 가점 항목 */}
+                  <div className="bg-white rounded-lg p-4 border-2 border-green-200">
+                    <h4 className="font-bold text-lg text-green-900 mb-3 flex items-center gap-2">
+                      ➕ 가점 항목: {stock.scoreBreakdown.bonuses.reduce((sum, b) => sum + b.value, 0)}점
+                      <span className="text-sm font-normal text-gray-600">(0-80점 범위)</span>
+                    </h4>
+                    <div className="space-y-2">
+                      {stock.scoreBreakdown.bonuses.map((bonus, idx) => (
+                        <div key={idx} className="p-3 bg-green-50 rounded-lg border border-green-200">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-semibold text-green-900">{bonus.name}</div>
+                            <div className="text-lg font-bold text-green-700">+{bonus.value}점</div>
+                          </div>
+                          {bonus.details && (
+                            <div className="text-xs text-gray-700 mt-2 p-2 bg-white rounded border border-gray-200">
+                              {/* VPD 세부 정보 */}
+                              {bonus.details.divergence !== undefined && (
+                                <div className="space-y-1">
+                                  <div>• 거래량 비율: {bonus.details.volumeRatio}배</div>
+                                  <div>• 가격 변동: {bonus.details.priceChange >= 0 ? '+' : ''}{bonus.details.priceChange}%</div>
+                                  <div>• Divergence: {bonus.details.divergence.toFixed(2)}</div>
+                                  <div>• 신호: {bonus.details.signal}</div>
+                                </div>
+                              )}
+                              {/* 선행 지표 세부 정보 */}
+                              {bonus.details.strength && (
+                                <div className="space-y-1">
+                                  <div>• 강도: {bonus.details.strength}</div>
+                                  <div>• 패턴 매칭: {bonus.details.patternMatched ? '✅' : '❌'}</div>
+                                  <div>• DNA 매칭: {bonus.details.dnaMatched ? '✅' : '❌'}</div>
+                                  <div>• 신뢰도: {bonus.details.confidence}%</div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 최종 점수 계산식 */}
+                  <div className="mt-4 p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg border-2 border-purple-300">
+                    <div className="text-center text-lg font-bold text-purple-900">
+                      최종 점수 = 기본 {stock.scoreBreakdown.baseScore}점 + 가점 {stock.scoreBreakdown.bonuses.reduce((sum, b) => sum + b.value, 0)}점
+                      = <span className="text-2xl text-purple-600">{stock.scoreBreakdown.finalScore}점</span>
+                    </div>
+                    <div className="text-center text-sm text-gray-700 mt-2">
+                      등급: <span className={`inline-block px-3 py-1 rounded-full text-white font-bold grade-${stock.recommendation.grade}`}>
+                        {stock.recommendation.grade}
+                      </span>
+                      ({stock.recommendation.text})
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
