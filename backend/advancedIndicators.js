@@ -645,18 +645,26 @@ function analyzeAdvanced(chartData) {
   else if (totalScore >= 30) recommendation = '⚪ 주목';
   else recommendation = '⚫ 관망';
 
-  // 신호 수집
-  const signals = [
-    ...whale.map(w => w.type),
-    accumulation.signal,
-    escape.signal,
-    drain.signal,
-    asymmetric.signal,
-    gradualAccumulation.signal,
-    smartMoney.signal,
-    bottomFormation.signal,
-    breakoutPrep.signal
-  ].filter(s => s !== '없음');
+  // 신호 수집 (중복 제거)
+  const signals = [];
+
+  // 고래 감지: 여러 건이 있어도 하나로 통합
+  if (whale.length > 0) {
+    const buyWhales = whale.filter(w => w.type.includes('매수'));
+    const sellWhales = whale.filter(w => w.type.includes('매도'));
+    if (buyWhales.length > 0) {
+      signals.push(buyWhales.length === 1 ? '🐋 매수고래' : `🐋 매수고래 (${buyWhales.length}건)`);
+    }
+    if (sellWhales.length > 0) {
+      signals.push(sellWhales.length === 1 ? '🐳 매도고래' : `🐳 매도고래 (${sellWhales.length}건)`);
+    }
+  }
+
+  // 다른 신호들 추가 (없음 제외)
+  [accumulation.signal, escape.signal, drain.signal, asymmetric.signal,
+   gradualAccumulation.signal, smartMoney.signal, bottomFormation.signal, breakoutPrep.signal]
+    .filter(s => s && s !== '없음')
+    .forEach(s => signals.push(s));
 
   // 종목 티어 분류
   let tier = 'normal'; // normal, watch, buy, wait
