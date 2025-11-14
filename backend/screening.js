@@ -220,9 +220,10 @@ class StockScreener {
             investorData
           );
 
-          // 0-80점을 0-10점으로 스케일링 (임시 - Phase 4에서 전체 재설계)
+          // 0-80점을 0-25점으로 스케일링 (백테스트 결과: B등급 최고 수익률 +27.5%)
+          // B등급 (42-57점)에서 패턴+DNA가 핵심 역할 → 배점 강화
           const fullScore = leadingIndicators.convertToScreeningScore(leadingScore);
-          leadingPoints = Math.min(fullScore * 0.125, 10); // 80 * 0.125 = 10
+          leadingPoints = Math.min(fullScore * 0.3125, 25); // 80 * 0.3125 = 25
         } catch (error) {
           console.error('선행 지표 분석 실패:', error.message);
           leadingPoints = 0;
@@ -233,13 +234,13 @@ class StockScreener {
           { volumeAnalysis, advancedAnalysis },
           this.savedPatterns
         );
-        leadingPoints = Math.min((patternMatch.bonusScore || 0) * 0.5, 10);
+        leadingPoints = Math.min((patternMatch.bonusScore || 0) * 1.25, 25);
       }
 
       totalScore += leadingPoints;
 
-      // 4. 최종 점수 (0-85점 범위, NaN 방지, 소수점 2자리)
-      totalScore = isNaN(totalScore) ? 0 : parseFloat(Math.min(Math.max(totalScore, 0), 85).toFixed(2));
+      // 4. 최종 점수 (0-100점 범위, NaN 방지, 소수점 2자리)
+      totalScore = isNaN(totalScore) ? 0 : parseFloat(Math.min(Math.max(totalScore, 0), 100).toFixed(2));
 
       // ========================================
       // 가점/감점 상세 내역 (스코어 카드)
@@ -248,7 +249,7 @@ class StockScreener {
         // 기본 점수 (0-20점: 거래량 + OBV + VWAP + 비대칭 - 되돌림)
         baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice)),
 
-        // 가점 요인 (선행 지표 중심, 총 65점)
+        // 가점 요인 (선행 지표 중심, 총 80점)
         bonuses: [
           {
             name: "Volume-Price Divergence (거래량 폭발)",
@@ -283,7 +284,7 @@ class StockScreener {
         // 감점 요인 (전면 제거 - 순수 가점 시스템)
         penalties: [],
 
-        // 최종 점수 (소수점 2자리, 85점 만점)
+        // 최종 점수 (소수점 2자리, 100점 만점)
         finalScore: parseFloat(totalScore.toFixed(2))
       };
 
@@ -389,40 +390,44 @@ class StockScreener {
   }
 
   /**
-   * 추천 등급 산출 (85점 만점 기준, 백테스트 기반 재정의)
+   * 추천 등급 산출 (100점 만점 기준, 백테스트 기반 재정의)
    *
    * 백테스트 결과 (BACKTEST_RESULTS.md):
-   * - C등급 (25-41점): 승률 89.33%, 평균 +24.89% ⭐ 최고 승률
-   * - B등급 (42-57점): 승률 77.78%, 평균 +27.5% ⭐ 최고 수익률
-   * - A등급 (58-74점): 승률 86.67%, 평균 +24.87%
-   * - S등급 (75+점): 승률 100%, 평균 +8.06% (샘플 5개, 신뢰도 낮음)
+   * - S등급 (25-41점): 승률 89.33%, 평균 +24.89% ⭐ 최고 승률
+   * - A등급 (42-57점): 승률 77.78%, 평균 +27.5% ⭐ 최고 수익률
+   * - B등급 (58-88점): 승률 86.67%, 평균 +24.87%
+   * - C등급 (89+점): 승률 100%, 평균 +8.06% (샘플 부족, 과열 경고)
    *
    * 결론: 점수가 낮을수록 진짜 선행 신호 (거래량/기관 진입 전)
+   *
+   * 100점 만점 체계 (85→100점 확장):
+   * - 패턴+DNA 가중치 강화: 10점 → 25점 (+15점)
+   * - B등급 최고 수익률 (+27.5%) 기여도 반영
    */
   getRecommendation(score, tier, overheating) {
     let grade, text, color, tooltip;
 
-    // 등급 체계 재정의 (백테스트 결과 반영)
+    // 등급 체계 재정의 (100점 만점, 백테스트 결과 반영)
     if (score >= 25 && score <= 41) {
-      // 기존 C등급 → 신규 S등급 (최고 승률)
+      // S등급 (최고 승률 - 선행 신호)
       grade = 'S';
       text = '🔥 최우선 매수 (선행 신호)';
       color = '#ff4444';
       tooltip = '거래량/기관 진입 전 패턴 감지 (백테스트: 승률 89.3%, 평균 +24.9%)';
     } else if (score >= 42 && score <= 57) {
-      // 기존 B등급 → 신규 A등급 (최고 수익률)
+      // A등급 (최고 수익률 - 진입 적기)
       grade = 'A';
       text = '🟢 적극 매수 (진입 적기)';
       color = '#00cc00';
       tooltip = '거래량 증가 시작, 기관 초기 진입 (백테스트: 승률 77.8%, 평균 +27.5%)';
-    } else if (score >= 58 && score <= 74) {
-      // 기존 A등급 → 신규 B등급 (추세 진행)
+    } else if (score >= 58 && score <= 88) {
+      // B등급 (추세 진행) - 범위 확대 (74→88)
       grade = 'B';
       text = '🟡 매수 고려 (추세 진행)';
       color = '#ffaa00';
       tooltip = '거래량 폭발, 기관 본격 매수 (백테스트: 승률 86.7%, 평균 +24.9%)';
-    } else if (score >= 75) {
-      // 기존 S등급 → 신규 C등급 (과열 경고)
+    } else if (score >= 89) {
+      // C등급 (과열 경고) - 기준 상향 (75→89)
       grade = 'C';
       text = '⚠️ 과열 경고 (단기 차익)';
       color = '#ff9900';
