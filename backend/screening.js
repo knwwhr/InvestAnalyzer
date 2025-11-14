@@ -274,7 +274,7 @@ class StockScreener {
               confidence: Math.round(leadingScore.confidence)
             } : null
           }, // ⭐ 선행 지표 통합 (NEW)
-          { name: "신호 신선도", value: Math.round(Math.min((freshness.freshnessScore || 0) * 0.53, 8)), active: freshness.freshCount >= 2 },
+          { name: "당일/전일 신호", value: Math.round(Math.min((freshness.freshnessScore || 0) * 0.53, 8)), active: freshness.freshCount >= 2 },
           { name: "Cup&Handle 패턴", value: Math.round(Math.min((cupAndHandle.score || 0) * 0.25, 5)), active: cupAndHandle.detected },
           { name: "돌파 확인", value: Math.round(Math.min((breakoutConfirmation.score || 0) * 0.2, 3)), active: breakoutConfirmation.detected },
           { name: "Triangle 패턴", value: Math.round(Math.min((triangle.score || 0) * 0.13, 2)), active: triangle.detected }
@@ -389,33 +389,50 @@ class StockScreener {
   }
 
   /**
-   * 추천 등급 산출 (85점 만점 기준, 선행 지표 중심)
+   * 추천 등급 산출 (85점 만점 기준, 백테스트 기반 재정의)
+   *
+   * 백테스트 결과 (BACKTEST_RESULTS.md):
+   * - C등급 (25-41점): 승률 89.33%, 평균 +24.89% ⭐ 최고 승률
+   * - B등급 (42-57점): 승률 77.78%, 평균 +27.5% ⭐ 최고 수익률
+   * - A등급 (58-74점): 승률 86.67%, 평균 +24.87%
+   * - S등급 (75+점): 승률 100%, 평균 +8.06% (샘플 5개, 신뢰도 낮음)
+   *
+   * 결론: 점수가 낮을수록 진짜 선행 신호 (거래량/기관 진입 전)
    */
   getRecommendation(score, tier, overheating) {
-    let grade, text, color;
+    let grade, text, color, tooltip;
 
-    // 기본 등급 산정 (85점 만점)
-    // S: 64점 (75%), A: 49점 (58%), B: 36점 (42%), C: 21점 (25%)
-    if (score >= 64) {
+    // 등급 체계 재정의 (백테스트 결과 반영)
+    if (score >= 25 && score <= 41) {
+      // 기존 C등급 → 신규 S등급 (최고 승률)
       grade = 'S';
-      text = '🔥 최우선 매수';
+      text = '🔥 최우선 매수 (선행 신호)';
       color = '#ff4444';
-    } else if (score >= 49) {
+      tooltip = '거래량/기관 진입 전 패턴 감지 (백테스트: 승률 89.3%, 평균 +24.9%)';
+    } else if (score >= 42 && score <= 57) {
+      // 기존 B등급 → 신규 A등급 (최고 수익률)
       grade = 'A';
-      text = '🟢 적극 매수';
+      text = '🟢 적극 매수 (진입 적기)';
       color = '#00cc00';
-    } else if (score >= 36) {
+      tooltip = '거래량 증가 시작, 기관 초기 진입 (백테스트: 승률 77.8%, 평균 +27.5%)';
+    } else if (score >= 58 && score <= 74) {
+      // 기존 A등급 → 신규 B등급 (추세 진행)
       grade = 'B';
-      text = '🟡 매수 고려';
+      text = '🟡 매수 고려 (추세 진행)';
       color = '#ffaa00';
-    } else if (score >= 21) {
+      tooltip = '거래량 폭발, 기관 본격 매수 (백테스트: 승률 86.7%, 평균 +24.9%)';
+    } else if (score >= 75) {
+      // 기존 S등급 → 신규 C등급 (과열 경고)
       grade = 'C';
-      text = '⚪ 주목';
-      color = '#888888';
+      text = '⚠️ 과열 경고 (단기 차익)';
+      color = '#ff9900';
+      tooltip = '모든 지표 점등, 단기 차익 또는 조정 대기 (백테스트: 샘플 부족)';
     } else {
+      // D등급 유지 (신호 부족)
       grade = 'D';
-      text = '⚫ 관망';
+      text = '⚫ 관망 (신호 부족)';
       color = '#cccccc';
+      tooltip = '선행 지표 미감지, 관망 권장';
     }
 
     // Phase 4 티어 수정
@@ -435,7 +452,7 @@ class StockScreener {
       text = `⚠️ ${text} (신중)`;
     }
 
-    return { grade, text, color, tier, overheating: overheating.message };
+    return { grade, text, color, tier, overheating: overheating.message, tooltip };
   }
 
   /**
