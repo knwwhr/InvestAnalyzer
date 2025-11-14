@@ -39,8 +39,8 @@ module.exports = async (req, res) => {
       const grade = stock.recommendation?.grade;
       const score = stock.totalScore;
 
-      // S등급(25-41) 또는 A등급(42-57)만 저장
-      return (grade === 'S' || grade === 'A') && score >= 25;
+      // S등급(58-88) 또는 A등급(42-57)만 저장
+      return (grade === 'S' || grade === 'A') && score >= 42;
     });
 
     console.log(`✅ 스크리닝 완료: ${stocks.length}개 중 ${filteredStocks.length}개 (S/A등급)`);
