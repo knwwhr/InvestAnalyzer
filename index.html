@@ -498,26 +498,71 @@
                   </div>
                 )}
 
-                {/* 핵심 지표 3가지 */}
+                {/* 적용된 선행 지표 (구체적 설명) */}
                 <div className="mt-3 pt-3 border-t border-blue-200">
-                  <div className="text-xs font-semibold text-blue-900 mb-2">📊 핵심 지표</div>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="bg-white rounded p-2 text-center">
-                      <div className="text-gray-600 mb-1">거래량 비율</div>
-                      <div className="font-bold text-blue-700">{volumeRatio ? `${volumeRatio}x` : 'N/A'}</div>
-                    </div>
-                    <div className="bg-white rounded p-2 text-center">
-                      <div className="text-gray-600 mb-1">MFI</div>
-                      <div className="font-bold text-purple-700">
-                        {stock.volumeAnalysis.indicators.mfi?.toFixed(1) || 'N/A'}
+                  <div className="text-xs font-semibold text-blue-900 mb-2">🎯 적용된 선행 지표</div>
+                  <div className="space-y-1.5 text-xs">
+                    {/* 선행 지표 (패턴+DNA) */}
+                    {stock.leadingIndicators && stock.leadingIndicators.pattern && stock.leadingIndicators.pattern.matched && (
+                      <div className="bg-blue-50 rounded p-2">
+                        <span className="font-semibold text-blue-800">📋 패턴:</span>
+                        <span className="text-gray-700 ml-1">
+                          {stock.leadingIndicators.pattern.patterns && stock.leadingIndicators.pattern.patterns.length > 0
+                            ? stock.leadingIndicators.pattern.patterns.slice(0, 2).map(p => `"${p.name}" (${(p.matchScore * 100).toFixed(0)}%)`).join(', ')
+                            : '패턴 매칭'}
+                        </span>
                       </div>
-                    </div>
-                    <div className="bg-white rounded p-2 text-center">
-                      <div className="text-gray-600 mb-1">비대칭 비율</div>
-                      <div className="font-bold text-green-700">
-                        {stock.advancedAnalysis.indicators.asymmetric.ratio}배
+                    )}
+                    {stock.leadingIndicators && stock.leadingIndicators.dna && stock.leadingIndicators.dna.matched && (
+                      <div className="bg-purple-50 rounded p-2">
+                        <span className="font-semibold text-purple-800">🧬 DNA:</span>
+                        <span className="text-gray-700 ml-1">
+                          EMA {stock.leadingIndicators.dna.volumePattern?.emaAvg?.toFixed(1)}%,
+                          트렌드 {stock.leadingIndicators.dna.volumePattern?.segmented?.trend || 'N/A'}
+                          {stock.leadingIndicators.dna.volumePattern?.urgency === 'high' && ' (급등 임박)'}
+                        </span>
                       </div>
-                    </div>
+                    )}
+                    {/* Cup&Handle 패턴 */}
+                    {stock.cupAndHandle && stock.cupAndHandle.detected && (
+                      <div className="bg-green-50 rounded p-2">
+                        <span className="font-semibold text-green-800">🏆 Cup&Handle:</span>
+                        <span className="text-gray-700 ml-1">
+                          컵 {stock.cupAndHandle.cupDays || 'N/A'}일, 손잡이 {stock.cupAndHandle.handleDays || 'N/A'}일, 돌파 대기
+                        </span>
+                      </div>
+                    )}
+                    {/* 기관/외국인 수급 */}
+                    {stock.institutionalFlow && stock.institutionalFlow.detected && (
+                      <div className="bg-yellow-50 rounded p-2">
+                        <span className="font-semibold text-yellow-800">💼 기관/외국인:</span>
+                        <span className="text-gray-700 ml-1">
+                          {stock.institutionalFlow.institution?.consecutive > 0 && `기관 ${stock.institutionalFlow.institution.consecutive}일 매수`}
+                          {stock.institutionalFlow.institution?.consecutive > 0 && stock.institutionalFlow.foreign?.consecutive > 0 && ', '}
+                          {stock.institutionalFlow.foreign?.consecutive > 0 && `외국인 ${stock.institutionalFlow.foreign.consecutive}일 매수`}
+                        </span>
+                      </div>
+                    )}
+                    {/* 합류점 */}
+                    {stock.confluence && stock.confluence.confluenceCount >= 2 && (
+                      <div className="bg-indigo-50 rounded p-2">
+                        <span className="font-semibold text-indigo-800">📊 합류점:</span>
+                        <span className="text-gray-700 ml-1">
+                          {stock.confluence.signals && stock.confluence.signals.length > 0
+                            ? stock.confluence.signals.slice(0, 3).join(', ') + (stock.confluence.signals.length > 3 ? ` 외 ${stock.confluence.signals.length - 3}개` : '')
+                            : `${stock.confluence.confluenceCount}개 신호`}
+                        </span>
+                      </div>
+                    )}
+                    {/* 선행 지표가 하나도 없을 경우 */}
+                    {(!stock.leadingIndicators || (!stock.leadingIndicators.pattern?.matched && !stock.leadingIndicators.dna?.matched))
+                      && (!stock.cupAndHandle || !stock.cupAndHandle.detected)
+                      && (!stock.institutionalFlow || !stock.institutionalFlow.detected)
+                      && (!stock.confluence || stock.confluence.confluenceCount < 2) && (
+                      <div className="bg-gray-50 rounded p-2 text-gray-500 text-center">
+                        선행 지표 미감지 (기본 지표 기반 추천)
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -531,10 +576,14 @@
                 <p className="font-bold text-blue-700">{volumeRatio ? `${volumeRatio}x` : 'N/A'}</p>
                 {/* 툴팁 - 왼쪽 정렬 */}
                 <div className="absolute bottom-full left-0 mb-2 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                  <div className="font-bold mb-1">📊 거래량 비율이란?</div>
+                  <div className="font-bold mb-1">📊 거래량 비율 (일봉 20일 기준)</div>
                   <div className="space-y-1">
-                    <div>"오늘 거래량 ÷ 20일 평균"</div>
-                    <div className="text-yellow-300">• {volumeRatio}배 = 평소보다 {volumeRatio}배 많은 거래</div>
+                    <div className="text-yellow-300 font-semibold">"당일 거래량 ÷ 최근 20일 이동평균"</div>
+                    <div className="border-t border-gray-700 my-1"></div>
+                    <div>• 현재 거래량: {stock.volume ? (stock.volume / 1000).toFixed(0) + 'K주' : 'N/A'}</div>
+                    <div>• 20일 평균: {stock.volumeAnalysis.current.volumeMA20 ? (stock.volumeAnalysis.current.volumeMA20 / 1000).toFixed(0) + 'K주' : 'N/A'}</div>
+                    <div>• 비율: <span className="text-yellow-300 font-bold">{volumeRatio}배</span></div>
+                    <div className="border-t border-gray-700 my-1"></div>
                     <div>• 5배+ : 🔥🔥🔥 초대량 (이벤트)</div>
                     <div>• 3-5배: 🔥🔥 대량 (세력)</div>
                     <div>• 2-3배: 🔥 급증 (관심)</div>
@@ -553,9 +602,14 @@
                 </p>
                 {/* 툴팁 - 중앙 정렬 */}
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                  <div className="font-bold mb-1">💰 MFI (자금흐름지수)</div>
+                  <div className="font-bold mb-1">💰 MFI (일봉 14일 기준)</div>
                   <div className="space-y-1">
-                    <div>"거래량 반영한 RSI"</div>
+                    <div className="text-yellow-300 font-semibold">"Money Flow Index (자금흐름지수)"</div>
+                    <div className="border-t border-gray-700 my-1"></div>
+                    <div>• 기간: 최근 14일간 일봉</div>
+                    <div>• 계산: 고가/저가/종가/거래량 기반</div>
+                    <div>• 현재 값: <span className="text-yellow-300 font-bold">{stock.volumeAnalysis.indicators.mfi?.toFixed(1) || 'N/A'}</span></div>
+                    <div className="border-t border-gray-700 my-1"></div>
                     <div className="text-red-300">• 90+: 🔴 극과매수 (위험)</div>
                     <div className="text-orange-300">• 80-90: 🟠 과매수 (신중)</div>
                     <div className="text-yellow-300">• 70-80: 🟡 강세 (지속)</div>
@@ -575,14 +629,21 @@
                   {stock.advancedAnalysis.indicators.asymmetric.ratio || 'N/A'}
                 </p>
                 {/* 툴팁 - 오른쪽 정렬 */}
-                <div className="absolute bottom-full right-0 mb-2 w-64 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                  <div className="font-bold mb-1">📊 비대칭 비율이란?</div>
+                <div className="absolute bottom-full right-0 mb-2 w-72 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                  <div className="font-bold mb-1">📊 비대칭 비율 (일봉 20일 기준)</div>
                   <div className="space-y-1">
-                    <div>"상승일 vs 하락일 거래량 비교"</div>
-                    <div className="text-yellow-300">• {stock.advancedAnalysis.indicators.asymmetric.ratio}배 = 상승일 거래량이 {stock.advancedAnalysis.indicators.asymmetric.ratio}배 더 많음</div>
-                    <div>• 상승: {stock.advancedAnalysis.indicators.asymmetric.upDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1)}M)</div>
-                    <div>• 하락: {stock.advancedAnalysis.indicators.asymmetric.downDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M)</div>
-                    <div className="text-green-300 mt-1">→ {stock.advancedAnalysis.indicators.asymmetric.signal}</div>
+                    <div className="text-yellow-300 font-semibold">"상승일 vs 하락일 거래량 비교"</div>
+                    <div className="border-t border-gray-700 my-1"></div>
+                    <div>• 분석 기간: 최근 20일간 일봉</div>
+                    <div>• 상승일: {stock.advancedAnalysis.indicators.asymmetric.upDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1)}M주)</div>
+                    <div>• 하락일: {stock.advancedAnalysis.indicators.asymmetric.downDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M주)</div>
+                    <div>• 비율: <span className="text-yellow-300 font-bold">{stock.advancedAnalysis.indicators.asymmetric.ratio}배</span></div>
+                    <div className="border-t border-gray-700 my-1"></div>
+                    <div className="text-green-300">→ 해석: {stock.advancedAnalysis.indicators.asymmetric.signal}</div>
+                    <div className="text-gray-300">• 2배+ : 강한 매수세</div>
+                    <div className="text-gray-300">• 1.5~2배 : 매수 우위</div>
+                    <div className="text-gray-300">• 0.5~1.5배 : 중립</div>
+                    <div className="text-gray-300">• 0.5배- : 강한 매도세</div>
                   </div>
                   <div className="absolute top-full right-6 transform -mt-1">
                     <div className="border-4 border-transparent border-t-gray-900"></div>
@@ -1013,27 +1074,109 @@
                 <h3 className="text-xl font-bold mb-4 text-indigo-900">📢 감지된 신호</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {stock.advancedAnalysis.signals.map((signal, i) => {
-                    // 신호별 설명 매핑
-                    const signalDescriptions = {
-                      '🐋 매수고래': '거래량 2.5배 이상 + 가격 3% 이상 상승. 기관/외국인 등 세력 매수 신호.',
-                      '🤫 조용한 매집': '가격 변동 10% 이내 + 거래량 증가. 세력이 물량을 조용히 모으는 중.',
-                      '🚀 저항선 돌파': '최근 고점 저항선 돌파 + 거래량 증가. 상승 모멘텀 강화.',
-                      '💧 유동성 고갈': '거래량 급감 + 변동성 축소. 곧 큰 움직임 전조.',
-                      '📊 비대칭 거래량': '상승일 거래량이 하락일보다 많음. 매수 세력 우세.',
-                      '📈 VPD 강함': '거래량 증가율이 가격 상승률보다 높음. 선행 지표 양호.',
-                      '🏆 Cup&Handle': 'U자형 바닥 + 손잡이 형성. 돌파 임박 패턴.',
-                      '📐 Triangle': '대칭 삼각형 수렴. 방향성 돌파 대기 중.'
-                    };
+                    // 신호별 세부 데이터 구성
+                    let tooltipContent = null;
 
-                    const description = Object.keys(signalDescriptions).find(key => signal.includes(key.substring(0, 2)))
-                      ? signalDescriptions[Object.keys(signalDescriptions).find(key => signal.includes(key.substring(0, 2)))]
-                      : '';
+                    // 약한 마감 / 윗꼬리 신호
+                    if (signal.includes('약한 마감') || signal.includes('윗꼬리')) {
+                      const escapeData = stock.advancedAnalysis.indicators.escape;
+                      tooltipContent = escapeData && (
+                        <div className="space-y-1">
+                          <div className="font-bold text-yellow-300">⚠️ 윗꼬리 긴 음봉 (Weak Close)</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div>• 종가: {stock.currentPrice.toLocaleString()}원</div>
+                          <div>• 고가: {escapeData.resistance ? escapeData.resistance.toLocaleString() : 'N/A'}원</div>
+                          <div>• 윗꼬리 비율: <span className="text-red-300">{escapeData.upperShadow || 'N/A'}%</span></div>
+                          <div>• 고가 대비 낙폭: <span className="text-red-300">{escapeData.highDecline || 'N/A'}%</span></div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div className="text-yellow-300">→ 해석: 고가 대비 하락 마감, 매도 압력 존재</div>
+                        </div>
+                      );
+                    }
+
+                    // 유동성 고갈 신호
+                    if (signal.includes('유동성 고갈')) {
+                      const liquidityData = stock.liquidity;
+                      tooltipContent = liquidityData && (
+                        <div className="space-y-1">
+                          <div className="font-bold text-yellow-300">💧 거래대금 부족 (Low Liquidity)</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div>• 거래대금: {liquidityData.tradingValue ? (liquidityData.tradingValue / 100000000).toFixed(0) : 'N/A'}억원</div>
+                          <div>• 시가총액: {stock.marketCap ? (stock.marketCap / 100000000).toFixed(0) : 'N/A'}억원</div>
+                          <div>• 회전율: <span className="text-yellow-300">{liquidityData.turnoverRate ? liquidityData.turnoverRate.toFixed(2) : 'N/A'}%</span></div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div className="text-yellow-300">→ 해석: 시총 대비 거래 적어 가격 변동성 높을 수 있음</div>
+                        </div>
+                      );
+                    }
+
+                    // 강한 매도세 신호
+                    if (signal.includes('매도세') || signal.includes('하락일 거래')) {
+                      const asymmetric = stock.advancedAnalysis.indicators.asymmetric;
+                      tooltipContent = asymmetric && (
+                        <div className="space-y-1">
+                          <div className="font-bold text-red-300">📉 하락일 거래량 집중 (Strong Selling)</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div>• 분석 기간: 최근 20일간</div>
+                          <div>• 하락일 평균: <span className="text-red-300">{asymmetric.downDays ? (asymmetric.downVolume / asymmetric.downDays / 1000).toFixed(0) : 'N/A'}K주/일</span></div>
+                          <div>• 상승일 평균: {asymmetric.upDays ? (asymmetric.upVolume / asymmetric.upDays / 1000).toFixed(0) : 'N/A'}K주/일</div>
+                          <div>• 비율: <span className="text-red-300">{asymmetric.ratio ? (1 / asymmetric.ratio).toFixed(2) : 'N/A'}배</span></div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div className="text-yellow-300">→ 해석: 하락할 때 거래량 많아 매도 압력 강함</div>
+                        </div>
+                      );
+                    }
+
+                    // 강한 매수세 신호
+                    if (signal.includes('매수세') || signal.includes('상승일 거래') || signal.includes('비대칭')) {
+                      const asymmetric = stock.advancedAnalysis.indicators.asymmetric;
+                      tooltipContent = asymmetric && (
+                        <div className="space-y-1">
+                          <div className="font-bold text-green-300">📈 상승일 거래량 집중 (Strong Buying)</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div>• 분석 기간: 최근 20일간</div>
+                          <div>• 상승일 평균: <span className="text-green-300">{asymmetric.upDays ? (asymmetric.upVolume / asymmetric.upDays / 1000).toFixed(0) : 'N/A'}K주/일</span></div>
+                          <div>• 하락일 평균: {asymmetric.downDays ? (asymmetric.downVolume / asymmetric.downDays / 1000).toFixed(0) : 'N/A'}K주/일</div>
+                          <div>• 비율: <span className="text-green-300">{asymmetric.ratio}배</span></div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div className="text-yellow-300">→ 해석: 상승할 때 거래량 {asymmetric.ratio}배 많아 매수 압력 강함</div>
+                        </div>
+                      );
+                    }
+
+                    // 고래 감지 신호
+                    if (signal.includes('고래') || signal.includes('🐋')) {
+                      const whaleData = stock.advancedAnalysis.indicators.whale;
+                      const latestWhale = whaleData && whaleData.length > 0 ? whaleData[whaleData.length - 1] : null;
+                      tooltipContent = latestWhale && (
+                        <div className="space-y-1">
+                          <div className="font-bold text-blue-300">🐋 대량 거래 감지 (Whale Detection)</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div>• 날짜: {latestWhale.date}</div>
+                          <div>• 거래량 비율: <span className="text-blue-300">{latestWhale.volumeRatio}배</span></div>
+                          <div>• 가격 변동: {latestWhale.priceChange}%</div>
+                          <div>• 윗꼬리: {latestWhale.upperShadow}%</div>
+                          {latestWhale.warning && (
+                            <div className="text-red-300">⚠️ {latestWhale.warning}</div>
+                          )}
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div className="text-yellow-300">→ 해석: 기관/외국인 등 세력 매수 신호</div>
+                        </div>
+                      );
+                    }
 
                     return (
-                      <div key={i} className="bg-white p-3 rounded-lg border-2 border-indigo-300">
-                        <div className="font-semibold text-indigo-700 mb-1">{signal}</div>
-                        {description && (
-                          <div className="text-xs text-gray-600">{description}</div>
+                      <div key={i} className="bg-white p-3 rounded-lg border-2 border-indigo-300 relative group">
+                        <div className="font-semibold text-indigo-700 mb-1">{signal} {tooltipContent && 'ⓘ'}</div>
+
+                        {/* Tooltip */}
+                        {tooltipContent && (
+                          <div className="absolute bottom-full left-0 mb-2 w-80 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+                            {tooltipContent}
+                            <div className="absolute top-full left-6 transform -mt-1">
+                              <div className="border-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
                         )}
                       </div>
                     );
