@@ -144,17 +144,21 @@ function calculateStatistics(results) {
   // Sharpe Ratio (무위험 수익률 0% 가정)
   const sharpeRatio = stdDev === 0 ? 0 : avgReturn / stdDev;
 
-  // MDD (Maximum Drawdown)
-  let peak = 0;
+  // MDD (Maximum Drawdown) - 포트폴리오 관점 계산
+  let portfolioValue = 1.0;  // 초기 자본 100%
+  let peak = 1.0;
   let maxDrawdown = 0;
-  let cumulative = 0;
 
   returns.forEach(r => {
-    cumulative += r;
-    if (cumulative > peak) {
-      peak = cumulative;
+    // 복리 계산 (예: +10% → 1.0 * 1.1 = 1.1)
+    portfolioValue *= (1 + r / 100);
+
+    if (portfolioValue > peak) {
+      peak = portfolioValue;
     }
-    const drawdown = peak - cumulative;
+
+    // 낙폭 계산 (백분율)
+    const drawdown = (peak - portfolioValue) / peak * 100;
     if (drawdown > maxDrawdown) {
       maxDrawdown = drawdown;
     }

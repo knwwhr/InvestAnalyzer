@@ -177,17 +177,26 @@ class StockScreener {
       // ========================================
 
       // 1. 신규 지표 점수 추가 (선행 지표 중심 강화, 총 80점)
-      // Volume-Price Divergence (0-35점) - 최우선 선행 지표
-      // 35점을 25점으로 스케일링 (100점 만점 유지)
+      // Phase 1 가중치 (백테스트 최적화 결과)
+
+      // Volume-Price Divergence (0-35점 → 0-25점)
       const vpdScore = Math.max(0, Math.min((volumePriceDivergence.score || 0) * 0.714, 25));
       totalScore += vpdScore;
 
-      totalScore += (institutionalFlow.score || 0); // 0-15점
-      totalScore += Math.min((confluence.confluenceScore || 0) * 0.6, 12); // 0-12점
-      totalScore += Math.min((freshness.freshnessScore || 0) * 0.53, 8); // 0-8점
-      totalScore += Math.min((cupAndHandle.score || 0) * 0.25, 5); // 0-5점
-      totalScore += Math.min((breakoutConfirmation.score || 0) * 0.2, 3); // 0-3점
-      totalScore += Math.min((triangle.score || 0) * 0.13, 2); // 0-2점
+      // 기관/외국인 수급 (0-15점)
+      totalScore += Math.min((institutionalFlow.score || 0), 15);
+
+      // 합류점 (0-20점 → 0-12점)
+      totalScore += Math.min((confluence.confluenceScore || 0) * 0.6, 12);
+
+      // 신선도 (0-15점 → 0-8점)
+      totalScore += Math.min((freshness.freshnessScore || 0) * 0.53, 8);
+
+      // Cup&Handle (0-20점 → 0-5점)
+      totalScore += Math.min((cupAndHandle.score || 0) * 0.25, 5);
+
+      totalScore += Math.min((breakoutConfirmation.score || 0) * 0.2, 3); // 0-3점 (유지)
+      totalScore += Math.min((triangle.score || 0) * 0.13, 2); // 0-2점 (유지)
 
       // anomaly 제거 (이미 급등 중 신호)
       // riskAdjusted 제거 (선행성 낮음)
@@ -220,10 +229,9 @@ class StockScreener {
             investorData
           );
 
-          // 0-80점을 0-25점으로 스케일링 (백테스트 결과: B등급 최고 수익률 +27.5%)
-          // B등급 (42-57점)에서 패턴+DNA가 핵심 역할 → 배점 강화
+          // 0-80점을 0-10점으로 스케일링 (Phase 1 최적화 가중치)
           const fullScore = leadingIndicators.convertToScreeningScore(leadingScore);
-          leadingPoints = Math.min(fullScore * 0.3125, 25); // 80 * 0.3125 = 25
+          leadingPoints = Math.min(fullScore * 0.125, 10); // 80 * 0.125 = 10
         } catch (error) {
           console.error('선행 지표 분석 실패:', error.message);
           leadingPoints = 0;
@@ -234,7 +242,7 @@ class StockScreener {
           { volumeAnalysis, advancedAnalysis },
           this.savedPatterns
         );
-        leadingPoints = Math.min((patternMatch.bonusScore || 0) * 1.25, 25);
+        leadingPoints = Math.min((patternMatch.bonusScore || 0) * 1.2, 10);
       }
 
       totalScore += leadingPoints;
