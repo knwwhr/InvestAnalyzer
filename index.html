@@ -79,11 +79,12 @@
       // 추천 종목을 Supabase에 저장 (성과 추적용)
       const saveRecommendationsToSupabase = async (stocks) => {
         try {
-          // 점수 40점 이상(B등급 이상)만 저장
-          const stocksToSave = stocks.filter(s => s.totalScore >= 40);
+          // 점수 42점 이상(A등급 이상)만 저장 (100점 만점 체계)
+          // A등급(42-57점, 최고 수익률 +27.5%) 이상을 성과 추적
+          const stocksToSave = stocks.filter(s => s.totalScore >= 42);
 
           if (stocksToSave.length === 0) {
-            console.log('저장할 추천 종목 없음 (40점 이상 없음)');
+            console.log('저장할 추천 종목 없음 (42점 이상 없음)');
             return;
           }
 
