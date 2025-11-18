@@ -13,7 +13,7 @@ async function runBacktestTest() {
   // Mock request/response 객체
   const req = {
     query: {
-      holdingDays: 5 // 5일 보유 시나리오
+      holdingDays: 1 // ⭐ 기본값 1일로 변경 (단기 수익률 중심)
     }
   };
 
@@ -82,13 +82,46 @@ async function runBacktestTest() {
 
     // 보유기간별 성과
     if (statistics.byHoldingPeriod) {
-      console.log('\n📅 보유기간별 성과');
+      console.log('\n📅 보유기간별 성과 (단기 수익률 중심)');
       console.log('─'.repeat(80));
-      for (const [period, stats] of Object.entries(statistics.byHoldingPeriod)) {
-        if (!stats) continue;
+
+      const periods = ['1days', '2days', '3days', '5days'];
+      periods.forEach(period => {
+        const stats = statistics.byHoldingPeriod[period];
+        if (!stats) return;
+
         const days = period.replace('days', '');
-        console.log(`  ${days}일 전 매수: 승률 ${stats.winRate}% | 평균 ${stats.avgReturn}% | 샘플 ${stats.count}개`);
-      }
+        console.log(`\n  📊 D+${days}일 보유 (${days}일 전 매수 → 오늘 매도)`);
+        console.log(`     승률: ${stats.winRate}% | 평균: ${stats.avgReturn > 0 ? '+' : ''}${stats.avgReturn}% | 샘플: ${stats.count}개`);
+        console.log(`     최고/최저: +${stats.maxReturn}% / ${stats.minReturn}%`);
+
+        // ⭐ 등급별 성과 (D+1일, D+2일이 가장 중요!)
+        if (days === '1' || days === '2') {
+          console.log(`\n     🏆 D+${days}일 등급별 상세:`);
+
+          const holdingResults = jsonResult.results.filter(r => r.holdingDays === parseInt(days));
+          const byGrade = {};
+
+          holdingResults.forEach(r => {
+            if (!byGrade[r.grade]) {
+              byGrade[r.grade] = [];
+            }
+            byGrade[r.grade].push(r);
+          });
+
+          ['S', 'A', 'B', 'C', 'D'].forEach(grade => {
+            const gradeResults = byGrade[grade];
+            if (!gradeResults || gradeResults.length === 0) return;
+
+            const avgReturn = gradeResults.reduce((sum, r) => sum + r.returnRate, 0) / gradeResults.length;
+            const winCount = gradeResults.filter(r => r.isWin).length;
+            const winRate = (winCount / gradeResults.length) * 100;
+            const maxReturn = Math.max(...gradeResults.map(r => r.returnRate));
+
+            console.log(`        ${grade}등급: 평균 ${avgReturn > 0 ? '+' : ''}${avgReturn.toFixed(2)}%, 승률 ${winRate.toFixed(1)}%, 최고 +${maxReturn.toFixed(2)}% (${gradeResults.length}개)`);
+          });
+        }
+      });
     }
 
     // 해석

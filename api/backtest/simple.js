@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
 
     // Step 2: 각 종목의 과거 수익률 계산
     const results = [];
-    const testPoints = [5, 10, 15, 20, 25]; // 테스트할 과거 시점들
+    const testPoints = [1, 2, 3, 5]; // ⭐ 단기 수익률 중심: D+1, D+2, D+3, D+5
 
     for (const stock of stocks) {
       try {

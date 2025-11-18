@@ -109,6 +109,494 @@ class StockScreener {
   }
 
   /**
+   * 거래량 점진적 증가 (Volume Acceleration) 분석 (0-10점)
+   * 30일 데이터 내에서 점진적 거래량 증가 패턴 감지
+   * "조용한 매집" 신호 - 급증이 아닌 서서히 증가
+   */
+  analyzeVolumeAcceleration(chartData) {
+    if (!chartData || chartData.length < 25) {
+      return { score: 0, detected: false, trend: 'insufficient_data' };
+    }
+
+    // 30일을 4개 구간으로 분할 (최근 → 과거)
+    // Recent 5 days (D-0 to D-4)
+    // Mid 5 days (D-5 to D-9)
+    // Old 10 days (D-10 to D-19)
+    // Oldest 10 days (D-20 to D-29)
+
+    const recent5 = chartData.slice(0, 5);
+    const mid5 = chartData.slice(5, 10);
+    const old10 = chartData.slice(10, 20);
+    const oldest10 = chartData.slice(20, 30);
+
+    // 각 구간 평균 거래량 계산
+    const avgRecent = recent5.reduce((sum, d) => sum + d.volume, 0) / recent5.length;
+    const avgMid = mid5.reduce((sum, d) => sum + d.volume, 0) / mid5.length;
+    const avgOld = old10.reduce((sum, d) => sum + d.volume, 0) / old10.length;
+    const avgOldest = oldest10.reduce((sum, d) => sum + d.volume, 0) / oldest10.length;
+
+    // 점진적 증가 패턴 감지
+    // 각 구간이 이전 구간보다 증가해야 함
+    const recentVsMid = avgRecent / avgMid; // Recent > Mid
+    const midVsOld = avgMid / avgOld;       // Mid > Old
+    const oldVsOldest = avgOld / avgOldest;  // Old > Oldest
+
+    // 점진적 증가 조건
+    let score = 0;
+    let trend = 'flat';
+
+    if (recentVsMid > 1.1 && midVsOld > 1.1 && oldVsOldest > 1.0) {
+      // 모든 구간이 점진적 증가 (이상적 패턴!)
+      score = 10;
+      trend = 'strong_acceleration';
+    } else if (recentVsMid > 1.2 && midVsOld > 1.0) {
+      // 최근 2개 구간 증가 (유효한 패턴)
+      score = 7;
+      trend = 'moderate_acceleration';
+    } else if (recentVsMid > 1.15) {
+      // 최근 구간만 증가 (약한 신호)
+      score = 4;
+      trend = 'weak_acceleration';
+    }
+
+    return {
+      score: parseFloat(score.toFixed(2)),
+      detected: score > 0,
+      trend,
+      details: {
+        avgRecent: Math.round(avgRecent),
+        avgMid: Math.round(avgMid),
+        avgOld: Math.round(avgOld),
+        avgOldest: Math.round(avgOldest),
+        recentVsMid: parseFloat(recentVsMid.toFixed(2)),
+        midVsOld: parseFloat(midVsOld.toFixed(2)),
+        oldVsOldest: parseFloat(oldVsOldest.toFixed(2))
+      }
+    };
+  }
+
+  /**
+   * 기관/외국인 장기 매집 (Institutional Accumulation) 분석 (0-5점)
+   * investorData에서 장기 매수 패턴 감지
+   */
+  analyzeInstitutionalAccumulation(investorData) {
+    if (!investorData || investorData.length === 0) {
+      return { score: 0, detected: false, strength: 'none', days: 0 };
+    }
+
+    // 기관 + 외국인 순매수 연속일 카운트
+    let consecutiveBuyDays = 0;
+    let totalNetBuy = 0;
+
+    for (const day of investorData) {
+      const institutionNet = parseInt(day.institution_net_buy || 0);
+      const foreignNet = parseInt(day.foreign_net_buy || 0);
+      const totalNet = institutionNet + foreignNet;
+
+      if (totalNet > 0) {
+        consecutiveBuyDays++;
+        totalNetBuy += totalNet;
+      } else {
+        break; // 연속성 깨짐
+      }
+    }
+
+    // 점수 부여
+    let score = 0;
+    let strength = 'none';
+
+    if (consecutiveBuyDays >= 5) {
+      score = 5; // 5일 이상 연속 매수 (강력한 신호)
+      strength = 'strong';
+    } else if (consecutiveBuyDays >= 3) {
+      score = 3; // 3-4일 연속 매수 (유효한 신호)
+      strength = 'moderate';
+    } else if (consecutiveBuyDays >= 1) {
+      score = 1; // 1-2일 연속 매수 (약한 신호)
+      strength = 'weak';
+    }
+
+    return {
+      score,
+      detected: score > 0,
+      strength,
+      days: consecutiveBuyDays,
+      totalNetBuy
+    };
+  }
+
+  /**
+   * VPD 강화 추세 (VPD Strengthening) 분석 (0-5점)
+   * 최근 VPD가 과거보다 개선되었는지 확인
+   */
+  analyzeVPDStrengthening(chartData) {
+    if (!chartData || chartData.length < 15) {
+      return { score: 0, detected: false, trend: 'insufficient_data' };
+    }
+
+    // Recent 5 days VPD vs Old 10 days VPD 비교
+    const recent5 = chartData.slice(0, 5);
+    const old10 = chartData.slice(10, 20);
+
+    // 각 구간의 평균 거래량 비율 계산
+    const calcAvgVolumeRatio = (slice) => {
+      const avgVol = slice.reduce((sum, d) => sum + d.volume, 0) / slice.length;
+      const latest = slice[0];
+      return latest.volume / avgVol;
+    };
+
+    const recentVolumeRatio = calcAvgVolumeRatio(recent5);
+    const oldVolumeRatio = calcAvgVolumeRatio(old10);
+
+    // 가격 변동률 계산
+    const calcAvgPriceChange = (slice) => {
+      const start = slice[slice.length - 1];
+      const end = slice[0];
+      return Math.abs((end.close - start.close) / start.close);
+    };
+
+    const recentPriceChange = calcAvgPriceChange(recent5);
+    const oldPriceChange = calcAvgPriceChange(old10);
+
+    // VPD = 거래량 증가 - 가격 변동
+    // 거래량은 늘었지만 가격은 덜 움직였다 = VPD 강화
+    const recentVPD = recentVolumeRatio - recentPriceChange;
+    const oldVPD = oldVolumeRatio - oldPriceChange;
+    const vpdImprovement = recentVPD - oldVPD;
+
+    let score = 0;
+    let trend = 'flat';
+
+    if (vpdImprovement > 0.5) {
+      score = 5; // VPD 대폭 개선
+      trend = 'strong_improvement';
+    } else if (vpdImprovement > 0.2) {
+      score = 3; // VPD 개선
+      trend = 'moderate_improvement';
+    } else if (vpdImprovement > 0) {
+      score = 1; // VPD 약간 개선
+      trend = 'weak_improvement';
+    }
+
+    return {
+      score,
+      detected: score > 0,
+      trend,
+      details: {
+        recentVPD: parseFloat(recentVPD.toFixed(2)),
+        oldVPD: parseFloat(oldVPD.toFixed(2)),
+        improvement: parseFloat(vpdImprovement.toFixed(2))
+      }
+    };
+  }
+
+  /**
+   * 30일 추세 점수 계산 (Temporal Momentum Score) (0-20점)
+   * KIS API 30일 제한 내에서 추세 분석
+   */
+  calculateTrendScore(chartData, investorData) {
+    if (!chartData || chartData.length < 25) {
+      return {
+        totalScore: 0,
+        volumeAcceleration: { score: 0, detected: false },
+        institutionalAccumulation: { score: 0, detected: false },
+        vpdStrengthening: { score: 0, detected: false }
+      };
+    }
+
+    // 1. 거래량 점진 증가 (0-10점)
+    const volumeAcceleration = this.analyzeVolumeAcceleration(chartData);
+
+    // 2. 기관/외국인 장기 매집 (0-5점)
+    const institutionalAccumulation = this.analyzeInstitutionalAccumulation(investorData);
+
+    // 3. VPD 강화 추세 (0-5점)
+    const vpdStrengthening = this.analyzeVPDStrengthening(chartData);
+
+    const totalScore = volumeAcceleration.score + institutionalAccumulation.score + vpdStrengthening.score;
+
+    return {
+      totalScore: parseFloat(totalScore.toFixed(2)),
+      volumeAcceleration,
+      institutionalAccumulation,
+      vpdStrengthening
+    };
+  }
+
+  /**
+   * ========================================
+   * 5일 변화율 (Momentum) 시스템
+   * ========================================
+   * 핵심: D-5일 vs D-0일(현재) 비교
+   * "지금 막 시작되는" 종목 포착
+   */
+
+  /**
+   * 특정 시점(D-N일)의 상태 계산
+   * @param {Array} chartData - 일봉 데이터 (최신순, [0]=오늘)
+   * @param {Array} investorData - 투자자 데이터
+   * @param {number} daysAgo - 며칠 전 (0=오늘, 5=5일전)
+   */
+  calculateStateAtDay(chartData, investorData, daysAgo) {
+    if (!chartData || chartData.length < daysAgo + 10) {
+      return null;
+    }
+
+    // D-N일 기준으로 데이터 슬라이스
+    const slicedChartData = chartData.slice(daysAgo);
+    const slicedInvestorData = investorData ? investorData.slice(daysAgo) : [];
+
+    // 1. 거래량 평균 (최근 5일)
+    const recent5 = slicedChartData.slice(0, 5);
+    const avgVolume = recent5.reduce((sum, d) => sum + d.volume, 0) / recent5.length;
+
+    // 2. VPD 계산
+    const currentPrice = slicedChartData[0].close;
+    const avgPrice20 = slicedChartData.slice(0, 20).reduce((sum, d) => sum + d.close, 0) / 20;
+    const avgVol20 = slicedChartData.slice(0, 20).reduce((sum, d) => sum + d.volume, 0) / 20;
+
+    const volumeRatio = slicedChartData[0].volume / avgVol20;
+    const priceChange = ((currentPrice - avgPrice20) / avgPrice20) * 100;
+    const priceRatio = Math.abs(priceChange) / 100 + 1.0;
+    const vpd = volumeRatio - priceRatio;
+
+    // 3. 선행 지표 점수 (간이 계산 - 실제는 leadingIndicators 사용)
+    // 여기서는 거래량 기반 간이 점수로 대체
+    const leadingScore = Math.min(volumeRatio * 5, 80); // 0-80점 추정
+
+    // 4. 기관/외국인 순매수 상태
+    let institutionalBuyDays = 0;
+    if (slicedInvestorData && slicedInvestorData.length > 0) {
+      for (const day of slicedInvestorData.slice(0, 5)) {
+        const institutionNet = parseInt(day.institution_net_buy || 0);
+        const foreignNet = parseInt(day.foreign_net_buy || 0);
+        if (institutionNet + foreignNet > 0) {
+          institutionalBuyDays++;
+        } else {
+          break;
+        }
+      }
+    }
+
+    return {
+      date: slicedChartData[0].date,
+      avgVolume,
+      vpd,
+      volumeRatio,
+      priceChange,
+      leadingScore,
+      institutionalBuyDays
+    };
+  }
+
+  /**
+   * 1. 거래량 가속도 점수 (0-15점)
+   * D-5일 평균 vs D-0일 평균 비교
+   */
+  calcVolumeAccelerationScore(d5State, d0State) {
+    if (!d5State || !d0State) {
+      return { score: 0, ratio: 0, trend: 'unknown' };
+    }
+
+    const ratio = d0State.avgVolume / d5State.avgVolume;
+    let score = 0;
+    let trend = 'flat';
+
+    if (ratio >= 3.0) {
+      score = 15; // 3배 증가 - 폭발적 시작!
+      trend = 'explosive';
+    } else if (ratio >= 2.0) {
+      score = 10; // 2배 증가 - 강한 시작
+      trend = 'strong';
+    } else if (ratio >= 1.5) {
+      score = 5; // 1.5배 증가 - 조용한 시작
+      trend = 'moderate';
+    } else if (ratio < 0.7) {
+      score = -5; // 거래량 감소 - 페널티
+      trend = 'declining';
+    }
+
+    return {
+      score,
+      ratio: parseFloat(ratio.toFixed(2)),
+      trend,
+      d5Volume: Math.round(d5State.avgVolume),
+      d0Volume: Math.round(d0State.avgVolume)
+    };
+  }
+
+  /**
+   * 2. VPD 개선도 점수 (0-10점)
+   * D-5일 VPD vs D-0일 VPD 비교
+   */
+  calcVPDImprovementScore(d5State, d0State) {
+    if (!d5State || !d0State) {
+      return { score: 0, improvement: 0, trend: 'unknown' };
+    }
+
+    const improvement = d0State.vpd - d5State.vpd;
+    let score = 0;
+    let trend = 'flat';
+
+    // 음수→양수 전환 (가장 중요!)
+    if (d5State.vpd < 0 && d0State.vpd > 0) {
+      score = 10;
+      trend = 'reversal'; // 전환 신호!
+    } else if (improvement >= 2.0) {
+      score = 7; // 대폭 개선
+      trend = 'strong_improvement';
+    } else if (improvement >= 1.0) {
+      score = 5; // 개선
+      trend = 'improvement';
+    } else if (improvement >= 0.5) {
+      score = 3; // 약간 개선
+      trend = 'slight_improvement';
+    } else if (improvement < -1.0) {
+      score = -5; // 악화 - 페널티
+      trend = 'deterioration';
+    }
+
+    return {
+      score,
+      improvement: parseFloat(improvement.toFixed(2)),
+      trend,
+      d5VPD: parseFloat(d5State.vpd.toFixed(2)),
+      d0VPD: parseFloat(d0State.vpd.toFixed(2))
+    };
+  }
+
+  /**
+   * 3. 선행 지표 강화 점수 (0-10점)
+   * D-5일 선행점수 vs D-0일 선행점수 비교
+   */
+  calcPatternStrengtheningScore(d5State, d0State) {
+    if (!d5State || !d0State || d5State.leadingScore === 0) {
+      return { score: 0, ratio: 0, trend: 'unknown' };
+    }
+
+    const ratio = d0State.leadingScore / d5State.leadingScore;
+    let score = 0;
+    let trend = 'flat';
+
+    if (ratio >= 2.0) {
+      score = 10; // 2배 강화 - 패턴 형성!
+      trend = 'pattern_forming';
+    } else if (ratio >= 1.5) {
+      score = 7; // 1.5배 강화
+      trend = 'strengthening';
+    } else if (ratio >= 1.2) {
+      score = 4; // 1.2배 강화
+      trend = 'slight_strengthening';
+    } else if (ratio < 0.8) {
+      score = -3; // 약화 - 페널티
+      trend = 'weakening';
+    }
+
+    return {
+      score,
+      ratio: parseFloat(ratio.toFixed(2)),
+      trend,
+      d5Score: parseFloat(d5State.leadingScore.toFixed(1)),
+      d0Score: parseFloat(d0State.leadingScore.toFixed(1))
+    };
+  }
+
+  /**
+   * 4. 기관 진입 가속 점수 (0-5점)
+   * D-5일 수급 vs D-0일 수급 비교
+   */
+  calcInstitutionalEntryScore(d5State, d0State) {
+    if (!d5State || !d0State) {
+      return { score: 0, trend: 'unknown' };
+    }
+
+    const d5Days = d5State.institutionalBuyDays;
+    const d0Days = d0State.institutionalBuyDays;
+
+    let score = 0;
+    let trend = 'no_change';
+
+    // D-5일에는 없었는데 D-0일에 시작 (가장 중요!)
+    if (d5Days === 0 && d0Days >= 3) {
+      score = 5;
+      trend = 'new_entry'; // 막 진입!
+    } else if (d5Days === 0 && d0Days >= 1) {
+      score = 3;
+      trend = 'starting_entry';
+    } else if (d0Days > d5Days && d0Days >= 3) {
+      score = 4; // 증가 + 연속 3일
+      trend = 'accelerating';
+    } else if (d0Days > d5Days) {
+      score = 2; // 증가
+      trend = 'increasing';
+    } else if (d0Days < d5Days) {
+      score = -2; // 감소 - 페널티
+      trend = 'decreasing';
+    }
+
+    return {
+      score,
+      trend,
+      d5Days,
+      d0Days
+    };
+  }
+
+  /**
+   * 5일 변화율 종합 점수 계산 (0-40점)
+   */
+  calculate5DayMomentum(chartData, investorData) {
+    if (!chartData || chartData.length < 10) {
+      return {
+        totalScore: 0,
+        volumeAcceleration: { score: 0, trend: 'insufficient_data' },
+        vpdImprovement: { score: 0, trend: 'insufficient_data' },
+        patternStrengthening: { score: 0, trend: 'insufficient_data' },
+        institutionalEntry: { score: 0, trend: 'insufficient_data' }
+      };
+    }
+
+    // D-5일 상태
+    const d5State = this.calculateStateAtDay(chartData, investorData, 5);
+
+    // D-0일 (현재) 상태
+    const d0State = this.calculateStateAtDay(chartData, investorData, 0);
+
+    if (!d5State || !d0State) {
+      return {
+        totalScore: 0,
+        volumeAcceleration: { score: 0, trend: 'insufficient_data' },
+        vpdImprovement: { score: 0, trend: 'insufficient_data' },
+        patternStrengthening: { score: 0, trend: 'insufficient_data' },
+        institutionalEntry: { score: 0, trend: 'insufficient_data' }
+      };
+    }
+
+    // 각 변화율 점수 계산
+    const volumeAcceleration = this.calcVolumeAccelerationScore(d5State, d0State);
+    const vpdImprovement = this.calcVPDImprovementScore(d5State, d0State);
+    const patternStrengthening = this.calcPatternStrengtheningScore(d5State, d0State);
+    const institutionalEntry = this.calcInstitutionalEntryScore(d5State, d0State);
+
+    const totalScore = Math.max(0,
+      volumeAcceleration.score +
+      vpdImprovement.score +
+      patternStrengthening.score +
+      institutionalEntry.score
+    );
+
+    return {
+      totalScore: parseFloat(totalScore.toFixed(2)),
+      volumeAcceleration,
+      vpdImprovement,
+      patternStrengthening,
+      institutionalEntry,
+      d5State,
+      d0State
+    };
+  }
+
+  /**
    * 단일 종목 분석 (Phase 4 통합)
    */
   async analyzeStock(stockCode) {
@@ -173,39 +661,19 @@ class StockScreener {
       let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice);
 
       // ========================================
-      // 점수 계산: 100점 만점 (스케일링 제거)
+      // 점수 계산: 변화율 기반 시스템 (100점 만점)
       // ========================================
 
-      // 1. 신규 지표 점수 추가 (선행 지표 중심 강화, 총 80점)
-      // Phase 1 가중치 (백테스트 최적화 결과)
+      // 새로운 철학: "지금 막 시작되는" 종목 포착
+      // - 기본 점수: 0-40점 (기존 지표들, 2배 가중치)
+      // - 변화율 점수: 0-40점 (D-5일 vs D-0일 변화) ⭐ 핵심!
+      // - 추세 점수: 0-20점 (30일 장기 추세)
+      // = 총 100점 (스케일링 불필요!)
 
-      // Volume-Price Divergence (0-35점 → 0-25점)
-      const vpdScore = Math.max(0, Math.min((volumePriceDivergence.score || 0) * 0.714, 25));
-      totalScore += vpdScore;
+      // 1. 기본 점수 (0-40점) - 기존 20점의 2배
+      totalScore = totalScore * 2; // 현재 0-20점을 0-40점으로
 
-      // 기관/외국인 수급 (0-15점)
-      totalScore += Math.min((institutionalFlow.score || 0), 15);
-
-      // 합류점 (0-20점 → 0-12점)
-      totalScore += Math.min((confluence.confluenceScore || 0) * 0.6, 12);
-
-      // 신선도 (0-15점 → 0-8점)
-      totalScore += Math.min((freshness.freshnessScore || 0) * 0.53, 8);
-
-      // Cup&Handle (0-20점 → 0-5점)
-      totalScore += Math.min((cupAndHandle.score || 0) * 0.25, 5);
-
-      totalScore += Math.min((breakoutConfirmation.score || 0) * 0.2, 3); // 0-3점 (유지)
-      totalScore += Math.min((triangle.score || 0) * 0.13, 2); // 0-2점 (유지)
-
-      // anomaly 제거 (이미 급등 중 신호)
-      // riskAdjusted 제거 (선행성 낮음)
-
-      // 2. 페널티 전면 제거 (순수 가점 시스템)
-      // - 유동성 페널티 제거 (NaN 오류 + 급등주 발굴에 역효과)
-      // - 과열/작전주/과거급등 페널티 제거 (사용자 요청)
-
-      // Phase 4C: 과열 감지 (정보용으로만 유지, 페널티 제거)
+      // 2. 과열 감지 (정보용)
       const volumeRatio = volumeAnalysis.current.volumeMA20
         ? volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20
         : 1;
@@ -216,10 +684,17 @@ class StockScreener {
         volumeAnalysis.indicators.mfi
       );
 
-      // 3. 선행 지표 통합 (패턴+DNA, 0-80점 → 0-10점 스케일링)
+      // 3. 5일 변화율 점수 (0-40점) ⭐ 핵심!
+      const momentumScore = this.calculate5DayMomentum(chartData, investorData);
+      totalScore += momentumScore.totalScore;
+
+      // 4. 30일 추세 점수 (0-20점)
+      const trendScore = this.calculateTrendScore(chartData, investorData);
+      totalScore += trendScore.totalScore;
+
+      // 5. 선행 지표 (참고용, 점수 미반영)
       let leadingScore = null;
       let leadingPoints = 0;
-
       if (this.leadingIndicatorsReady) {
         try {
           leadingScore = leadingIndicators.analyzeLeadingIndicators(
@@ -228,72 +703,98 @@ class StockScreener {
             chartData,
             investorData
           );
-
-          // 0-80점을 0-10점으로 스케일링 (Phase 1 최적화 가중치)
-          const fullScore = leadingIndicators.convertToScreeningScore(leadingScore);
-          leadingPoints = Math.min(fullScore * 0.125, 10); // 80 * 0.125 = 10
+          leadingPoints = Math.min((leadingScore?.total || 0) * 0.125, 10);
         } catch (error) {
           console.error('선행 지표 분석 실패:', error.message);
-          leadingPoints = 0;
         }
-      } else {
-        // Fallback: 기존 패턴 매칭 사용
-        const patternMatch = smartPatternMiner.checkPatternMatch(
-          { volumeAnalysis, advancedAnalysis },
-          this.savedPatterns
-        );
-        leadingPoints = Math.min((patternMatch.bonusScore || 0) * 1.2, 10);
       }
 
-      totalScore += leadingPoints;
+      // 6. 원점수 저장 (스코어카드용)
+      const rawScore = totalScore;
 
-      // 4. 최종 점수 (0-100점 범위, NaN 방지, 소수점 2자리)
+      // 7. VPD 점수 계산 (스코어카드용)
+      const vpdScore = Math.min((volumePriceDivergence.score || 0) * 0.714, 25);
+
+      // 8. 최종 점수 (0-100점 범위, NaN 방지, 소수점 2자리)
       totalScore = isNaN(totalScore) ? 0 : parseFloat(Math.min(Math.max(totalScore, 0), 100).toFixed(2));
 
       // ========================================
       // 가점/감점 상세 내역 (스코어 카드)
       // ========================================
+      const baseScoreValue = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice) * 2;
+
       const scoreBreakdown = {
-        // 기본 점수 (0-20점: 거래량 + OBV + VWAP + 비대칭 - 되돌림)
-        baseScore: Math.round(this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice)),
+        // 새로운 점수 체계 (100점 만점)
+        structure: {
+          base: '0-40점 (기존 지표 × 2)',
+          momentum: '0-40점 (D-5일 변화율)',
+          trend: '0-20점 (30일 장기 추세)'
+        },
 
-        // 가점 요인 (선행 지표 중심, 총 80점)
-        bonuses: [
-          {
-            name: "Volume-Price Divergence (거래량 폭발)",
-            value: Math.round(vpdScore),
-            active: volumePriceDivergence.score !== 0,
-            details: {
-              divergence: volumePriceDivergence.divergence,
-              volumeRatio: volumePriceDivergence.volumeRatio,
-              priceChange: volumePriceDivergence.priceChange,
-              signal: volumePriceDivergence.signal
-            }
+        // 1. 기본 점수 (0-40점)
+        baseScore: parseFloat(baseScoreValue.toFixed(2)),
+        baseComponents: {
+          volumeRatio: '거래량 비율 (0-8점)',
+          obvTrend: 'OBV 추세 (0-7점)',
+          vwapMomentum: 'VWAP 모멘텀 (0-5점)',
+          asymmetric: '비대칭 비율 (0-5점)',
+          drawdownPenalty: '되돌림 페널티 (-5~0점)'
+        },
+
+        // 2. 변화율 점수 (0-40점) ⭐ 핵심!
+        momentumScore: parseFloat(momentumScore.totalScore.toFixed(2)),
+        momentumComponents: {
+          volumeAcceleration: {
+            name: '거래량 가속도 (0-15점)',
+            score: momentumScore.volumeAcceleration.score,
+            trend: momentumScore.volumeAcceleration.trend,
+            details: `D-5: ${momentumScore.volumeAcceleration.d5Volume?.toLocaleString()}주 → D-0: ${momentumScore.volumeAcceleration.d0Volume?.toLocaleString()}주 (${momentumScore.volumeAcceleration.ratio}배)`
           },
-          { name: "기관/외국인 수급", value: Math.round(institutionalFlow.score || 0), active: institutionalFlow.detected },
-          { name: "합류점 (Confluence)", value: Math.round(Math.min((confluence.confluenceScore || 0) * 0.6, 12)), active: confluence.confluenceCount >= 2 },
-          {
-            name: leadingScore ? "선행 지표 (패턴+DNA)" : "패턴 매칭 (Fallback)",
-            value: Math.round(leadingPoints),
-            active: leadingPoints > 0,
-            details: leadingScore ? {
-              strength: leadingScore.strength,
-              patternMatched: leadingScore.pattern.matched,
-              dnaMatched: leadingScore.dna.matched,
-              confidence: Math.round(leadingScore.confidence)
-            } : null
-          }, // ⭐ 선행 지표 통합 (NEW)
-          { name: "당일/전일 신호", value: Math.round(Math.min((freshness.freshnessScore || 0) * 0.53, 8)), active: freshness.freshCount >= 2 },
-          { name: "Cup&Handle 패턴", value: Math.round(Math.min((cupAndHandle.score || 0) * 0.25, 5)), active: cupAndHandle.detected },
-          { name: "돌파 확인", value: Math.round(Math.min((breakoutConfirmation.score || 0) * 0.2, 3)), active: breakoutConfirmation.detected },
-          { name: "Triangle 패턴", value: Math.round(Math.min((triangle.score || 0) * 0.13, 2)), active: triangle.detected }
-        ].filter(b => b.active),
+          vpdImprovement: {
+            name: 'VPD 개선도 (0-10점)',
+            score: momentumScore.vpdImprovement.score,
+            trend: momentumScore.vpdImprovement.trend,
+            details: `D-5 VPD: ${momentumScore.vpdImprovement.d5VPD} → D-0 VPD: ${momentumScore.vpdImprovement.d0VPD} (개선도: ${momentumScore.vpdImprovement.improvement})`
+          },
+          patternStrengthening: {
+            name: '선행 지표 강화 (0-10점)',
+            score: momentumScore.patternStrengthening.score,
+            trend: momentumScore.patternStrengthening.trend,
+            details: `D-5: ${momentumScore.patternStrengthening.d5Score}점 → D-0: ${momentumScore.patternStrengthening.d0Score}점 (${momentumScore.patternStrengthening.ratio}배)`
+          },
+          institutionalEntry: {
+            name: '기관 진입 가속 (0-5점)',
+            score: momentumScore.institutionalEntry.score,
+            trend: momentumScore.institutionalEntry.trend,
+            details: `D-5: ${momentumScore.institutionalEntry.d5Days}일 → D-0: ${momentumScore.institutionalEntry.d0Days}일`
+          }
+        },
 
-        // 감점 요인 (전면 제거 - 순수 가점 시스템)
-        penalties: [],
+        // 3. 추세 점수 (0-20점)
+        trendScore: parseFloat(trendScore.totalScore.toFixed(2)),
+        trendComponents: {
+          volumeAcceleration: {
+            name: '거래량 점진 증가 (0-10점)',
+            score: trendScore.volumeAcceleration.score,
+            trend: trendScore.volumeAcceleration.trend
+          },
+          institutionalAccumulation: {
+            name: '기관/외국인 장기 매집 (0-5점)',
+            score: trendScore.institutionalAccumulation.score,
+            days: trendScore.institutionalAccumulation.days,
+            strength: trendScore.institutionalAccumulation.strength
+          },
+          vpdStrengthening: {
+            name: 'VPD 강화 추세 (0-5점)',
+            score: trendScore.vpdStrengthening.score,
+            trend: trendScore.vpdStrengthening.trend
+          }
+        },
 
-        // 최종 점수 (소수점 2자리, 100점 만점)
-        finalScore: parseFloat(totalScore.toFixed(2))
+        // 4. 최종 점수
+        finalScore: parseFloat(totalScore.toFixed(2)),
+        maxScore: 100,
+        formula: 'Base(0-40) + Momentum(0-40) + Trend(0-20) = Total(0-100)'
       };
 
       // 랭킹 뱃지 가져오기
@@ -321,7 +822,9 @@ class StockScreener {
         cupAndHandle, // 신규: Cup&Handle 패턴
         triangle, // 신규: Triangle 패턴
         scoreBreakdown, // 신규: 가점/감점 상세 내역
-        trendAnalysis, // 추세 분석 추가
+        trendAnalysis, // 추세 분석 (5일 일자별)
+        momentumScore, // ⭐ 변화율 점수 (D-5 vs D-0, 0-40점)
+        trendScore, // ⭐ 추세 점수 (30일 모멘텀, 0-20점)
         overheating, // Phase 4C 과열 정보 추가
         leadingIndicators: leadingScore ? { // ⭐ 선행 지표 통합 (NEW)
           total: leadingScore.total,
