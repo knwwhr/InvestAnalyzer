@@ -648,8 +648,8 @@
                     <div className="text-yellow-300 font-semibold">"상승일 vs 하락일 거래량 비교"</div>
                     <div className="border-t border-gray-700 my-1"></div>
                     <div>• 분석 기간: 최근 20일간 일봉</div>
-                    <div>• 상승일: {stock.advancedAnalysis.indicators.asymmetric.upDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1)}M주)</div>
-                    <div>• 하락일: {stock.advancedAnalysis.indicators.asymmetric.downDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M주)</div>
+                    <div>• 상승일: {stock.advancedAnalysis.indicators.asymmetric.upDays}일 ({stock.advancedAnalysis.indicators.asymmetric.upVolume ? (stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1) : 0}M주)</div>
+                    <div>• 하락일: {stock.advancedAnalysis.indicators.asymmetric.downDays}일 ({stock.advancedAnalysis.indicators.asymmetric.downVolume ? (stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1) : 0}M주)</div>
                     <div>• 비율: <span className="text-yellow-300 font-bold">{stock.advancedAnalysis.indicators.asymmetric.ratio}배</span></div>
                     <div className="border-t border-gray-700 my-1"></div>
                     <div className="text-green-300">→ 해석: {stock.advancedAnalysis.indicators.asymmetric.signal}</div>
@@ -848,7 +848,7 @@
                     signal={stock.advancedAnalysis.indicators.whale.length > 0 ? `${stock.advancedAnalysis.indicators.whale.length}건 감지` : '없음'}
                     detail={stock.advancedAnalysis.indicators.whale.length > 0 ?
                       stock.advancedAnalysis.indicators.whale.map(w =>
-                        `${w.date.slice(4,6)}/${w.date.slice(6,8)}: 거래량 ${w.volumeRatio}배, 가격 +${w.priceChange}%, 강도 ${w.intensity.toFixed(1)}`
+                        `${w.date.slice(4,6)}/${w.date.slice(6,8)}: 거래량 ${w.volumeRatio}배, 가격 +${w.priceChange}%, 강도 ${w.intensity ? w.intensity.toFixed(1) : 'N/A'}`
                       ).join(' | ') : '거래량 급증 + 가격 상승 조합 미발견'}
                   />
 
@@ -866,8 +866,8 @@
                     detected={stock.advancedAnalysis.indicators.escape.detected}
                     signal={stock.advancedAnalysis.indicators.escape.signal}
                     detail={stock.advancedAnalysis.indicators.escape.detected ?
-                      `저항선 ${stock.advancedAnalysis.indicators.escape.resistance.toLocaleString()}원 → 현재 ${stock.advancedAnalysis.indicators.escape.currentPrice.toLocaleString()}원 (+${stock.advancedAnalysis.indicators.escape.priceBreakout}%) / 거래량 ${stock.advancedAnalysis.indicators.escape.volumeRatio}배 / 모멘텀 ${stock.advancedAnalysis.indicators.escape.momentum} / 점수 ${stock.advancedAnalysis.indicators.escape.score.toFixed(1)}`
-                      : `저항선 돌파 실패 / 점수 ${stock.advancedAnalysis.indicators.escape.score}`}
+                      `저항선 ${stock.advancedAnalysis.indicators.escape.resistance.toLocaleString()}원 → 현재 ${stock.advancedAnalysis.indicators.escape.currentPrice.toLocaleString()}원 (+${stock.advancedAnalysis.indicators.escape.priceBreakout}%) / 거래량 ${stock.advancedAnalysis.indicators.escape.volumeRatio}배 / 모멘텀 ${stock.advancedAnalysis.indicators.escape.momentum} / 점수 ${stock.advancedAnalysis.indicators.escape.score ? stock.advancedAnalysis.indicators.escape.score.toFixed(1) : 0}`
+                      : `저항선 돌파 실패 / 점수 ${stock.advancedAnalysis.indicators.escape.score || 0}`}
                   />
 
                   {/* 유동성 고갈 */}
@@ -875,7 +875,7 @@
                     title="💧 유동성 고갈"
                     detected={stock.advancedAnalysis.indicators.drain.detected}
                     signal={stock.advancedAnalysis.indicators.drain.signal}
-                    detail={`거래량↓${stock.advancedAnalysis.indicators.drain.volumeDecline}% / 변동성↓${stock.advancedAnalysis.indicators.drain.volatilityDecline}% / 최근평균 ${(stock.advancedAnalysis.indicators.drain.avgVolumeRecent / 1000).toFixed(0)}K / 점수 ${stock.advancedAnalysis.indicators.drain.score}`}
+                    detail={`거래량↓${stock.advancedAnalysis.indicators.drain.volumeDecline}% / 변동성↓${stock.advancedAnalysis.indicators.drain.volatilityDecline}% / 최근평균 ${stock.advancedAnalysis.indicators.drain.avgVolumeRecent ? (stock.advancedAnalysis.indicators.drain.avgVolumeRecent / 1000).toFixed(0) + 'K' : 'N/A'} / 점수 ${stock.advancedAnalysis.indicators.drain.score || 0}`}
                   />
 
                   {/* 비대칭 거래량 */}
@@ -883,16 +883,16 @@
                     title="📊 비대칭 거래량"
                     detected={stock.advancedAnalysis.indicators.asymmetric.ratio >= 1.5}
                     signal={stock.advancedAnalysis.indicators.asymmetric.signal}
-                    detail={`비율 ${stock.advancedAnalysis.indicators.asymmetric.ratio} | 상승 ${stock.advancedAnalysis.indicators.asymmetric.upDays}일 (${(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1)}M) vs 하락 ${stock.advancedAnalysis.indicators.asymmetric.downDays}일 (${(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M) | 상승일 거래량이 ${stock.advancedAnalysis.indicators.asymmetric.ratio}배 더 많음 → ${stock.advancedAnalysis.indicators.asymmetric.ratio >= 3 ? '세력 강력 매집 🔥🔥' : stock.advancedAnalysis.indicators.asymmetric.ratio >= 1.5 ? '세력 매집 중 🔥' : stock.advancedAnalysis.indicators.asymmetric.ratio <= 0.7 ? '세력 매도 중 ⚠️' : '중립 ⚖️'} / 점수 ${stock.advancedAnalysis.indicators.asymmetric.score.toFixed(1)}`}
+                    detail={`비율 ${stock.advancedAnalysis.indicators.asymmetric.ratio} | 상승 ${stock.advancedAnalysis.indicators.asymmetric.upDays}일 (${stock.advancedAnalysis.indicators.asymmetric.upVolume ? (stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1) : 0}M) vs 하락 ${stock.advancedAnalysis.indicators.asymmetric.downDays}일 (${stock.advancedAnalysis.indicators.asymmetric.downVolume ? (stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1) : 0}M) | 상승일 거래량이 ${stock.advancedAnalysis.indicators.asymmetric.ratio}배 더 많음 → ${stock.advancedAnalysis.indicators.asymmetric.ratio >= 3 ? '세력 강력 매집 🔥🔥' : stock.advancedAnalysis.indicators.asymmetric.ratio >= 1.5 ? '세력 매집 중 🔥' : stock.advancedAnalysis.indicators.asymmetric.ratio <= 0.7 ? '세력 매도 중 ⚠️' : '중립 ⚖️'} / 점수 ${stock.advancedAnalysis.indicators.asymmetric.score ? stock.advancedAnalysis.indicators.asymmetric.score.toFixed(1) : 0}`}
                   />
 
                   {/* VPM (Volume-Price Momentum) */}
-                  {stock.vpm && (
+                  {stock.vpm && stock.vpm.volumeForecast && stock.vpm.priceDirection && (
                     <IndicatorBox
                       title="📊 VPM (거래량-가격 모멘텀)"
-                      detected={stock.vpm.divergence.confidence >= 70}
-                      signal={stock.vpm.signal}
-                      detail={`${stock.vpm.divergence.pattern} | 신뢰도 ${stock.vpm.divergence.confidence}% | VPT ${stock.vpm.vpt.trend} (${stock.vpm.vpt.signal}) | 예측거래량 ${(stock.vpm.volumeForecast.predicted / 1000).toFixed(0)}K (${stock.vpm.volumeForecast.signal}) | 가격예측: ${stock.vpm.priceDirection.prediction} (${stock.vpm.priceDirection.probability}%, ${stock.vpm.priceDirection.expectedMove}, ${stock.vpm.priceDirection.timeframe}) | 점수 ${stock.vpm.score}`}
+                      detected={stock.vpm.divergence?.confidence >= 70}
+                      signal={stock.vpm.signal || 'N/A'}
+                      detail={`${stock.vpm.divergence?.pattern || 'N/A'} | 신뢰도 ${stock.vpm.divergence?.confidence || 0}% | VPT ${stock.vpm.vpt?.trend || 'N/A'} (${stock.vpm.vpt?.signal || 'N/A'}) | 예측거래량 ${stock.vpm.volumeForecast.predicted ? (stock.vpm.volumeForecast.predicted / 1000).toFixed(0) + 'K' : 'N/A'} (${stock.vpm.volumeForecast.signal || 'N/A'}) | 가격예측: ${stock.vpm.priceDirection.prediction || 'N/A'} (${stock.vpm.priceDirection.probability || 0}%, ${stock.vpm.priceDirection.expectedMove || 'N/A'}, ${stock.vpm.priceDirection.timeframe || 'N/A'}) | 점수 ${stock.vpm.score || 0}`}
                     />
                   )}
 
@@ -1074,7 +1074,7 @@
                   <StatBox
                     label="비대칭 비율 (상승일/하락일)"
                     value={stock.advancedAnalysis.indicators.asymmetric.ratio}
-                    desc={`${stock.advancedAnalysis.indicators.asymmetric.signal} | 상승 ${stock.advancedAnalysis.indicators.asymmetric.upDays}일(${(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(0)}M) vs 하락 ${stock.advancedAnalysis.indicators.asymmetric.downDays}일(${(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(0)}M)`}
+                    desc={`${stock.advancedAnalysis.indicators.asymmetric.signal} | 상승 ${stock.advancedAnalysis.indicators.asymmetric.upDays}일(${stock.advancedAnalysis.indicators.asymmetric.upVolume ? (stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(0) : 0}M) vs 하락 ${stock.advancedAnalysis.indicators.asymmetric.downDays}일(${stock.advancedAnalysis.indicators.asymmetric.downVolume ? (stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(0) : 0}M)`}
                   />
                   <StatBox
                     label="최근 5일 거래량 변동율"
