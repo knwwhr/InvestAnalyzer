@@ -549,6 +549,8 @@ class KISApi {
     if (!name) return true; // 종목명 없으면 제외
 
     const excludeKeywords = [
+      // 상장폐지/정리매매 ⚠️ 최우선 필터링
+      '정리매매', '상장폐지', '관리종목', '투자경고', '투자주의', '투자위험',
       // ETF 브랜드
       'ETF', 'ETN', 'KODEX', 'TIGER', 'KBSTAR', 'ARIRANG', 'KOSEF',
       'HANARO', 'TREX', 'KINDEX', 'TIMEFOLIO', 'SOL', 'ACE', 'KIWOOM',
