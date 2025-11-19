@@ -1062,6 +1062,20 @@
                     label="VWAP (평균가)"
                     value={stock.volumeAnalysis.indicators.vwap?.toLocaleString()}
                     desc={stock.volumeAnalysis.signals.priceVsVWAP}
+                    tooltip={
+                      <div className="space-y-1">
+                        <div className="font-bold text-yellow-300">📊 VWAP (Volume Weighted Average Price)</div>
+                        <div className="border-t border-gray-700 my-1"></div>
+                        <div>• 정의: 거래량 가중 평균 가격</div>
+                        <div>• 계산: Σ(가격 × 거래량) / Σ(거래량)</div>
+                        <div>• 기간: 일봉 30일 기준</div>
+                        <div className="border-t border-gray-700 my-1"></div>
+                        <div className="text-yellow-300">→ 해석:</div>
+                        <div>• 현재가 &gt; VWAP → 상승세 (매수세 강함)</div>
+                        <div>• 현재가 &lt; VWAP → 하락세 (매도세 강함)</div>
+                        <div>• VWAP는 지지/저항선 역할</div>
+                      </div>
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -1334,10 +1348,28 @@
     }
 
     // 통계 박스
-    function StatBox({ label, value, desc }) {
+    function StatBox({ label, value, desc, tooltip }) {
+      const [showTooltip, setShowTooltip] = useState(false);
+
       return (
-        <div className="bg-gray-50 p-3 rounded-lg">
-          <p className="text-xs text-gray-600 mb-1">{label}</p>
+        <div className="bg-gray-50 p-3 rounded-lg relative">
+          <p className="text-xs text-gray-600 mb-1">
+            {label}
+            {tooltip && (
+              <span
+                className="ml-1 text-blue-500 cursor-help"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+              >
+                ⓘ
+              </span>
+            )}
+          </p>
+          {tooltip && showTooltip && (
+            <div className="absolute z-50 bg-gray-800 text-white text-xs rounded-lg p-3 shadow-xl w-72 left-0 top-full mt-1">
+              {tooltip}
+            </div>
+          )}
           <p className="text-lg font-bold text-gray-900">{value || 'N/A'}</p>
           {desc && <p className="text-xs text-gray-500 mt-1">{desc}</p>}
         </div>
