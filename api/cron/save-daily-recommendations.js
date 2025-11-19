@@ -34,22 +34,22 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Step 2: A등급(42점) 이상만 필터링
+    // Step 2: S등급(58점) 이상만 필터링
     const filteredStocks = stocks.filter(stock => {
       const grade = stock.recommendation?.grade;
       const score = stock.totalScore;
 
-      // S등급(58-88) 또는 A등급(42-57)만 저장
-      return (grade === 'S' || grade === 'A') && score >= 42;
+      // S등급(58-88)만 저장 (보수적 기준)
+      return grade === 'S' && score >= 58;
     });
 
-    console.log(`✅ 스크리닝 완료: ${stocks.length}개 중 ${filteredStocks.length}개 (S/A등급)`);
+    console.log(`✅ 스크리닝 완료: ${stocks.length}개 중 ${filteredStocks.length}개 (S등급만)`);
 
     if (filteredStocks.length === 0) {
       return res.status(200).json({
         success: true,
         saved: 0,
-        message: 'No S/A grade stocks found'
+        message: 'No S grade stocks found'
       });
     }
 
@@ -96,15 +96,14 @@ module.exports = async (req, res) => {
     }
 
     console.log(`✅ ${data.length}개 추천 종목 저장 완료 (${today})`);
-    console.log(`   등급: S(${filteredStocks.filter(s => s.recommendation.grade === 'S').length}개), A(${filteredStocks.filter(s => s.recommendation.grade === 'A').length}개)\n`);
+    console.log(`   등급: S(${filteredStocks.filter(s => s.recommendation.grade === 'S').length}개)\n`);
 
     return res.status(200).json({
       success: true,
       saved: data.length,
       date: today,
       grades: {
-        S: filteredStocks.filter(s => s.recommendation.grade === 'S').length,
-        A: filteredStocks.filter(s => s.recommendation.grade === 'A').length
+        S: filteredStocks.filter(s => s.recommendation.grade === 'S').length
       },
       recommendations: data.map(r => ({
         stockCode: r.stock_code,
