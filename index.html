@@ -836,9 +836,13 @@
                 </div>
               )}
 
-              {/* 창의적 지표 */}
+              {/* 종합 지표 분석 (창의적 지표 + 감지된 신호 통합) */}
               <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
-                <h3 className="text-xl font-bold mb-4">🔍 창의적 지표 분석</h3>
+                <h3 className="text-xl font-bold mb-4">🔍 종합 지표 분석</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  ✓ <span className="text-green-700 font-semibold">초록색 하이라이트</span>: 현재 감지된 신호 |
+                  <span className="text-gray-500 ml-2">회색 반투명</span>: 미감지 신호 (호버 시 전체 표시)
+                </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* 고래 감지 */}
@@ -1108,232 +1112,6 @@
                 </div>
               </div>
 
-              {/* 신호 요약 */}
-              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-6">
-                <h3 className="text-xl font-bold mb-4 text-indigo-900">📢 감지된 신호</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {stock.advancedAnalysis.signals.map((signal, i) => {
-                    // 신호별 세부 데이터 구성
-                    let tooltipContent = null;
-
-                    // 약한 마감 / 윗꼬리 신호
-                    if (signal.includes('약한 마감') || signal.includes('윗꼬리')) {
-                      const escapeData = stock.advancedAnalysis.indicators.escape;
-                      tooltipContent = escapeData && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-yellow-300">⚠️ 윗꼬리 긴 음봉 (Weak Close)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 종가: {stock.currentPrice.toLocaleString()}원</div>
-                          <div>• 고가: {escapeData.resistance ? escapeData.resistance.toLocaleString() : 'N/A'}원</div>
-                          <div>• 윗꼬리 비율: <span className="text-red-300">{escapeData.upperShadow || 'N/A'}%</span></div>
-                          <div>• 고가 대비 낙폭: <span className="text-red-300">{escapeData.highDecline || 'N/A'}%</span></div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: 고가 대비 하락 마감, 매도 압력 존재</div>
-                        </div>
-                      );
-                    }
-
-                    // 유동성 고갈 신호
-                    if (signal.includes('유동성 고갈')) {
-                      const liquidityData = stock.liquidity;
-                      tooltipContent = liquidityData && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-yellow-300">💧 거래대금 부족 (Low Liquidity)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 일평균 거래대금: <span className="text-yellow-300">{liquidityData.avgTradingValue || 'N/A'}억원</span></div>
-                          <div>• 시가총액: {stock.marketCap ? (stock.marketCap / 100000000).toFixed(0) : 'N/A'}억원</div>
-                          <div>• 회전율: <span className="text-yellow-300">{liquidityData.avgTradingValue && stock.marketCap ? ((liquidityData.avgTradingValue * 100000000 / stock.marketCap) * 100).toFixed(2) : 'N/A'}%</span></div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: 시총 대비 거래 적어 가격 변동성 높을 수 있음</div>
-                        </div>
-                      );
-                    }
-
-                    // 강한 매도세 신호
-                    if (signal.includes('매도세') || signal.includes('하락일 거래')) {
-                      const asymmetric = stock.advancedAnalysis.indicators.asymmetric;
-                      tooltipContent = asymmetric && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-red-300">📉 하락일 거래량 집중 (Strong Selling)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 분석 기간: 최근 20일간</div>
-                          <div>• 하락일 평균: <span className="text-red-300">{asymmetric.downDays ? (asymmetric.downVolume / asymmetric.downDays / 1000).toFixed(0) : 'N/A'}K주/일</span></div>
-                          <div>• 상승일 평균: {asymmetric.upDays ? (asymmetric.upVolume / asymmetric.upDays / 1000).toFixed(0) : 'N/A'}K주/일</div>
-                          <div>• 비율: <span className="text-red-300">{asymmetric.ratio ? (1 / asymmetric.ratio).toFixed(2) : 'N/A'}배</span></div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: 하락할 때 거래량 많아 매도 압력 강함</div>
-                        </div>
-                      );
-                    }
-
-                    // 강한 매수세 신호
-                    if (signal.includes('매수세') || signal.includes('상승일 거래') || signal.includes('비대칭')) {
-                      const asymmetric = stock.advancedAnalysis.indicators.asymmetric;
-                      tooltipContent = asymmetric && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-green-300">📈 상승일 거래량 집중 (Strong Buying)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 분석 기간: 최근 20일간</div>
-                          <div>• 상승일 평균: <span className="text-green-300">{asymmetric.upDays ? (asymmetric.upVolume / asymmetric.upDays / 1000).toFixed(0) : 'N/A'}K주/일</span></div>
-                          <div>• 하락일 평균: {asymmetric.downDays ? (asymmetric.downVolume / asymmetric.downDays / 1000).toFixed(0) : 'N/A'}K주/일</div>
-                          <div>• 비율: <span className="text-green-300">{asymmetric.ratio}배</span></div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: 상승할 때 거래량 {asymmetric.ratio}배 많아 매수 압력 강함</div>
-                        </div>
-                      );
-                    }
-
-                    // 고래 감지 신호
-                    if (signal.includes('고래') || signal.includes('🐋')) {
-                      const whaleData = stock.advancedAnalysis.indicators.whale;
-                      const latestWhale = whaleData && whaleData.length > 0 ? whaleData[whaleData.length - 1] : null;
-                      tooltipContent = latestWhale && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-blue-300">🐋 대량 거래 감지 (Whale Detection)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 날짜: {latestWhale.date}</div>
-                          <div>• 거래량 비율: <span className="text-blue-300">{latestWhale.volumeRatio}배</span></div>
-                          <div>• 가격 변동: {latestWhale.priceChange}%</div>
-                          <div>• 윗꼬리: {latestWhale.upperShadow}%</div>
-                          {latestWhale.warning && (
-                            <div className="text-red-300">⚠️ {latestWhale.warning}</div>
-                          )}
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: 기관/외국인 등 세력 매수 신호</div>
-                        </div>
-                      );
-                    }
-
-                    // 스마트머니 유입 신호
-                    if (signal.includes('스마트머니')) {
-                      const smartMoneyData = stock.advancedAnalysis.indicators.smartMoney;
-                      tooltipContent = smartMoneyData && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-blue-300">🧠 스마트머니 유입 (Smart Money)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-xs text-gray-300">📊 분석 기준: 최근 10일</div>
-                          <div className="text-xs text-gray-300">• 거래량 상위 30% (3일) = 대형 거래일 (기관/외국인 추정)</div>
-                          <div className="text-xs text-gray-300">• 거래량 하위 70% (7일) = 소형 거래일 (개인 추정)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 대형 거래일 평균 수익률: <span className={smartMoneyData.bigVolumeReturn >= 0 ? "text-green-300" : "text-red-300"}>{smartMoneyData.bigVolumeReturn}%</span></div>
-                          <div className="text-xs text-gray-400 ml-3">→ 거래량 많은 날의 평균 (종가 - 시가) 변동률</div>
-                          <div>• 소형 거래일 평균 수익률: <span className={smartMoneyData.smallVolumeReturn >= 0 ? "text-green-300" : "text-red-300"}>{smartMoneyData.smallVolumeReturn}%</span></div>
-                          <div className="text-xs text-gray-400 ml-3">→ 거래량 적은 날의 평균 (종가 - 시가) 변동률</div>
-                          <div>• 대형/소형 비율: <span className="text-blue-300">{smartMoneyData.ratio}배</span></div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: {smartMoneyData.interpretation}</div>
-                          <div className="text-xs text-gray-300">→ 기관이 사는 날은 상승, 개인이 사는 날은 하락 = 기회!</div>
-                        </div>
-                      );
-                    }
-
-                    // 조용한 매집 신호
-                    if (signal.includes('조용한 매집')) {
-                      const accumData = stock.advancedAnalysis.indicators.accumulation;
-                      tooltipContent = accumData && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-green-300">🤫 조용한 매집 (Silent Accumulation)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 가격 변동폭: {accumData.priceRange}%</div>
-                          <div>• 거래량 증가율: <span className="text-green-300">+{accumData.volumeGrowth}%</span></div>
-                          <div>• 평균가: {accumData.avgPrice ? accumData.avgPrice.toLocaleString() : 'N/A'}원</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: 가격 횡보 중 거래량 증가 = 세력 매집</div>
-                        </div>
-                      );
-                    }
-
-                    // 탈출 속도 신호
-                    if (signal.includes('탈출 속도')) {
-                      const escapeData = stock.advancedAnalysis.indicators.escape;
-                      tooltipContent = escapeData && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-orange-300">🚀 탈출 속도 (Escape Velocity)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 저항선: {escapeData.resistance ? escapeData.resistance.toLocaleString() : 'N/A'}원</div>
-                          <div>• 현재가: {stock.currentPrice.toLocaleString()}원</div>
-                          <div>• 거래량 비율: <span className="text-blue-300">{escapeData.volumeRatio}배</span></div>
-                          <div>• Closing Strength: <span className="text-green-300">{escapeData.closingStrength}%</span></div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: 저항선 돌파 + 거래량 폭발 + 강한 마감</div>
-                        </div>
-                      );
-                    }
-
-                    // 조용한 누적 신호
-                    if (signal.includes('조용한 누적')) {
-                      const gradualData = stock.advancedAnalysis.indicators.gradualAccumulation;
-                      tooltipContent = gradualData && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-purple-300">🐌 조용한 누적 (Gradual Accumulation)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 거래량 증가율: <span className="text-green-300">+{gradualData.growthRate}%</span></div>
-                          <div>• 가격 변동: {gradualData.priceChange}% (안정적)</div>
-                          <div>• 연속 거래량 증가: {gradualData.consecutiveDays}일</div>
-                          <div>• 급등 예상: {gradualData.readyIn}</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: {gradualData.interpretation}</div>
-                        </div>
-                      );
-                    }
-
-                    // 저점 형성 신호
-                    if (signal.includes('저점 형성')) {
-                      const bottomData = stock.advancedAnalysis.indicators.bottomFormation;
-                      tooltipContent = bottomData && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-teal-300">🌱 저점 형성 (Bottom Formation)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 고점: {bottomData.highPrice ? bottomData.highPrice.toLocaleString() : 'N/A'}원</div>
-                          <div>• 현재가: {bottomData.currentPrice ? bottomData.currentPrice.toLocaleString() : 'N/A'}원</div>
-                          <div>• 하락폭: <span className="text-red-300">{bottomData.decline}%</span></div>
-                          <div>• 거래량 비율: {bottomData.volumeRatio}배 (고갈)</div>
-                          <div>• 가격 변동폭: {bottomData.priceRange}% (안정)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: {bottomData.interpretation}</div>
-                        </div>
-                      );
-                    }
-
-                    // 저항선 돌파 준비 신호
-                    if (signal.includes('돌파 준비')) {
-                      const breakoutPrepData = stock.advancedAnalysis.indicators.breakoutPrep;
-                      tooltipContent = breakoutPrepData && (
-                        <div className="space-y-1">
-                          <div className="font-bold text-pink-300">🚪 저항선 돌파 준비 (Breakout Prep)</div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 저항선: {breakoutPrepData.resistance ? breakoutPrepData.resistance.toLocaleString() : 'N/A'}원</div>
-                          <div>• 현재가: {breakoutPrepData.currentPrice ? breakoutPrepData.currentPrice.toLocaleString() : 'N/A'}원</div>
-                          <div>• 격차: <span className="text-yellow-300">{breakoutPrepData.gap}%</span></div>
-                          <div>• 터치 횟수: {breakoutPrepData.touchCount}회</div>
-                          <div>• 거래량 증가: <span className="text-green-300">+{breakoutPrepData.volumeGrowth}%</span></div>
-                          <div className="border-t border-gray-700 my-1"></div>
-                          <div className="text-yellow-300">→ 해석: {breakoutPrepData.interpretation}</div>
-                          {breakoutPrepData.triggerPrice && (
-                            <div className="text-orange-300">→ 매수 트리거: {breakoutPrepData.triggerPrice.toLocaleString()}원</div>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div key={i} className="bg-white p-3 rounded-lg border-2 border-indigo-300 relative group">
-                        <div className="font-semibold text-indigo-700 mb-1">{signal} {tooltipContent && 'ⓘ'}</div>
-
-                        {/* Tooltip */}
-                        {tooltipContent && (
-                          <div className="absolute bottom-full left-0 mb-2 w-80 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
-                            {tooltipContent}
-                            <div className="absolute top-full left-6 transform -mt-1">
-                              <div className="border-4 border-transparent border-t-gray-900"></div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
             </div>
           </div>
@@ -1341,15 +1119,27 @@
       );
     }
 
-    // 지표 박스
+    // 지표 박스 (통합 버전 - 감지 여부 하이라이트 강화)
     function IndicatorBox({ title, detected, signal, detail }) {
       return (
-        <div className={`p-4 rounded-lg border-2 ${detected ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'}`}>
-          <h4 className="font-bold mb-2">{title}</h4>
-          <p className={`font-semibold mb-1 ${detected ? 'text-green-700' : 'text-gray-500'}`}>
+        <div className={`p-4 rounded-lg border-2 transition-all ${
+          detected
+            ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-400 shadow-md ring-2 ring-green-200'
+            : 'bg-gray-50 border-gray-200 opacity-60 hover:opacity-100'
+        }`}>
+          <h4 className={`font-bold mb-2 ${detected ? 'text-green-800' : 'text-gray-600'}`}>
+            {detected && '✓ '}{title}
+          </h4>
+          <p className={`font-semibold mb-1 ${detected ? 'text-green-700 text-base' : 'text-gray-500 text-sm'}`}>
             {signal}
           </p>
-          {detail && <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap break-words">{detail}</p>}
+          {detail && (
+            <p className={`text-xs leading-relaxed whitespace-pre-wrap break-words ${
+              detected ? 'text-green-600' : 'text-gray-500'
+            }`}>
+              {detail}
+            </p>
+          )}
         </div>
       );
     }
