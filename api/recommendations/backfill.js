@@ -43,14 +43,14 @@ function formatDate(date) {
 module.exports = async (req, res) => {
   // CORS 헤더
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -62,14 +62,19 @@ module.exports = async (req, res) => {
   }
 
   try {
-    console.log('\n📊 과거 추천 종목 일별 가격 소급 저장 시작...\n');
+    // 배치 크기 (Vercel Hobby 플랜 10초 제한 대응)
+    const batchSize = parseInt(req.query.batchSize) || 5;
+    const offset = parseInt(req.query.offset) || 0;
 
-    // 1. 활성 추천 종목 조회
+    console.log(`\n📊 과거 데이터 소급 저장 (배치: ${batchSize}개, 오프셋: ${offset})\n`);
+
+    // 1. 활성 추천 종목 조회 (배치 처리)
     const { data: recommendations, error: fetchError } = await supabase
       .from('screening_recommendations')
       .select('*')
       .eq('is_active', true)
-      .order('recommendation_date', { ascending: false });
+      .order('recommendation_date', { ascending: false })
+      .range(offset, offset + batchSize - 1);
 
     if (fetchError) {
       console.error('추천 조회 실패:', fetchError);
@@ -187,14 +192,27 @@ module.exports = async (req, res) => {
       }
     }
 
-    console.log(`\n✅ 소급 저장 완료: ${totalInserted}건 (스킵 ${totalSkipped}, 실패 ${totalFailed})\n`);
+    console.log(`\n✅ 배치 완료: ${totalInserted}건 저장 (스킵 ${totalSkipped}, 실패 ${totalFailed})\n`);
+
+    // 다음 배치가 있는지 확인
+    const hasMore = recommendations.length === batchSize;
+    const nextOffset = hasMore ? offset + batchSize : null;
 
     return res.status(200).json({
       success: true,
-      total: recommendations.length,
+      batch: {
+        size: batchSize,
+        offset: offset,
+        processed: recommendations.length
+      },
       inserted: totalInserted,
       skipped: totalSkipped,
-      failed: totalFailed
+      failed: totalFailed,
+      hasMore: hasMore,
+      nextOffset: nextOffset,
+      message: hasMore
+        ? `배치 완료. 다음: GET /api/recommendations/backfill?offset=${nextOffset}&batchSize=${batchSize}`
+        : '모든 데이터 소급 완료!'
     });
 
   } catch (error) {
