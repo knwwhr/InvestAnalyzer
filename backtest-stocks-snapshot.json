@@ -1,0 +1,3220 @@
+{
+  "capturedAt": "2025-11-18T05:35:01.108Z",
+  "totalStocks": 23,
+  "stocks": [
+    {
+      "stockCode": "246710",
+      "stockName": "티앤알바이오팹",
+      "currentPrice": 1499,
+      "totalScore": 60.85,
+      "grade": "S",
+      "indicators": {
+        "baseScore": 13,
+        "vpdScore": 35,
+        "institutionalScore": 10,
+        "confluenceScore": 5,
+        "freshnessScore": 10,
+        "leadingScore": 45,
+        "cupHandleScore": 0,
+        "volumeRatio": 23.744501922598136,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 25,
+          "active": true,
+          "details": {
+            "divergence": 7.51,
+            "volumeRatio": 8.54,
+            "priceChange": -3.52,
+            "signal": "🔥 최우선 매수 - 거래량 폭발, 가격 미반영"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 4,
+          "active": true,
+          "details": {
+            "strength": "moderate",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "191410",
+      "stockName": "육일씨엔에쓰",
+      "currentPrice": 1545,
+      "totalScore": 57.41,
+      "grade": "D",
+      "indicators": {
+        "baseScore": 10,
+        "vpdScore": 35,
+        "institutionalScore": 10,
+        "confluenceScore": 5,
+        "freshnessScore": 10,
+        "leadingScore": 45,
+        "cupHandleScore": 0,
+        "volumeRatio": 51.78621732035092,
+        "obvTrend": "📉 하락 (매도세 우세)",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 25,
+          "active": true,
+          "details": {
+            "divergence": 9.06,
+            "volumeRatio": 10.14,
+            "priceChange": 7.36,
+            "signal": "🔥 최우선 매수 - 거래량 폭발, 가격 미반영"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 4,
+          "active": true,
+          "details": {
+            "strength": "moderate",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "101670",
+      "stockName": "하이드로리튬",
+      "currentPrice": 2135,
+      "totalScore": 49.27,
+      "grade": "A",
+      "indicators": {
+        "baseScore": 6,
+        "vpdScore": 25,
+        "institutionalScore": 10,
+        "confluenceScore": 10,
+        "freshnessScore": 10,
+        "leadingScore": 45,
+        "cupHandleScore": 0,
+        "volumeRatio": 2.3503978557708,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": true,
+        "whaleDetected": true,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 18,
+          "active": true,
+          "details": {
+            "divergence": 2.57,
+            "volumeRatio": 3.65,
+            "priceChange": -7.64,
+            "signal": "🟢 적극 매수 - 초기 단계 매집"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "합류점 (Confluence)",
+          "value": 6,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 4,
+          "active": true,
+          "details": {
+            "strength": "moderate",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "073570",
+      "stockName": "리튬포어스",
+      "currentPrice": 1026,
+      "totalScore": 47.5,
+      "grade": "A",
+      "indicators": {
+        "baseScore": 15,
+        "vpdScore": 35,
+        "institutionalScore": 0,
+        "confluenceScore": 5,
+        "freshnessScore": 0,
+        "leadingScore": 50,
+        "cupHandleScore": 0,
+        "volumeRatio": 5.71283104209527,
+        "obvTrend": "📈 상승 (매수세 우세)",
+        "institutionalFlow": false,
+        "whaleDetected": true,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 25,
+          "active": true,
+          "details": {
+            "divergence": 6.71,
+            "volumeRatio": 7.76,
+            "priceChange": -4.81,
+            "signal": "🔥 최우선 매수 - 거래량 폭발, 가격 미반영"
+          }
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 5,
+          "active": true,
+          "details": {
+            "strength": "moderate",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "424870",
+      "stockName": "이뮨온시아",
+      "currentPrice": 7290,
+      "totalScore": 46.93,
+      "grade": "A",
+      "indicators": {
+        "baseScore": 14,
+        "vpdScore": -17,
+        "institutionalScore": 15,
+        "confluenceScore": 10,
+        "freshnessScore": 15,
+        "leadingScore": 15,
+        "cupHandleScore": 0,
+        "volumeRatio": 4.645368859195455,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": 1.44,
+            "volumeRatio": 2.66,
+            "priceChange": 21.58,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 15,
+          "active": true
+        },
+        {
+          "name": "합류점 (Confluence)",
+          "value": 6,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 1,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": false,
+            "confidence": 25
+          }
+        },
+        {
+          "name": "당일/전일 신호",
+          "value": 8,
+          "active": true
+        },
+        {
+          "name": "돌파 확인",
+          "value": 3,
+          "active": true
+        }
+      ]
+    },
+    {
+      "stockCode": "049630",
+      "stockName": "재영솔루텍",
+      "currentPrice": 2140,
+      "totalScore": 43.58,
+      "grade": "A",
+      "indicators": {
+        "baseScore": 13,
+        "vpdScore": -25,
+        "institutionalScore": 10,
+        "confluenceScore": 10,
+        "freshnessScore": 15,
+        "leadingScore": 40,
+        "cupHandleScore": 0,
+        "volumeRatio": 2.9494919981206955,
+        "obvTrend": "📉 하락 (매도세 우세)",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": 0.01,
+            "volumeRatio": 1.54,
+            "priceChange": 52.67,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "합류점 (Confluence)",
+          "value": 6,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 4,
+          "active": true,
+          "details": {
+            "strength": "moderate",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        },
+        {
+          "name": "당일/전일 신호",
+          "value": 8,
+          "active": true
+        },
+        {
+          "name": "돌파 확인",
+          "value": 3,
+          "active": true
+        }
+      ]
+    },
+    {
+      "stockCode": "048830",
+      "stockName": "엔피케이",
+      "currentPrice": 1363,
+      "totalScore": 43.03,
+      "grade": "A",
+      "indicators": {
+        "baseScore": 13,
+        "vpdScore": -17,
+        "institutionalScore": 10,
+        "confluenceScore": 10,
+        "freshnessScore": 15,
+        "leadingScore": 35,
+        "cupHandleScore": 0,
+        "volumeRatio": 157.8056982213332,
+        "obvTrend": "📉 하락 (매도세 우세)",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": 16.2,
+            "volumeRatio": 17.43,
+            "priceChange": 22.38,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "합류점 (Confluence)",
+          "value": 6,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 3,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        },
+        {
+          "name": "당일/전일 신호",
+          "value": 8,
+          "active": true
+        },
+        {
+          "name": "돌파 확인",
+          "value": 3,
+          "active": true
+        }
+      ]
+    },
+    {
+      "stockCode": "256840",
+      "stockName": "한국비엔씨",
+      "currentPrice": 5740,
+      "totalScore": 41.44,
+      "grade": "D",
+      "indicators": {
+        "baseScore": 20,
+        "vpdScore": 26,
+        "institutionalScore": 0,
+        "confluenceScore": 0,
+        "freshnessScore": 0,
+        "leadingScore": 35,
+        "cupHandleScore": 0,
+        "volumeRatio": 9.542775096170338,
+        "obvTrend": "📈 상승 (매수세 우세)",
+        "institutionalFlow": false,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 19,
+          "active": true,
+          "details": {
+            "divergence": 3,
+            "volumeRatio": 4.09,
+            "priceChange": 8.72,
+            "signal": "🟢 적극 매수 - 초기 단계 매집"
+          }
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 3,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "094850",
+      "stockName": "참좋은여행",
+      "currentPrice": 6920,
+      "totalScore": 40.17,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 20,
+        "vpdScore": 0,
+        "institutionalScore": 10,
+        "confluenceScore": 5,
+        "freshnessScore": 10,
+        "leadingScore": 25,
+        "cupHandleScore": 0,
+        "volumeRatio": 93.6662955465587,
+        "obvTrend": "📈 상승 (매수세 우세)",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 2,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "376900",
+      "stockName": "로킷헬스케어",
+      "currentPrice": 50000,
+      "totalScore": 37.92,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 11,
+        "vpdScore": -25,
+        "institutionalScore": 10,
+        "confluenceScore": 15,
+        "freshnessScore": 10,
+        "leadingScore": 32.5,
+        "cupHandleScore": 0,
+        "volumeRatio": 1.1655929922439539,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": true,
+        "whaleDetected": true,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": 0.3,
+            "volumeRatio": 1.6,
+            "priceChange": 29.78,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "합류점 (Confluence)",
+          "value": 9,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 3,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "221800",
+      "stockName": "유투바이오",
+      "currentPrice": 6630,
+      "totalScore": 37.28,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 17,
+        "vpdScore": 10,
+        "institutionalScore": 0,
+        "confluenceScore": 5,
+        "freshnessScore": 12,
+        "leadingScore": 17.5,
+        "cupHandleScore": 0,
+        "volumeRatio": 157.14383458646617,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": false,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 7,
+          "active": true,
+          "details": {
+            "divergence": 0.89,
+            "volumeRatio": 2.4,
+            "priceChange": 50.6,
+            "signal": "⚪ 약한 신호"
+          }
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 1,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": false,
+            "confidence": 25
+          }
+        },
+        {
+          "name": "돌파 확인",
+          "value": 3,
+          "active": true
+        }
+      ]
+    },
+    {
+      "stockCode": "298380",
+      "stockName": "에이비엘바이오",
+      "currentPrice": 166500,
+      "totalScore": 36.84,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 10,
+        "vpdScore": -25,
+        "institutionalScore": 10,
+        "confluenceScore": 10,
+        "freshnessScore": 15,
+        "leadingScore": 0,
+        "cupHandleScore": 0,
+        "volumeRatio": 2.045125211520073,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": -0.5,
+            "volumeRatio": 0.97,
+            "priceChange": 47.31,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "합류점 (Confluence)",
+          "value": 6,
+          "active": true
+        },
+        {
+          "name": "당일/전일 신호",
+          "value": 8,
+          "active": true
+        },
+        {
+          "name": "돌파 확인",
+          "value": 3,
+          "active": true
+        }
+      ]
+    },
+    {
+      "stockCode": "068270",
+      "stockName": "셀트리온",
+      "currentPrice": 183900,
+      "totalScore": 34.1,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 10,
+        "vpdScore": 0,
+        "institutionalScore": 15,
+        "confluenceScore": 5,
+        "freshnessScore": 10,
+        "leadingScore": 12.5,
+        "cupHandleScore": 0,
+        "volumeRatio": 1.308509494680482,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "기관/외국인 수급",
+          "value": 15,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 1,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": false,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "007660",
+      "stockName": "이수페타시스",
+      "currentPrice": 123900,
+      "totalScore": 32.17,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 13,
+        "vpdScore": 0,
+        "institutionalScore": 10,
+        "confluenceScore": 5,
+        "freshnessScore": 10,
+        "leadingScore": 15,
+        "cupHandleScore": 0,
+        "volumeRatio": 0.8162909377443063,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 1,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": false,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "196170",
+      "stockName": "알테오젠",
+      "currentPrice": 555500,
+      "totalScore": 30.86,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 11,
+        "vpdScore": 0,
+        "institutionalScore": 10,
+        "confluenceScore": 5,
+        "freshnessScore": 10,
+        "leadingScore": 17.5,
+        "cupHandleScore": 0,
+        "volumeRatio": 0.823219683829724,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 1,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": false,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "078590",
+      "stockName": "휴림에이텍",
+      "currentPrice": 940,
+      "totalScore": 29.57,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 16,
+        "vpdScore": 19,
+        "institutionalScore": 0,
+        "confluenceScore": 0,
+        "freshnessScore": 0,
+        "leadingScore": 5,
+        "cupHandleScore": 0,
+        "volumeRatio": 3.851948312441879,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": false,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 14,
+          "active": true,
+          "details": {
+            "divergence": 1.9,
+            "volumeRatio": 3,
+            "priceChange": 9.99,
+            "signal": "🟡 매수 고려 - 관심 필요"
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "081180",
+      "stockName": "쎄크",
+      "currentPrice": 11250,
+      "totalScore": 28.86,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 15,
+        "vpdScore": -25,
+        "institutionalScore": 0,
+        "confluenceScore": 5,
+        "freshnessScore": 12,
+        "leadingScore": 25,
+        "cupHandleScore": 0,
+        "volumeRatio": 233.5070859538784,
+        "obvTrend": "📉 하락 (매도세 우세)",
+        "institutionalFlow": false,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": 13.15,
+            "volumeRatio": 14.46,
+            "priceChange": 30.75,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 2,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        },
+        {
+          "name": "돌파 확인",
+          "value": 3,
+          "active": true
+        }
+      ]
+    },
+    {
+      "stockCode": "015760",
+      "stockName": "한국전력",
+      "currentPrice": 49500,
+      "totalScore": 28.36,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 16,
+        "vpdScore": -25,
+        "institutionalScore": 0,
+        "confluenceScore": 5,
+        "freshnessScore": 12,
+        "leadingScore": 5,
+        "cupHandleScore": 0,
+        "volumeRatio": 2.574004521524886,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": false,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": 0.49,
+            "volumeRatio": 1.57,
+            "priceChange": 8.78,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "돌파 확인",
+          "value": 3,
+          "active": true
+        }
+      ]
+    },
+    {
+      "stockCode": "009415",
+      "stockName": "태영건설우",
+      "currentPrice": 4700,
+      "totalScore": 25.84,
+      "grade": "B",
+      "indicators": {
+        "baseScore": 7,
+        "vpdScore": 24,
+        "institutionalScore": 0,
+        "confluenceScore": 0,
+        "freshnessScore": 0,
+        "leadingScore": 27.5,
+        "cupHandleScore": 0,
+        "volumeRatio": 2.955188679245283,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": false,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 17,
+          "active": true,
+          "details": {
+            "divergence": 2.25,
+            "volumeRatio": 3.28,
+            "priceChange": -3.78,
+            "signal": "🟢 적극 매수 - 초기 단계 매집"
+          }
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 2,
+          "active": true,
+          "details": {
+            "strength": "low",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "104620",
+      "stockName": "노랑풍선",
+      "currentPrice": 6290,
+      "totalScore": 24.63,
+      "grade": "D",
+      "indicators": {
+        "baseScore": 20,
+        "vpdScore": -15,
+        "institutionalScore": 0,
+        "confluenceScore": 0,
+        "freshnessScore": 0,
+        "leadingScore": 50,
+        "cupHandleScore": 0,
+        "volumeRatio": 50.616695203291506,
+        "obvTrend": "📈 상승 (매수세 우세)",
+        "institutionalFlow": false,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": 14.19,
+            "volumeRatio": 15.39,
+            "priceChange": 20.27,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 5,
+          "active": true,
+          "details": {
+            "strength": "moderate",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "012450",
+      "stockName": "한화에어로스페이스",
+      "currentPrice": 933000,
+      "totalScore": 23.93,
+      "grade": "D",
+      "indicators": {
+        "baseScore": 6,
+        "vpdScore": 0,
+        "institutionalScore": 10,
+        "confluenceScore": 5,
+        "freshnessScore": 10,
+        "leadingScore": 0,
+        "cupHandleScore": 0,
+        "volumeRatio": 0.7666640499817602,
+        "obvTrend": "📈 상승 (매수세 우세)",
+        "institutionalFlow": true,
+        "whaleDetected": false,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        }
+      ]
+    },
+    {
+      "stockCode": "054540",
+      "stockName": "삼영엠텍",
+      "currentPrice": 18200,
+      "totalScore": 21.55,
+      "grade": "D",
+      "indicators": {
+        "baseScore": 8,
+        "vpdScore": 9,
+        "institutionalScore": 0,
+        "confluenceScore": 5,
+        "freshnessScore": 0,
+        "leadingScore": 45,
+        "cupHandleScore": 0,
+        "volumeRatio": 1.2969966083199334,
+        "obvTrend": "➡️ 횡보",
+        "institutionalFlow": false,
+        "whaleDetected": true,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 6,
+          "active": true,
+          "details": {
+            "divergence": 0.61,
+            "volumeRatio": 1.65,
+            "priceChange": 3.27,
+            "signal": "⚪ 약한 신호"
+          }
+        },
+        {
+          "name": "선행 지표 (패턴+DNA)",
+          "value": 4,
+          "active": true,
+          "details": {
+            "strength": "moderate",
+            "patternMatched": false,
+            "dnaMatched": true,
+            "confidence": 25
+          }
+        }
+      ]
+    },
+    {
+      "stockCode": "042700",
+      "stockName": "한미반도체",
+      "currentPrice": 122400,
+      "totalScore": 21.3,
+      "grade": "D",
+      "indicators": {
+        "baseScore": 0,
+        "vpdScore": -25,
+        "institutionalScore": 10,
+        "confluenceScore": 10,
+        "freshnessScore": 10,
+        "leadingScore": 5,
+        "cupHandleScore": 0,
+        "volumeRatio": 0.5889940481143603,
+        "obvTrend": "📉 하락 (매도세 우세)",
+        "institutionalFlow": true,
+        "whaleDetected": true,
+        "accumulationDetected": false
+      },
+      "bonuses": [
+        {
+          "name": "Volume-Price Divergence (거래량 폭발)",
+          "value": 0,
+          "active": true,
+          "details": {
+            "divergence": -0.26,
+            "volumeRatio": 0.85,
+            "priceChange": -10.77,
+            "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+          }
+        },
+        {
+          "name": "기관/외국인 수급",
+          "value": 10,
+          "active": true
+        },
+        {
+          "name": "합류점 (Confluence)",
+          "value": 6,
+          "active": true
+        }
+      ]
+    }
+  ],
+  "byGrade": {
+    "S": [
+      {
+        "stockCode": "246710",
+        "stockName": "티앤알바이오팹",
+        "currentPrice": 1499,
+        "totalScore": 60.85,
+        "grade": "S",
+        "indicators": {
+          "baseScore": 13,
+          "vpdScore": 35,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 45,
+          "cupHandleScore": 0,
+          "volumeRatio": 23.744501922598136,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 25,
+            "active": true,
+            "details": {
+              "divergence": 7.51,
+              "volumeRatio": 8.54,
+              "priceChange": -3.52,
+              "signal": "🔥 최우선 매수 - 거래량 폭발, 가격 미반영"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      }
+    ],
+    "A": [
+      {
+        "stockCode": "101670",
+        "stockName": "하이드로리튬",
+        "currentPrice": 2135,
+        "totalScore": 49.27,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 6,
+          "vpdScore": 25,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 10,
+          "leadingScore": 45,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.3503978557708,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 18,
+            "active": true,
+            "details": {
+              "divergence": 2.57,
+              "volumeRatio": 3.65,
+              "priceChange": -7.64,
+              "signal": "🟢 적극 매수 - 초기 단계 매집"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "073570",
+        "stockName": "리튬포어스",
+        "currentPrice": 1026,
+        "totalScore": 47.5,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 15,
+          "vpdScore": 35,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 0,
+          "leadingScore": 50,
+          "cupHandleScore": 0,
+          "volumeRatio": 5.71283104209527,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": false,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 25,
+            "active": true,
+            "details": {
+              "divergence": 6.71,
+              "volumeRatio": 7.76,
+              "priceChange": -4.81,
+              "signal": "🔥 최우선 매수 - 거래량 폭발, 가격 미반영"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 5,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "424870",
+        "stockName": "이뮨온시아",
+        "currentPrice": 7290,
+        "totalScore": 46.93,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 14,
+          "vpdScore": -17,
+          "institutionalScore": 15,
+          "confluenceScore": 10,
+          "freshnessScore": 15,
+          "leadingScore": 15,
+          "cupHandleScore": 0,
+          "volumeRatio": 4.645368859195455,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 1.44,
+              "volumeRatio": 2.66,
+              "priceChange": 21.58,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 15,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "당일/전일 신호",
+            "value": 8,
+            "active": true
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "049630",
+        "stockName": "재영솔루텍",
+        "currentPrice": 2140,
+        "totalScore": 43.58,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 13,
+          "vpdScore": -25,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 15,
+          "leadingScore": 40,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.9494919981206955,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 0.01,
+              "volumeRatio": 1.54,
+              "priceChange": 52.67,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "당일/전일 신호",
+            "value": 8,
+            "active": true
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "048830",
+        "stockName": "엔피케이",
+        "currentPrice": 1363,
+        "totalScore": 43.03,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 13,
+          "vpdScore": -17,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 15,
+          "leadingScore": 35,
+          "cupHandleScore": 0,
+          "volumeRatio": 157.8056982213332,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 16.2,
+              "volumeRatio": 17.43,
+              "priceChange": 22.38,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 3,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "당일/전일 신호",
+            "value": 8,
+            "active": true
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      }
+    ],
+    "B": [
+      {
+        "stockCode": "094850",
+        "stockName": "참좋은여행",
+        "currentPrice": 6920,
+        "totalScore": 40.17,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 20,
+          "vpdScore": 0,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 25,
+          "cupHandleScore": 0,
+          "volumeRatio": 93.6662955465587,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 2,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "376900",
+        "stockName": "로킷헬스케어",
+        "currentPrice": 50000,
+        "totalScore": 37.92,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 11,
+          "vpdScore": -25,
+          "institutionalScore": 10,
+          "confluenceScore": 15,
+          "freshnessScore": 10,
+          "leadingScore": 32.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 1.1655929922439539,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 0.3,
+              "volumeRatio": 1.6,
+              "priceChange": 29.78,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 9,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 3,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "221800",
+        "stockName": "유투바이오",
+        "currentPrice": 6630,
+        "totalScore": 37.28,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 17,
+          "vpdScore": 10,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 12,
+          "leadingScore": 17.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 157.14383458646617,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 7,
+            "active": true,
+            "details": {
+              "divergence": 0.89,
+              "volumeRatio": 2.4,
+              "priceChange": 50.6,
+              "signal": "⚪ 약한 신호"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "298380",
+        "stockName": "에이비엘바이오",
+        "currentPrice": 166500,
+        "totalScore": 36.84,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 10,
+          "vpdScore": -25,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 15,
+          "leadingScore": 0,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.045125211520073,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": -0.5,
+              "volumeRatio": 0.97,
+              "priceChange": 47.31,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "당일/전일 신호",
+            "value": 8,
+            "active": true
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "068270",
+        "stockName": "셀트리온",
+        "currentPrice": 183900,
+        "totalScore": 34.1,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 10,
+          "vpdScore": 0,
+          "institutionalScore": 15,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 12.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 1.308509494680482,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 15,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "007660",
+        "stockName": "이수페타시스",
+        "currentPrice": 123900,
+        "totalScore": 32.17,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 13,
+          "vpdScore": 0,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 15,
+          "cupHandleScore": 0,
+          "volumeRatio": 0.8162909377443063,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "196170",
+        "stockName": "알테오젠",
+        "currentPrice": 555500,
+        "totalScore": 30.86,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 11,
+          "vpdScore": 0,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 17.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 0.823219683829724,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "078590",
+        "stockName": "휴림에이텍",
+        "currentPrice": 940,
+        "totalScore": 29.57,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 16,
+          "vpdScore": 19,
+          "institutionalScore": 0,
+          "confluenceScore": 0,
+          "freshnessScore": 0,
+          "leadingScore": 5,
+          "cupHandleScore": 0,
+          "volumeRatio": 3.851948312441879,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 14,
+            "active": true,
+            "details": {
+              "divergence": 1.9,
+              "volumeRatio": 3,
+              "priceChange": 9.99,
+              "signal": "🟡 매수 고려 - 관심 필요"
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "081180",
+        "stockName": "쎄크",
+        "currentPrice": 11250,
+        "totalScore": 28.86,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 15,
+          "vpdScore": -25,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 12,
+          "leadingScore": 25,
+          "cupHandleScore": 0,
+          "volumeRatio": 233.5070859538784,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 13.15,
+              "volumeRatio": 14.46,
+              "priceChange": 30.75,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 2,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "015760",
+        "stockName": "한국전력",
+        "currentPrice": 49500,
+        "totalScore": 28.36,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 16,
+          "vpdScore": -25,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 12,
+          "leadingScore": 5,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.574004521524886,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 0.49,
+              "volumeRatio": 1.57,
+              "priceChange": 8.78,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "009415",
+        "stockName": "태영건설우",
+        "currentPrice": 4700,
+        "totalScore": 25.84,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 7,
+          "vpdScore": 24,
+          "institutionalScore": 0,
+          "confluenceScore": 0,
+          "freshnessScore": 0,
+          "leadingScore": 27.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.955188679245283,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 17,
+            "active": true,
+            "details": {
+              "divergence": 2.25,
+              "volumeRatio": 3.28,
+              "priceChange": -3.78,
+              "signal": "🟢 적극 매수 - 초기 단계 매집"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 2,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      }
+    ],
+    "C": [],
+    "D": [
+      {
+        "stockCode": "191410",
+        "stockName": "육일씨엔에쓰",
+        "currentPrice": 1545,
+        "totalScore": 57.41,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 10,
+          "vpdScore": 35,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 45,
+          "cupHandleScore": 0,
+          "volumeRatio": 51.78621732035092,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 25,
+            "active": true,
+            "details": {
+              "divergence": 9.06,
+              "volumeRatio": 10.14,
+              "priceChange": 7.36,
+              "signal": "🔥 최우선 매수 - 거래량 폭발, 가격 미반영"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "256840",
+        "stockName": "한국비엔씨",
+        "currentPrice": 5740,
+        "totalScore": 41.44,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 20,
+          "vpdScore": 26,
+          "institutionalScore": 0,
+          "confluenceScore": 0,
+          "freshnessScore": 0,
+          "leadingScore": 35,
+          "cupHandleScore": 0,
+          "volumeRatio": 9.542775096170338,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 19,
+            "active": true,
+            "details": {
+              "divergence": 3,
+              "volumeRatio": 4.09,
+              "priceChange": 8.72,
+              "signal": "🟢 적극 매수 - 초기 단계 매집"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 3,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "104620",
+        "stockName": "노랑풍선",
+        "currentPrice": 6290,
+        "totalScore": 24.63,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 20,
+          "vpdScore": -15,
+          "institutionalScore": 0,
+          "confluenceScore": 0,
+          "freshnessScore": 0,
+          "leadingScore": 50,
+          "cupHandleScore": 0,
+          "volumeRatio": 50.616695203291506,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 14.19,
+              "volumeRatio": 15.39,
+              "priceChange": 20.27,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 5,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "012450",
+        "stockName": "한화에어로스페이스",
+        "currentPrice": 933000,
+        "totalScore": 23.93,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 6,
+          "vpdScore": 0,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 0,
+          "cupHandleScore": 0,
+          "volumeRatio": 0.7666640499817602,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "054540",
+        "stockName": "삼영엠텍",
+        "currentPrice": 18200,
+        "totalScore": 21.55,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 8,
+          "vpdScore": 9,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 0,
+          "leadingScore": 45,
+          "cupHandleScore": 0,
+          "volumeRatio": 1.2969966083199334,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 6,
+            "active": true,
+            "details": {
+              "divergence": 0.61,
+              "volumeRatio": 1.65,
+              "priceChange": 3.27,
+              "signal": "⚪ 약한 신호"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "042700",
+        "stockName": "한미반도체",
+        "currentPrice": 122400,
+        "totalScore": 21.3,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 0,
+          "vpdScore": -25,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 10,
+          "leadingScore": 5,
+          "cupHandleScore": 0,
+          "volumeRatio": 0.5889940481143603,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": -0.26,
+              "volumeRatio": 0.85,
+              "priceChange": -10.77,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          }
+        ]
+      }
+    ]
+  },
+  "byScoreRange": {
+    "range_58_88": [
+      {
+        "stockCode": "246710",
+        "stockName": "티앤알바이오팹",
+        "currentPrice": 1499,
+        "totalScore": 60.85,
+        "grade": "S",
+        "indicators": {
+          "baseScore": 13,
+          "vpdScore": 35,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 45,
+          "cupHandleScore": 0,
+          "volumeRatio": 23.744501922598136,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 25,
+            "active": true,
+            "details": {
+              "divergence": 7.51,
+              "volumeRatio": 8.54,
+              "priceChange": -3.52,
+              "signal": "🔥 최우선 매수 - 거래량 폭발, 가격 미반영"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      }
+    ],
+    "range_42_57": [
+      {
+        "stockCode": "101670",
+        "stockName": "하이드로리튬",
+        "currentPrice": 2135,
+        "totalScore": 49.27,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 6,
+          "vpdScore": 25,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 10,
+          "leadingScore": 45,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.3503978557708,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 18,
+            "active": true,
+            "details": {
+              "divergence": 2.57,
+              "volumeRatio": 3.65,
+              "priceChange": -7.64,
+              "signal": "🟢 적극 매수 - 초기 단계 매집"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "073570",
+        "stockName": "리튬포어스",
+        "currentPrice": 1026,
+        "totalScore": 47.5,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 15,
+          "vpdScore": 35,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 0,
+          "leadingScore": 50,
+          "cupHandleScore": 0,
+          "volumeRatio": 5.71283104209527,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": false,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 25,
+            "active": true,
+            "details": {
+              "divergence": 6.71,
+              "volumeRatio": 7.76,
+              "priceChange": -4.81,
+              "signal": "🔥 최우선 매수 - 거래량 폭발, 가격 미반영"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 5,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "424870",
+        "stockName": "이뮨온시아",
+        "currentPrice": 7290,
+        "totalScore": 46.93,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 14,
+          "vpdScore": -17,
+          "institutionalScore": 15,
+          "confluenceScore": 10,
+          "freshnessScore": 15,
+          "leadingScore": 15,
+          "cupHandleScore": 0,
+          "volumeRatio": 4.645368859195455,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 1.44,
+              "volumeRatio": 2.66,
+              "priceChange": 21.58,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 15,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "당일/전일 신호",
+            "value": 8,
+            "active": true
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "049630",
+        "stockName": "재영솔루텍",
+        "currentPrice": 2140,
+        "totalScore": 43.58,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 13,
+          "vpdScore": -25,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 15,
+          "leadingScore": 40,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.9494919981206955,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 0.01,
+              "volumeRatio": 1.54,
+              "priceChange": 52.67,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "당일/전일 신호",
+            "value": 8,
+            "active": true
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "048830",
+        "stockName": "엔피케이",
+        "currentPrice": 1363,
+        "totalScore": 43.03,
+        "grade": "A",
+        "indicators": {
+          "baseScore": 13,
+          "vpdScore": -17,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 15,
+          "leadingScore": 35,
+          "cupHandleScore": 0,
+          "volumeRatio": 157.8056982213332,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 16.2,
+              "volumeRatio": 17.43,
+              "priceChange": 22.38,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 3,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "당일/전일 신호",
+            "value": 8,
+            "active": true
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      }
+    ],
+    "range_25_41": [
+      {
+        "stockCode": "094850",
+        "stockName": "참좋은여행",
+        "currentPrice": 6920,
+        "totalScore": 40.17,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 20,
+          "vpdScore": 0,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 25,
+          "cupHandleScore": 0,
+          "volumeRatio": 93.6662955465587,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 2,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "376900",
+        "stockName": "로킷헬스케어",
+        "currentPrice": 50000,
+        "totalScore": 37.92,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 11,
+          "vpdScore": -25,
+          "institutionalScore": 10,
+          "confluenceScore": 15,
+          "freshnessScore": 10,
+          "leadingScore": 32.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 1.1655929922439539,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 0.3,
+              "volumeRatio": 1.6,
+              "priceChange": 29.78,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 9,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 3,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "221800",
+        "stockName": "유투바이오",
+        "currentPrice": 6630,
+        "totalScore": 37.28,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 17,
+          "vpdScore": 10,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 12,
+          "leadingScore": 17.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 157.14383458646617,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 7,
+            "active": true,
+            "details": {
+              "divergence": 0.89,
+              "volumeRatio": 2.4,
+              "priceChange": 50.6,
+              "signal": "⚪ 약한 신호"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "298380",
+        "stockName": "에이비엘바이오",
+        "currentPrice": 166500,
+        "totalScore": 36.84,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 10,
+          "vpdScore": -25,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 15,
+          "leadingScore": 0,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.045125211520073,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": -0.5,
+              "volumeRatio": 0.97,
+              "priceChange": 47.31,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          },
+          {
+            "name": "당일/전일 신호",
+            "value": 8,
+            "active": true
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "068270",
+        "stockName": "셀트리온",
+        "currentPrice": 183900,
+        "totalScore": 34.1,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 10,
+          "vpdScore": 0,
+          "institutionalScore": 15,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 12.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 1.308509494680482,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 15,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "007660",
+        "stockName": "이수페타시스",
+        "currentPrice": 123900,
+        "totalScore": 32.17,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 13,
+          "vpdScore": 0,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 15,
+          "cupHandleScore": 0,
+          "volumeRatio": 0.8162909377443063,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "196170",
+        "stockName": "알테오젠",
+        "currentPrice": 555500,
+        "totalScore": 30.86,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 11,
+          "vpdScore": 0,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 17.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 0.823219683829724,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 1,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": false,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "078590",
+        "stockName": "휴림에이텍",
+        "currentPrice": 940,
+        "totalScore": 29.57,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 16,
+          "vpdScore": 19,
+          "institutionalScore": 0,
+          "confluenceScore": 0,
+          "freshnessScore": 0,
+          "leadingScore": 5,
+          "cupHandleScore": 0,
+          "volumeRatio": 3.851948312441879,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 14,
+            "active": true,
+            "details": {
+              "divergence": 1.9,
+              "volumeRatio": 3,
+              "priceChange": 9.99,
+              "signal": "🟡 매수 고려 - 관심 필요"
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "081180",
+        "stockName": "쎄크",
+        "currentPrice": 11250,
+        "totalScore": 28.86,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 15,
+          "vpdScore": -25,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 12,
+          "leadingScore": 25,
+          "cupHandleScore": 0,
+          "volumeRatio": 233.5070859538784,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 13.15,
+              "volumeRatio": 14.46,
+              "priceChange": 30.75,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 2,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "015760",
+        "stockName": "한국전력",
+        "currentPrice": 49500,
+        "totalScore": 28.36,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 16,
+          "vpdScore": -25,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 12,
+          "leadingScore": 5,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.574004521524886,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 0.49,
+              "volumeRatio": 1.57,
+              "priceChange": 8.78,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "돌파 확인",
+            "value": 3,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "009415",
+        "stockName": "태영건설우",
+        "currentPrice": 4700,
+        "totalScore": 25.84,
+        "grade": "B",
+        "indicators": {
+          "baseScore": 7,
+          "vpdScore": 24,
+          "institutionalScore": 0,
+          "confluenceScore": 0,
+          "freshnessScore": 0,
+          "leadingScore": 27.5,
+          "cupHandleScore": 0,
+          "volumeRatio": 2.955188679245283,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 17,
+            "active": true,
+            "details": {
+              "divergence": 2.25,
+              "volumeRatio": 3.28,
+              "priceChange": -3.78,
+              "signal": "🟢 적극 매수 - 초기 단계 매집"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 2,
+            "active": true,
+            "details": {
+              "strength": "low",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      }
+    ],
+    "range_89_plus": [],
+    "range_below_25": [
+      {
+        "stockCode": "104620",
+        "stockName": "노랑풍선",
+        "currentPrice": 6290,
+        "totalScore": 24.63,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 20,
+          "vpdScore": -15,
+          "institutionalScore": 0,
+          "confluenceScore": 0,
+          "freshnessScore": 0,
+          "leadingScore": 50,
+          "cupHandleScore": 0,
+          "volumeRatio": 50.616695203291506,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": false,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": 14.19,
+              "volumeRatio": 15.39,
+              "priceChange": 20.27,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 5,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "012450",
+        "stockName": "한화에어로스페이스",
+        "currentPrice": 933000,
+        "totalScore": 23.93,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 6,
+          "vpdScore": 0,
+          "institutionalScore": 10,
+          "confluenceScore": 5,
+          "freshnessScore": 10,
+          "leadingScore": 0,
+          "cupHandleScore": 0,
+          "volumeRatio": 0.7666640499817602,
+          "obvTrend": "📈 상승 (매수세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": false,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          }
+        ]
+      },
+      {
+        "stockCode": "054540",
+        "stockName": "삼영엠텍",
+        "currentPrice": 18200,
+        "totalScore": 21.55,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 8,
+          "vpdScore": 9,
+          "institutionalScore": 0,
+          "confluenceScore": 5,
+          "freshnessScore": 0,
+          "leadingScore": 45,
+          "cupHandleScore": 0,
+          "volumeRatio": 1.2969966083199334,
+          "obvTrend": "➡️ 횡보",
+          "institutionalFlow": false,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 6,
+            "active": true,
+            "details": {
+              "divergence": 0.61,
+              "volumeRatio": 1.65,
+              "priceChange": 3.27,
+              "signal": "⚪ 약한 신호"
+            }
+          },
+          {
+            "name": "선행 지표 (패턴+DNA)",
+            "value": 4,
+            "active": true,
+            "details": {
+              "strength": "moderate",
+              "patternMatched": false,
+              "dnaMatched": true,
+              "confidence": 25
+            }
+          }
+        ]
+      },
+      {
+        "stockCode": "042700",
+        "stockName": "한미반도체",
+        "currentPrice": 122400,
+        "totalScore": 21.3,
+        "grade": "D",
+        "indicators": {
+          "baseScore": 0,
+          "vpdScore": -25,
+          "institutionalScore": 10,
+          "confluenceScore": 10,
+          "freshnessScore": 10,
+          "leadingScore": 5,
+          "cupHandleScore": 0,
+          "volumeRatio": 0.5889940481143603,
+          "obvTrend": "📉 하락 (매도세 우세)",
+          "institutionalFlow": true,
+          "whaleDetected": true,
+          "accumulationDetected": false
+        },
+        "bonuses": [
+          {
+            "name": "Volume-Price Divergence (거래량 폭발)",
+            "value": 0,
+            "active": true,
+            "details": {
+              "divergence": -0.26,
+              "volumeRatio": 0.85,
+              "priceChange": -10.77,
+              "signal": "🔴 관망 - 이미 급등 또는 하락 추세"
+            }
+          },
+          {
+            "name": "기관/외국인 수급",
+            "value": 10,
+            "active": true
+          },
+          {
+            "name": "합류점 (Confluence)",
+            "value": 6,
+            "active": true
+          }
+        ]
+      }
+    ]
+  },
+  "stockCodes": [
+    "246710",
+    "191410",
+    "101670",
+    "073570",
+    "424870",
+    "049630",
+    "048830",
+    "256840",
+    "094850",
+    "376900",
+    "221800",
+    "298380",
+    "068270",
+    "007660",
+    "196170",
+    "078590",
+    "081180",
+    "015760",
+    "009415",
+    "104620",
+    "012450",
+    "054540",
+    "042700"
+  ],
+  "summary": {
+    "S": 1,
+    "A": 5,
+    "B": 11,
+    "C": 0,
+    "D": 6
+  }
+}

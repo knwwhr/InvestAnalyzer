@@ -122,6 +122,8 @@
 
           if (result.success) {
             const stocks = result.recommendations || [];
+            // ⭐ 안전장치: 프론트엔드에서도 점수 내림차순 정렬 (백엔드 정렬 보강)
+            stocks.sort((a, b) => b.totalScore - a.totalScore);
             setRecommendations(stocks);
             setScreeningMetadata(result.metadata || null);
             setLastUpdate(new Date());
@@ -2170,9 +2172,8 @@
                       if (key === 'normal') return !stock.whale_detected && !stock.accumulation_detected;
                       return false;
                     }).sort((a, b) => {
-                      // 등급 순서: S > A > B > C
-                      const gradeOrder = { 'S': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
-                      return (gradeOrder[a.recommendation_grade] || 99) - (gradeOrder[b.recommendation_grade] || 99);
+                      // ⭐ 점수 내림차순 정렬 (높은 점수가 위)
+                      return (b.recommended_price || 0) - (a.recommended_price || 0);
                     });
                     const isExpanded = expandedCategories[key] || false;
 
@@ -2296,9 +2297,8 @@
                     {/* 종목 목록 - 카드 그리드 */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {dateGroup.stocks.sort((a, b) => {
-                        // 등급 순서: S > A > B > C
-                        const gradeOrder = { 'S': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
-                        return (gradeOrder[a.recommendation_grade] || 99) - (gradeOrder[b.recommendation_grade] || 99);
+                        // ⭐ 점수 내림차순 정렬 (높은 점수가 위)
+                        return (b.recommended_price || 0) - (a.recommended_price || 0);
                       }).map((stock, sIdx) => {
                         const stockKey = `${dateGroup.date}_${stock.stock_code}`;
                         const expanded = expandedStocks[stockKey] || false;
