@@ -1211,11 +1211,18 @@
                         <div className="space-y-1">
                           <div className="font-bold text-blue-300">🧠 스마트머니 유입 (Smart Money)</div>
                           <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 대형 거래 평균 수익률: <span className="text-green-300">{smartMoneyData.bigVolumeReturn}%</span></div>
-                          <div>• 소형 거래 평균 수익률: <span className="text-red-300">{smartMoneyData.smallVolumeReturn}%</span></div>
+                          <div className="text-xs text-gray-300">📊 분석 기준: 최근 10일</div>
+                          <div className="text-xs text-gray-300">• 거래량 상위 30% (3일) = 대형 거래일 (기관/외국인 추정)</div>
+                          <div className="text-xs text-gray-300">• 거래량 하위 70% (7일) = 소형 거래일 (개인 추정)</div>
+                          <div className="border-t border-gray-700 my-1"></div>
+                          <div>• 대형 거래일 평균 수익률: <span className={smartMoneyData.bigVolumeReturn >= 0 ? "text-green-300" : "text-red-300"}>{smartMoneyData.bigVolumeReturn}%</span></div>
+                          <div className="text-xs text-gray-400 ml-3">→ 거래량 많은 날의 평균 (종가 - 시가) 변동률</div>
+                          <div>• 소형 거래일 평균 수익률: <span className={smartMoneyData.smallVolumeReturn >= 0 ? "text-green-300" : "text-red-300"}>{smartMoneyData.smallVolumeReturn}%</span></div>
+                          <div className="text-xs text-gray-400 ml-3">→ 거래량 적은 날의 평균 (종가 - 시가) 변동률</div>
                           <div>• 대형/소형 비율: <span className="text-blue-300">{smartMoneyData.ratio}배</span></div>
                           <div className="border-t border-gray-700 my-1"></div>
                           <div className="text-yellow-300">→ 해석: {smartMoneyData.interpretation}</div>
+                          <div className="text-xs text-gray-300">→ 기관이 사는 날은 상승, 개인이 사는 날은 하락 = 기회!</div>
                         </div>
                       );
                     }
