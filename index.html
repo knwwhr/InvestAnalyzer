@@ -1536,6 +1536,9 @@
           // 연속 급등주 필터링 (2일 이상 연속 상승)
           const risingStocks = perfData.stocks.filter(s => s.is_rising);
 
+          // ⭐ 전체 종목을 점수 내림차순으로 정렬
+          const sortedStocks = [...perfData.stocks].sort((a, b) => b.total_score - a.total_score);
+
           setTrackerData({
             statistics: {
               overall: {
@@ -1550,7 +1553,7 @@
               byGrade: gradeStats,
               byCategory: perfData.statistics?.byCategory || {}
             },
-            stocks: perfData.stocks,
+            stocks: sortedStocks,
             risingStocks: risingStocks,
             recommendationDates: perfData.recommendationDates || [],
             commonStocks: perfData.commonStocks || [],
@@ -1746,7 +1749,9 @@
                 </thead>
                 <tbody>
                   {Object.entries(trackerData.statistics?.byGrade || {}).map(([grade, gstats]) => {
-                    const gradeStocks = trackerData.stocks.filter(s => s.recommendation_grade === grade);
+                    const gradeStocks = trackerData.stocks
+                      .filter(s => s.recommendation_grade === grade)
+                      .sort((a, b) => b.total_score - a.total_score); // 점수 내림차순 정렬
                     const isExpanded = expandedGrades[grade] || false;
 
                     return (
@@ -1937,7 +1942,7 @@
                       return false;
                     }).sort((a, b) => {
                       // ⭐ 점수 내림차순 정렬 (높은 점수가 위)
-                      return (b.recommended_price || 0) - (a.recommended_price || 0);
+                      return (b.total_score || 0) - (a.total_score || 0);
                     });
                     const isExpanded = expandedCategories[key] || false;
 
