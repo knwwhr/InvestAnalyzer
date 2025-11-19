@@ -543,6 +543,52 @@ class StockScreener {
   }
 
   /**
+   * 당일 급등 페널티 계산 (moderate)
+   * 목적: "이미 급등한" 종목 감점 (단, 스크리닝에는 여전히 걸림)
+   * @param {Array} chartData - 일봉 데이터
+   * @returns {Object} { penalty: -12~0, details }
+   */
+  calculateDailyRisePenalty(chartData) {
+    if (!chartData || chartData.length < 2) {
+      return { penalty: 0, closeChange: 0, highChange: 0, message: 'insufficient_data' };
+    }
+
+    const today = chartData[0]; // D-0일 (오늘)
+    const yesterday = chartData[1]; // D-1일 (어제)
+
+    // 1. 전일 대비 종가 변동률
+    const closeChange = ((today.close - yesterday.close) / yesterday.close) * 100;
+
+    // 2. 전일 대비 장중 고가 변동률 (상한가 감지)
+    const highChange = ((today.high - yesterday.close) / yesterday.close) * 100;
+
+    let penalty = 0;
+    let message = 'normal';
+
+    // Moderate 페널티 (급등 종목도 스크리닝에 걸리도록)
+    if (highChange >= 20) {
+      // 장중 고가 +20% 이상 (상한가 포함) → -16점
+      penalty = -16; // 변화율 40점 중 40% 차감
+      message = `⚠️ 당일 급등 (고가 +${highChange.toFixed(1)}%)`;
+    } else if (highChange >= 15) {
+      // 장중 고가 +15% 이상 → -12점
+      penalty = -12; // 30% 차감
+      message = `⚠️ 당일 급등 (고가 +${highChange.toFixed(1)}%)`;
+    } else if (closeChange >= 10) {
+      // 종가 +10% 이상 → -8점
+      penalty = -8; // 20% 차감
+      message = `당일 상승 (종가 +${closeChange.toFixed(1)}%)`;
+    }
+
+    return {
+      penalty,
+      closeChange: parseFloat(closeChange.toFixed(2)),
+      highChange: parseFloat(highChange.toFixed(2)),
+      message
+    };
+  }
+
+  /**
    * 5일 변화율 종합 점수 계산 (0-40점)
    */
   calculate5DayMomentum(chartData, investorData) {
@@ -685,7 +731,13 @@ class StockScreener {
       );
 
       // 3. 5일 변화율 점수 (0-40점) ⭐ 핵심!
-      const momentumScore = this.calculate5DayMomentum(chartData, investorData);
+      let momentumScore = this.calculate5DayMomentum(chartData, investorData);
+
+      // 3-1. 당일 급등 페널티 (moderate) ⭐ 이미 급등한 종목 감점
+      const d0DailyPenalty = this.calculateDailyRisePenalty(chartData);
+      momentumScore.totalScore = Math.max(0, momentumScore.totalScore + d0DailyPenalty.penalty); // 음수 페널티
+      momentumScore.dailyRisePenalty = d0DailyPenalty; // 상세 정보 저장
+
       totalScore += momentumScore.totalScore;
 
       // 4. 30일 추세 점수 (0-20점)
