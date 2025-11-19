@@ -40,6 +40,7 @@ module.exports = async (req, res) => {
       const score = stock.totalScore;
 
       // S등급(58-88)만 저장 (보수적 기준)
+      // v3.9: 새 점수 체계 (Base 25 + Momentum 40 + Trend 35 = 100)
       return grade === 'S' && score >= 58;
     });
 
