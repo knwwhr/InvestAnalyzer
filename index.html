@@ -1126,9 +1126,9 @@
                         <div className="space-y-1">
                           <div className="font-bold text-yellow-300">💧 거래대금 부족 (Low Liquidity)</div>
                           <div className="border-t border-gray-700 my-1"></div>
-                          <div>• 거래대금: {liquidityData.tradingValue ? (liquidityData.tradingValue / 100000000).toFixed(0) : 'N/A'}억원</div>
+                          <div>• 일평균 거래대금: <span className="text-yellow-300">{liquidityData.avgTradingValue || 'N/A'}억원</span></div>
                           <div>• 시가총액: {stock.marketCap ? (stock.marketCap / 100000000).toFixed(0) : 'N/A'}억원</div>
-                          <div>• 회전율: <span className="text-yellow-300">{liquidityData.turnoverRate ? liquidityData.turnoverRate.toFixed(2) : 'N/A'}%</span></div>
+                          <div>• 회전율: <span className="text-yellow-300">{liquidityData.avgTradingValue && stock.marketCap ? ((liquidityData.avgTradingValue * 100000000 / stock.marketCap) * 100).toFixed(2) : 'N/A'}%</span></div>
                           <div className="border-t border-gray-700 my-1"></div>
                           <div className="text-yellow-300">→ 해석: 시총 대비 거래 적어 가격 변동성 높을 수 있음</div>
                         </div>
