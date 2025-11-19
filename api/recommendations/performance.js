@@ -155,7 +155,7 @@ module.exports = async (req, res) => {
           days_since_recommendation: daysSince,
           consecutive_rise_days: consecutiveRiseDays,
           is_winning: returnPct > 0,
-          is_rising: consecutiveRiseDays >= 2, // 2일 이상 연속 상승
+          is_rising: consecutiveRiseDays >= 2 && returnPct > 0, // 2일 이상 연속 상승 + 수익 중
           daily_prices: dailyPrices // 날짜별 가격 데이터 추가
         });
 
@@ -253,8 +253,9 @@ module.exports = async (req, res) => {
       }
       byRecommendationDate[date].stocks.push({
         stock_code: stock.stock_code,
-        stock_name: stock.stock_name,
+        stock_name: stock.stock_name || stock.stock_code, // 종목명 fallback
         recommendation_grade: stock.recommendation_grade,
+        total_score: stock.total_score, // 정렬용
         recommended_price: stock.recommended_price,
         current_price: stock.current_price,
         current_return: stock.current_return,
@@ -265,13 +266,42 @@ module.exports = async (req, res) => {
       });
     });
 
-    // 각 추천일별 통계 계산
+    // 각 추천일별 통계 계산 + 정렬
     Object.values(byRecommendationDate).forEach(dateGroup => {
+      // ⭐ 등급순 정렬 (S → A → B → C → D, 같은 등급 내에서는 점수순)
+      const gradeOrder = { 'S': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
+      dateGroup.stocks.sort((a, b) => {
+        const gradeCompare = (gradeOrder[a.recommendation_grade] || 99) - (gradeOrder[b.recommendation_grade] || 99);
+        if (gradeCompare !== 0) return gradeCompare;
+        return (b.total_score || 0) - (a.total_score || 0); // 같은 등급이면 점수순
+      });
+
       const winningCount = dateGroup.stocks.filter(s => s.is_winning).length;
       dateGroup.winRate = parseFloat((winningCount / dateGroup.stocks.length * 100).toFixed(1));
       // 기하평균 계산 (복리 수익률)
       const returns = dateGroup.stocks.map(s => s.current_return);
       dateGroup.avgReturn = parseFloat(calculateGeometricMean(returns).toFixed(2));
+
+      // ⭐ 등급별 통계 추가
+      const byGrade = {};
+      dateGroup.stocks.forEach(stock => {
+        const grade = stock.recommendation_grade;
+        if (!byGrade[grade]) {
+          byGrade[grade] = { count: 0, winCount: 0, returns: [] };
+        }
+        byGrade[grade].count++;
+        if (stock.is_winning) byGrade[grade].winCount++;
+        byGrade[grade].returns.push(stock.current_return);
+      });
+
+      dateGroup.byGrade = {};
+      Object.entries(byGrade).forEach(([grade, data]) => {
+        dateGroup.byGrade[grade] = {
+          count: data.count,
+          winRate: parseFloat((data.winCount / data.count * 100).toFixed(1)),
+          avgReturn: parseFloat(calculateGeometricMean(data.returns).toFixed(2))
+        };
+      });
     });
 
     // 추천일자별 정렬 (최신순)

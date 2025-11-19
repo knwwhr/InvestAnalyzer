@@ -1986,16 +1986,35 @@
                       <div className="mb-3 md:mb-0">
                         <div className="text-2xl font-bold text-gray-900 mb-1">📅 {dateGroup.date}</div>
                         <div className="text-sm text-gray-700 font-semibold">{dateGroup.stocks.length}개 종목 추천</div>
+
+                        {/* 등급별 통계 */}
+                        {dateGroup.byGrade && Object.keys(dateGroup.byGrade).length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {Object.entries(dateGroup.byGrade).sort((a, b) => {
+                              const gradeOrder = { 'S': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
+                              return (gradeOrder[a[0]] || 99) - (gradeOrder[b[0]] || 99);
+                            }).map(([grade, stats]) => (
+                              <div key={grade} className="text-xs bg-white rounded px-2 py-1 border border-gray-300">
+                                <span className={`font-bold grade-${grade}`}>{grade}등급</span>:
+                                <span className="ml-1">{stats.count}개</span>
+                                <span className="ml-1 text-gray-600">승률 {stats.winRate}%</span>
+                                <span className={`ml-1 font-semibold ${stats.avgReturn >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                  {stats.avgReturn >= 0 ? '+' : ''}{stats.avgReturn}%
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-4">
                         <div className="bg-white rounded-lg px-4 py-3 shadow-md border-2 border-gray-200">
-                          <div className="text-xs text-gray-600 font-semibold mb-1">평균 수익률</div>
+                          <div className="text-xs text-gray-600 font-semibold mb-1">전체 평균 수익률</div>
                           <div className={`text-2xl font-bold ${dateGroup.avgReturn >= 0 ? 'text-red-600' : 'text-blue-600'}`}>
                             {dateGroup.avgReturn >= 0 ? '+' : ''}{dateGroup.avgReturn}%
                           </div>
                         </div>
                         <div className="bg-white rounded-lg px-4 py-3 shadow-md border-2 border-gray-200">
-                          <div className="text-xs text-gray-600 font-semibold mb-1">승률</div>
+                          <div className="text-xs text-gray-600 font-semibold mb-1">전체 승률</div>
                           <div className={`text-2xl font-bold ${dateGroup.winRate >= 70 ? 'text-green-600' : dateGroup.winRate >= 50 ? 'text-blue-600' : 'text-gray-600'}`}>
                             {dateGroup.winRate}%
                           </div>
@@ -2003,12 +2022,9 @@
                       </div>
                     </div>
 
-                    {/* 종목 목록 - 카드 그리드 */}
+                    {/* 종목 목록 - 카드 그리드 (백엔드에서 이미 등급순 정렬됨) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {dateGroup.stocks.sort((a, b) => {
-                        // ⭐ 점수 내림차순 정렬 (높은 점수가 위)
-                        return (b.recommended_price || 0) - (a.recommended_price || 0);
-                      }).map((stock, sIdx) => {
+                      {dateGroup.stocks.map((stock, sIdx) => {
                         const stockKey = `${dateGroup.date}_${stock.stock_code}`;
                         const expanded = expandedStocks[stockKey] || false;
 
