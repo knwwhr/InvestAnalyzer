@@ -1314,66 +1314,6 @@
                 </div>
               </div>
 
-              {/* 점수 산출 기준 */}
-              {stock.scoreBreakdown && (
-                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl p-6">
-                  <h3 className="text-2xl font-bold mb-4 text-orange-900 flex items-center gap-2">
-                    🎯 점수 산출 기준
-                    <span className="text-lg font-normal text-gray-700">
-                      (총 {typeof stock.scoreBreakdown.finalScore === 'number' ? stock.scoreBreakdown.finalScore.toFixed(2) : stock.scoreBreakdown.finalScore}점 / 100점)
-                    </span>
-                  </h3>
-
-                  {/* 기본 점수 */}
-                  <div className="bg-white rounded-lg p-4 mb-4 border-2 border-blue-200">
-                    <h4 className="font-bold text-lg text-blue-900 mb-3 flex items-center gap-2">
-                      📊 기본 점수: {stock.scoreBreakdown.baseScore}점
-                      <span className="text-sm font-normal text-gray-600">(0-20점 범위)</span>
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between items-start p-2 bg-blue-50 rounded">
-                        <div className="flex-1">
-                          <div className="font-semibold text-blue-900">1. 거래량 비율 (0-8점)</div>
-                          <div className="text-gray-700 mt-1">
-                            • 현재 거래량: {(stock.volume / 1000).toFixed(0)}K<br/>
-                            • 20일 평균: {stock.volumeAnalysis.current.volumeMA20 ? (stock.volumeAnalysis.current.volumeMA20 / 1000).toFixed(0) + 'K' : 'N/A'}<br/>
-                            • 비율: {stock.volumeAnalysis.current.volumeMA20 ? (stock.volume / stock.volumeAnalysis.current.volumeMA20).toFixed(2) + '배' : 'N/A'}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-start p-2 bg-blue-50 rounded">
-                        <div className="flex-1">
-                          <div className="font-semibold text-blue-900">2. OBV 추세 (0-7점)</div>
-                          <div className="text-gray-700 mt-1">
-                            • OBV 값: {(stock.volumeAnalysis.indicators.obv / 1000000).toFixed(1)}M<br/>
-                            • 추세: {stock.volumeAnalysis.signals.obvTrend}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-start p-2 bg-blue-50 rounded">
-                        <div className="flex-1">
-                          <div className="font-semibold text-blue-900">3. VWAP 모멘텀 (0-5점)</div>
-                          <div className="text-gray-700 mt-1">
-                            • VWAP: {stock.volumeAnalysis.indicators.vwap?.toLocaleString()}원<br/>
-                            • 현재가: {stock.currentPrice.toLocaleString()}원<br/>
-                            • 모멘텀: {stock.volumeAnalysis.signals.priceVsVWAP}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-start p-2 bg-blue-50 rounded">
-                        <div className="flex-1">
-                          <div className="font-semibold text-blue-900">4. 비대칭 비율 (0-5점)</div>
-                          <div className="text-gray-700 mt-1">
-                            • 상승일: {stock.advancedAnalysis.indicators.asymmetric.upDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.upVolume / 1000000).toFixed(1)}M)<br/>
-                            • 하락일: {stock.advancedAnalysis.indicators.asymmetric.downDays}일 ({(stock.advancedAnalysis.indicators.asymmetric.downVolume / 1000000).toFixed(1)}M)<br/>
-                            • 비율: {stock.advancedAnalysis.indicators.asymmetric.ratio}배 ({stock.advancedAnalysis.indicators.asymmetric.signal})
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-              )}
             </div>
           </div>
         </div>
