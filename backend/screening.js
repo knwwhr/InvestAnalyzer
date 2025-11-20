@@ -1054,9 +1054,15 @@ class StockScreener {
   getRecommendation(score, tier, overheating) {
     let grade, text, color, tooltip;
 
-    // 등급 체계 (점수 ↑ = 등급 ↑)
-    // v3.9.1: 57.01~57.99 구간 누락 버그 수정
-    if (score >= 58 && score <= 88) {
+    // 등급 체계 (점수 내림차순, 직관적 순서)
+    // v3.9.2: 등급 체계 재설계 - 점수 순서대로 표시
+    if (score >= 89) {
+      // ⚠️ 과열 (89+점) - 이미 급등 중
+      grade = '⚠️ 과열';
+      text = '⚠️ 과열 - 단기차익 또는 조정 대기';
+      color = '#ff9900';
+      tooltip = '모든 지표 점등, 이미 급등 중 (백테스트: 승률 100%, 평균 +8.1%, 샘플 부족)';
+    } else if (score >= 58 && score <= 88) {
       // S등급 (최우선 매수 - 거래량 폭발)
       grade = 'S';
       text = '🔥 최우선 매수';
@@ -1074,15 +1080,9 @@ class StockScreener {
       text = '🟡 매수 고려';
       color = '#ffaa00';
       tooltip = '선행 패턴 감지 (백테스트: 승률 89.3%, 평균 +24.9% ⭐ 최고 승률!)';
-    } else if (score >= 89) {
-      // C등급 (과열 경고)
-      grade = 'C';
-      text = '⚠️ 과열 경고';
-      color = '#ff9900';
-      tooltip = '모든 지표 점등, 조정 가능성 (백테스트: 샘플 부족)';
     } else {
-      // D등급 (관망 - 신호 부족) - 25점 미만
-      grade = 'D';
+      // C등급 (관망 - 신호 부족) - 25점 미만
+      grade = 'C';
       text = '⚫ 관망';
       color = '#cccccc';
       tooltip = '선행 지표 미감지, 관망 권장';
