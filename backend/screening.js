@@ -350,10 +350,14 @@ class StockScreener {
   }
 
   /**
-   * 30일 추세 점수 계산 (Trend Score) (0-35점) ⬆️ 강화!
+   * 30일 추세 점수 계산 (Trend Score) (0-40점)
    * KIS API 30일 제한 내에서 매집 패턴 분석
    *
-   * v3.9: 20→35점 확대 (Gemini 제안)
+   * v3.10.0: 35→40점 확대 (Radar Scoring Track 2)
+   * - 거래량 점진 증가: 0-20점 (15→20 증가)
+   * - 변동성 수축: 0-10점 (유지)
+   * - 기관/외국인 장기 매집: 0-5점 (유지)
+   * - VPD 강화 추세: 0-5점 (유지)
    */
   calculateTrendScore(chartData, investorData) {
     if (!chartData || chartData.length < 25) {
@@ -366,10 +370,13 @@ class StockScreener {
       };
     }
 
-    // 1. 거래량 점진 증가 (0-15점) ⬆️ 10→15 증가
+    // 1. 거래량 점진 증가 (0-20점) ⬆️ 15→20 증가
     const volumeAcceleration = this.analyzeVolumeAcceleration(chartData);
+    // Scale from 15 to 20 points
+    const scaledVolumeScore = (volumeAcceleration.score / 15) * 20;
+    volumeAcceleration.score = parseFloat(scaledVolumeScore.toFixed(2));
 
-    // 2. 변동성 수축 (0-10점) 🆕 NEW
+    // 2. 변동성 수축 (0-10점) - 유지
     const volatilityContraction = this.analyzeVolatilityContraction(chartData);
 
     // 3. 기관/외국인 장기 매집 (0-5점) - 유지
@@ -384,7 +391,7 @@ class StockScreener {
     return {
       totalScore: parseFloat(totalScore.toFixed(2)),
       volumeAcceleration,
-      volatilityContraction, // 🆕 NEW
+      volatilityContraction,
       institutionalAccumulation,
       vpdStrengthening
     };
@@ -610,12 +617,387 @@ class StockScreener {
   }
 
   /**
+   * ========================================
+   * Golden Zones 4대 패턴 감지 시스템
+   * v3.10.0-beta: 선행 신호 포착 강화
+   * ========================================
+   */
+
+  /**
+   * Golden Zones 패턴 감지 (차트 패턴 기반 선행 신호)
+   * @param {Array} chartData - 일봉 데이터 (최신순, [0]=오늘)
+   * @param {Object} currentData - 현재가 정보
+   * @returns {Object} { detected, pattern, bonus, confidence, details }
+   */
+  detectGoldenZones(chartData, currentData) {
+    if (!chartData || chartData.length < 10 || !currentData) {
+      return { detected: false, pattern: null, bonus: 0, confidence: 0 };
+    }
+
+    const today = chartData[0];
+    const yesterday = chartData[1];
+
+    // 공통 필터: 거래대금 >= 30억 (소형주 노이즈 제거)
+    const tradingValue = today.close * today.volume;
+    if (tradingValue < 3000000000) {
+      return { detected: false, pattern: null, bonus: 0, confidence: 0, reason: '거래대금 30억 미만' };
+    }
+
+    // 4대 패턴 감지 (우선순위 순서)
+    const patterns = [
+      this.detectPowerCandle(chartData, currentData),
+      this.detectAntTrap(chartData, currentData),
+      this.detectNShapePullback(chartData, currentData),
+      this.detectDormantVolcano(chartData, currentData)
+    ];
+
+    // 감지된 패턴 중 우선순위가 가장 높은 것 선택
+    const detectedPattern = patterns.find(p => p.detected);
+
+    if (detectedPattern) {
+      return {
+        detected: true,
+        pattern: detectedPattern.name,
+        bonus: detectedPattern.bonus,
+        confidence: detectedPattern.confidence,
+        details: detectedPattern.details,
+        tradingValue
+      };
+    }
+
+    return { detected: false, pattern: null, bonus: 0, confidence: 0 };
+  }
+
+  /**
+   * 패턴 1: 🔥 Power Candle (시동)
+   * Priority: 1 | Score: 99점
+   * v3.10.0 완화: 거래대금 100억→50억, 20일평균 1.0→0.8
+   */
+  detectPowerCandle(chartData, currentData) {
+    const today = chartData[0];
+    const yesterday = chartData[1];
+
+    // 20일 평균 거래량
+    const avgVol20 = chartData.slice(0, 20).reduce((sum, d) => sum + d.volume, 0) / 20;
+
+    // 조건 1: 거래량 >= 전일×2.0 & >= 20일평균×0.8 (완화: 1.0→0.8)
+    const volumeRatioVsYesterday = today.volume / yesterday.volume;
+    const volumeRatioVs20MA = today.volume / avgVol20;
+
+    // 조건 2: 등락률 +5.0~12.0%
+    const changeRate = ((today.close - yesterday.close) / yesterday.close) * 100;
+
+    // 조건 3: 시가 ≒ 저가 (꽉 찬 양봉, 오차 0.5% 이내)
+    const bodySize = Math.abs(today.close - today.open);
+    const lowerShadow = today.open - today.low;
+    const lowerShadowRatio = bodySize > 0 ? (lowerShadow / bodySize) * 100 : 100;
+
+    // 노이즈 필터: 거래대금 >= 50억 (완화: 100억→50억)
+    const tradingValue = today.close * today.volume;
+
+    const detected = (
+      volumeRatioVsYesterday >= 2.0 &&
+      volumeRatioVs20MA >= 0.8 && // 완화: 1.0→0.8
+      changeRate >= 5.0 &&
+      changeRate <= 12.0 &&
+      lowerShadowRatio <= 0.5 && // 아래꼬리 매우 짧음
+      tradingValue >= 5000000000 // 완화: 100억→50억
+    );
+
+    return {
+      detected,
+      name: 'Power Candle',
+      score: 99, // Track 1 점수
+      bonus: 99, // 하위 호환성
+      confidence: detected ? 0.92 : 0,
+      details: {
+        volumeRatioVsYesterday: parseFloat(volumeRatioVsYesterday.toFixed(2)),
+        volumeRatioVs20MA: parseFloat(volumeRatioVs20MA.toFixed(2)),
+        changeRate: parseFloat(changeRate.toFixed(2)),
+        lowerShadowRatio: parseFloat(lowerShadowRatio.toFixed(2)),
+        tradingValue: Math.round(tradingValue / 100000000) // 억 단위
+      }
+    };
+  }
+
+  /**
+   * 패턴 2: 🕳️ 개미지옥 (속임수)
+   * Priority: 2 | Score: 98점
+   * v3.10.0 완화: 아래꼬리 2.0→1.5
+   */
+  detectAntTrap(chartData, currentData) {
+    const today = chartData[0];
+    const yesterday = chartData[1];
+
+    // 조건 1: 장중 저가 < 전일 저가 × 0.97 (-3% 이탈)
+    const lowBreakdown = today.low < (yesterday.low * 0.97);
+
+    // 조건 2: 아래꼬리 >= 몸통 × 1.5 (완화: 2.0→1.5)
+    const bodySize = Math.abs(today.close - today.open);
+    const lowerShadow = Math.min(today.open, today.close) - today.low;
+    const shadowRatio = bodySize > 0 ? lowerShadow / bodySize : 0;
+
+    // 조건 3: 종가 >= 시가 (양봉 마감)
+    const isBullish = today.close >= today.open;
+
+    // 노이즈 필터: 3일 내 최저가 갱신
+    const recent3Low = Math.min(...chartData.slice(0, 3).map(d => d.low));
+    const isNewLow = today.low === recent3Low;
+
+    const detected = (
+      lowBreakdown &&
+      shadowRatio >= 1.5 && // 완화: 2.0→1.5
+      isBullish &&
+      isNewLow
+    );
+
+    return {
+      detected,
+      name: '개미지옥',
+      score: 98, // Track 1 점수
+      bonus: 98, // 하위 호환성
+      confidence: detected ? 0.88 : 0,
+      details: {
+        lowVsYesterday: parseFloat(((today.low / yesterday.low - 1) * 100).toFixed(2)),
+        shadowRatio: parseFloat(shadowRatio.toFixed(2)),
+        isBullish,
+        isNewLow
+      }
+    };
+  }
+
+  /**
+   * 패턴 3: ⚡ N자 눌림목 (재장전)
+   * Priority: 3 | Score: 97점
+   * v3.10.0 완화: 급등기준 15%→12%
+   */
+  detectNShapePullback(chartData, currentData) {
+    if (chartData.length < 6) {
+      return { detected: false, name: 'N자 눌림목', score: 97, bonus: 97, confidence: 0 };
+    }
+
+    const today = chartData[0];
+
+    // 조건 1: 5일 내 +12% 이상 급등일 존재 (완화: 15%→12%)
+    let surgeDay = null;
+    let surgeIndex = -1;
+    for (let i = 1; i <= 5; i++) {
+      const day = chartData[i];
+      const prevDay = chartData[i + 1];
+      if (prevDay) {
+        const changeRate = ((day.close - prevDay.close) / prevDay.close) * 100;
+        if (changeRate >= 12) { // 완화: 15→12
+          surgeDay = day;
+          surgeIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (!surgeDay) {
+      return { detected: false, name: 'N자 눌림목', score: 97, bonus: 97, confidence: 0 };
+    }
+
+    // 조건 2: 고점 대비 -5~-12% 조정
+    const recent5High = Math.max(...chartData.slice(0, 6).map(d => d.high));
+    const pullbackRate = ((today.close - recent5High) / recent5High) * 100;
+
+    // 조건 3: 금일 거래량 < 20일평균 × 0.7
+    const avgVol20 = chartData.slice(0, 20).reduce((sum, d) => sum + d.volume, 0) / 20;
+    const volumeRatio = today.volume / avgVol20;
+
+    // 노이즈 필터: 거래량 < 기준봉 × 50%
+    const surgeVolumeRatio = today.volume / surgeDay.volume;
+
+    const detected = (
+      pullbackRate >= -12 &&
+      pullbackRate <= -5 &&
+      volumeRatio < 0.7 &&
+      surgeVolumeRatio < 0.5
+    );
+
+    return {
+      detected,
+      name: 'N자 눌림목',
+      score: 97, // Track 1 점수
+      bonus: 97, // 하위 호환성
+      confidence: detected ? 0.85 : 0,
+      details: {
+        surgeDayIndex: surgeIndex,
+        pullbackRate: parseFloat(pullbackRate.toFixed(2)),
+        volumeRatio: parseFloat(volumeRatio.toFixed(2)),
+        surgeVolumeRatio: parseFloat(surgeVolumeRatio.toFixed(2))
+      }
+    };
+  }
+
+  /**
+   * 패턴 4: 🌋 휴화산 (응축)
+   * Priority: 4 | Score: 96점
+   * v3.10.0 완화: BB Width 0.1→0.15
+   */
+  detectDormantVolcano(chartData, currentData) {
+    if (chartData.length < 25) {
+      return { detected: false, name: '휴화산', score: 96, bonus: 96, confidence: 0 };
+    }
+
+    const today = chartData[0];
+
+    // 조건 1: 거래량 <= 20일평균 × 0.4
+    const avgVol20 = chartData.slice(0, 20).reduce((sum, d) => sum + d.volume, 0) / 20;
+    const volumeRatio = today.volume / avgVol20;
+
+    // 조건 2: 캔들 몸통 <= 1.5%
+    const bodySize = Math.abs((today.close - today.open) / today.open) * 100;
+
+    // 조건 3: Bollinger Band Width < 0.15 (완화: 0.1→0.15)
+    const recent20 = chartData.slice(0, 20);
+    const avgPrice = recent20.reduce((sum, d) => sum + d.close, 0) / 20;
+    const stdDev = Math.sqrt(
+      recent20.reduce((sum, d) => sum + Math.pow(d.close - avgPrice, 2), 0) / 20
+    );
+    const bbWidth = (stdDev * 2) / avgPrice; // Bollinger Band Width
+
+    // 노이즈 필터: 5일선 위 + 거래대금 >= 30억
+    const ma5 = chartData.slice(0, 5).reduce((sum, d) => sum + d.close, 0) / 5;
+    const above5MA = today.close >= ma5;
+    const tradingValue = today.close * today.volume;
+
+    const detected = (
+      volumeRatio <= 0.4 &&
+      bodySize <= 1.5 &&
+      bbWidth < 0.15 && // 완화: 0.1→0.15
+      above5MA &&
+      tradingValue >= 3000000000
+    );
+
+    return {
+      detected,
+      name: '휴화산',
+      score: 96, // Track 1 점수
+      bonus: 96, // 하위 호환성
+      confidence: detected ? 0.75 : 0,
+      details: {
+        volumeRatio: parseFloat(volumeRatio.toFixed(2)),
+        bodySize: parseFloat(bodySize.toFixed(2)),
+        bbWidth: parseFloat(bbWidth.toFixed(3)),
+        above5MA,
+        tradingValue: Math.round(tradingValue / 100000000) // 억 단위
+      }
+    };
+  }
+
+  /**
+   * RSI(14) 계산
+   * @param {Array} chartData - 일봉 데이터 (최신순, [0]=오늘)
+   * @param {number} period - RSI 기간 (기본값: 14)
+   * @returns {number} RSI 값 (0-100)
+   */
+  calculateRSI(chartData, period = 14) {
+    if (!chartData || chartData.length < period + 1) {
+      return 50; // 기본값
+    }
+
+    // 가격 변동 계산 (최신 → 과거 순서이므로 역순으로 계산)
+    const changes = [];
+    for (let i = chartData.length - 1; i > 0; i--) {
+      const change = chartData[i - 1].close - chartData[i].close;
+      changes.push(change);
+    }
+
+    // 최근 14개 변동만 사용
+    const recentChanges = changes.slice(-period);
+
+    // 상승폭 평균 (U), 하락폭 평균 (D) 계산
+    let avgGain = 0;
+    let avgLoss = 0;
+
+    for (const change of recentChanges) {
+      if (change > 0) {
+        avgGain += change;
+      } else {
+        avgLoss += Math.abs(change);
+      }
+    }
+
+    avgGain = avgGain / period;
+    avgLoss = avgLoss / period;
+
+    // RSI 계산
+    if (avgLoss === 0) {
+      return 100; // 모두 상승
+    }
+
+    const rs = avgGain / avgLoss;
+    const rsi = 100 - (100 / (1 + rs));
+
+    return parseFloat(rsi.toFixed(2));
+  }
+
+  /**
+   * 이격도(Disparity) 계산
+   * @param {Array} chartData - 일봉 데이터 (최신순, [0]=오늘)
+   * @param {number} currentPrice - 현재가
+   * @param {number} period - 이동평균 기간 (기본값: 20)
+   * @returns {number} 이격도 (%) - 현재가 / 이동평균 × 100
+   */
+  calculateDisparity(chartData, currentPrice, period = 20) {
+    if (!chartData || chartData.length < period) {
+      return 100; // 기본값 (이격도 100 = 이평선과 일치)
+    }
+
+    // 최근 N일 이동평균 계산
+    const recentPrices = chartData.slice(0, period).map(d => d.close);
+    const ma = recentPrices.reduce((sum, price) => sum + price, 0) / period;
+
+    // 이격도 = (현재가 / 이동평균) × 100
+    const disparity = (currentPrice / ma) * 100;
+
+    return parseFloat(disparity.toFixed(2));
+  }
+
+  /**
+   * 과열 감지 (Overheating Detection) v3.10.0 NEW
+   * @param {Array} chartData - 일봉 데이터
+   * @param {number} currentPrice - 현재가
+   * @returns {Object} { overheated, rsi, disparity, reason }
+   *
+   * 기준: RSI(14) > 80 OR 이격도(20일) > 115
+   */
+  detectOverheatingV2(chartData, currentPrice) {
+    if (!chartData || !currentPrice) {
+      return { overheated: false, rsi: 50, disparity: 100, reason: 'insufficient_data' };
+    }
+
+    const rsi = this.calculateRSI(chartData, 14);
+    const disparity = this.calculateDisparity(chartData, currentPrice, 20);
+
+    const overheated = (rsi > 80) || (disparity > 115);
+    let reason = 'normal';
+
+    if (rsi > 80 && disparity > 115) {
+      reason = `과열 (RSI ${rsi.toFixed(1)} > 80 AND 이격도 ${disparity.toFixed(1)} > 115)`;
+    } else if (rsi > 80) {
+      reason = `과열 (RSI ${rsi.toFixed(1)} > 80)`;
+    } else if (disparity > 115) {
+      reason = `과열 (이격도 ${disparity.toFixed(1)} > 115)`;
+    }
+
+    return {
+      overheated,
+      rsi: parseFloat(rsi.toFixed(2)),
+      disparity: parseFloat(disparity.toFixed(2)),
+      reason
+    };
+  }
+
+  /**
    * 당일 급등 페널티 계산 (strong) ⬆️ 강화!
    * 목적: "이미 급등한" 종목 강력 감점
    * @param {Array} chartData - 일봉 데이터
-   * @returns {Object} { penalty: -20~0, details }
+   * @returns {Object} { penalty: -30~0, details }
    *
-   * v3.9: -16 → -20점 강화 (Gemini 제안)
+   * v3.10.0: +15% 이상 급등 시 -30점 (Track 2 Momentum 45점의 67%)
    */
   calculateDailyRisePenalty(chartData) {
     if (!chartData || chartData.length < 2) {
@@ -634,18 +1016,18 @@ class StockScreener {
     let penalty = 0;
     let message = 'normal';
 
-    // Strong 페널티 (급등 종목 강력 필터링) ⬆️
+    // v3.10.0: 급등 페널티 강화 (Radar Scoring 기준)
     if (highChange >= 20) {
-      // 장중 고가 +20% 이상 (상한가 포함) → -20점
-      penalty = -20; // -16→-20 강화! 변화율 40점 중 50% 차감
+      // 장중 고가 +20% 이상 (상한가 포함) → -30점
+      penalty = -30;
       message = `⚠️ 당일 급등 (고가 +${highChange.toFixed(1)}%)`;
     } else if (highChange >= 15) {
-      // 장중 고가 +15% 이상 → -15점
-      penalty = -15; // -12→-15 강화!
+      // 장중 고가 +15% 이상 → -30점
+      penalty = -30;
       message = `⚠️ 당일 급등 (고가 +${highChange.toFixed(1)}%)`;
     } else if (closeChange >= 10) {
-      // 종가 +10% 이상 → -10점
-      penalty = -10; // -8→-10 강화!
+      // 종가 +10% 이상 → -15점
+      penalty = -15;
       message = `당일 상승 (종가 +${closeChange.toFixed(1)}%)`;
     }
 
@@ -658,7 +1040,12 @@ class StockScreener {
   }
 
   /**
-   * 5일 변화율 종합 점수 계산 (0-40점)
+   * 5일 변화율 종합 점수 계산 (Momentum Score) (0-45점)
+   * v3.10.0: 40→45점 확대 (Radar Scoring Track 2)
+   * - 거래량 가속도: 0-18점 (15→18 증가)
+   * - VPD 개선도: 0-12점 (10→12 증가)
+   * - 선행 지표 강화: 0-10점 (유지)
+   * - 기관 진입 가속: 0-5점 (유지)
    */
   calculate5DayMomentum(chartData, investorData) {
     if (!chartData || chartData.length < 10) {
@@ -692,6 +1079,17 @@ class StockScreener {
     const vpdImprovement = this.calcVPDImprovementScore(d5State, d0State);
     const patternStrengthening = this.calcPatternStrengtheningScore(d5State, d0State);
     const institutionalEntry = this.calcInstitutionalEntryScore(d5State, d0State);
+
+    // v3.10.0: Scale to 45 points (from 40)
+    // volumeAcceleration: 15 → 18 points
+    // vpdImprovement: 10 → 12 points
+    // patternStrengthening: 10 → 10 points (unchanged)
+    // institutionalEntry: 5 → 5 points (unchanged)
+    const scaledVolumeAccel = (volumeAcceleration.score / 15) * 18;
+    const scaledVPD = (vpdImprovement.score / 10) * 12;
+
+    volumeAcceleration.score = parseFloat(scaledVolumeAccel.toFixed(2));
+    vpdImprovement.score = parseFloat(scaledVPD.toFixed(2));
 
     const totalScore = Math.max(0,
       volumeAcceleration.score +
@@ -772,22 +1170,50 @@ class StockScreener {
       // 추세 분석 (5일/10일/20일) - 현재가 정보 포함
       const trendAnalysis = this.calculateTrendAnalysis(chartData, currentData);
 
-      // 종합 점수 계산 (기술적 지표 + 고점 되돌림 페널티)
-      let totalScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice);
-
       // ========================================
-      // 점수 계산: v3.9 Gemini 제안 적용 (100점 만점)
+      // 점수 계산: v3.10.0 Dual-Track Scoring System
       // ========================================
 
-      // 새로운 철학: "지금 막 시작되는" 종목 포착 (변곡점 1~2일 전!)
-      // - 기본 점수: 0-25점 (품질 체크만, 후행 지표 비중 축소 ⬇️)
-      // - 변화율 점수: 0-40점 (D-5일 vs D-0일 변화) ⭐ 핵심!
-      // - 추세 점수: 0-35점 (30일 장기 매집 패턴, 비중 확대 ⬆️)
-      // = 총 100점
+      // Track 1: Golden Zones (96-99점) - 차트 패턴 기반 선행 신호
+      // Track 2: Radar Scoring (0-90점) - Base 15 + Trend 40 + Momentum 45
 
-      // 1. 기본 점수 (0-25점) ✅ 직접 사용 (×2 제거!)
+      // 1. Golden Zones 패턴 감지 (Track 1)
+      const goldenZone = this.detectGoldenZones(chartData, currentData);
 
-      // 2. 과열 감지 (정보용)
+      // 2. Radar Scoring 컴포넌트 계산 (Track 2, 항상 계산)
+      const baseScore = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice);
+
+      let momentumScore = this.calculate5DayMomentum(chartData, investorData);
+      const d0DailyPenalty = this.calculateDailyRisePenalty(chartData);
+      momentumScore.totalScore = Math.max(0, momentumScore.totalScore + d0DailyPenalty.penalty);
+      momentumScore.dailyRisePenalty = d0DailyPenalty;
+
+      const trendScore = this.calculateTrendScore(chartData, investorData);
+
+      // 3. Dual-Track 점수 결정
+      let totalScore = 0;
+      let radarScore = null;
+
+      if (goldenZone.detected) {
+        // Track 1: Golden Zones 점수 사용 (96-99점)
+        totalScore = goldenZone.score; // 99, 98, 97, 96
+        console.log(`🎯 Golden Zone 감지: ${goldenZone.pattern} (${totalScore}점)`);
+      } else {
+        // Track 2: Radar Scoring 합산 (0-90점)
+        radarScore = {
+          baseScore: parseFloat(baseScore.toFixed(2)),
+          momentumScore: momentumScore,
+          trendScore: trendScore,
+          total: parseFloat((baseScore + momentumScore.totalScore + trendScore.totalScore).toFixed(2))
+        };
+
+        totalScore = Math.min(radarScore.total, 90); // Cap at 90
+      }
+
+      // 4. 과열 감지 (v3.10.0 NEW - RSI > 80 OR 이격도 > 115)
+      const overheatingV2 = this.detectOverheatingV2(chartData, currentData.currentPrice);
+
+      // 4. 기존 과열 감지 (v3.9 호환성 유지)
       const volumeRatio = volumeAnalysis.current.volumeMA20
         ? volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20
         : 1;
@@ -797,20 +1223,6 @@ class StockScreener {
         volumeRatio,
         volumeAnalysis.indicators.mfi
       );
-
-      // 3. 5일 변화율 점수 (0-40점) ⭐ 핵심!
-      let momentumScore = this.calculate5DayMomentum(chartData, investorData);
-
-      // 3-1. 당일 급등 페널티 (moderate) ⭐ 이미 급등한 종목 감점
-      const d0DailyPenalty = this.calculateDailyRisePenalty(chartData);
-      momentumScore.totalScore = Math.max(0, momentumScore.totalScore + d0DailyPenalty.penalty); // 음수 페널티
-      momentumScore.dailyRisePenalty = d0DailyPenalty; // 상세 정보 저장
-
-      totalScore += momentumScore.totalScore;
-
-      // 4. 30일 추세 점수 (0-20점)
-      const trendScore = this.calculateTrendScore(chartData, investorData);
-      totalScore += trendScore.totalScore;
 
       // 5. 선행 지표 (참고용, 점수 미반영)
       let leadingScore = null;
@@ -829,50 +1241,44 @@ class StockScreener {
         }
       }
 
-      // 6. 원점수 저장 (스코어카드용)
-      const rawScore = totalScore;
-
-      // 7. VPD 점수 계산 (스코어카드용)
-      const vpdScore = Math.min((volumePriceDivergence.score || 0) * 0.714, 25);
-
-      // 8. 최종 점수 (0-100점 범위, NaN 방지, 소수점 2자리)
+      // 5. 최종 점수 확정 (NaN 방지, 소수점 2자리)
       totalScore = isNaN(totalScore) ? 0 : parseFloat(Math.min(Math.max(totalScore, 0), 100).toFixed(2));
 
       // ========================================
-      // 가점/감점 상세 내역 (스코어 카드)
+      // 가점/감점 상세 내역 (스코어 카드) v3.10.0
       // ========================================
-      const baseScoreValue = this.calculateTotalScore(volumeAnalysis, advancedAnalysis, null, chartData, currentData.currentPrice);
-
       const scoreBreakdown = {
-        // v3.9 새로운 점수 체계 (100점 만점)
+        // v3.10.0 Dual-Track Scoring System
+        scoringTrack: goldenZone.detected ? 'Track 1: Golden Zones' : 'Track 2: Radar Scoring',
+
         structure: {
-          base: '0-25점 (품질 체크)',
-          momentum: '0-40점 (D-5일 변화율)',
-          trend: '0-35점 (30일 장기 추세)'
+          base: '0-15점 (품질 체크) ⬇️',
+          momentum: '0-45점 (D-5일 변화율) ⬆️',
+          trend: '0-40점 (30일 장기 추세) ⬆️'
         },
 
-        // 1. 기본 점수 (0-25점)
-        baseScore: parseFloat(baseScoreValue.toFixed(2)),
+        // 1. 기본 점수 (0-15점) v3.10.0
+        baseScore: parseFloat(baseScore.toFixed(2)),
         baseComponents: {
-          volumeRatio: '거래량 비율 (0-5점)',
-          obvTrend: 'OBV 추세 (0-5점)',
-          vwapMomentum: 'VWAP 모멘텀 (0-5점)',
-          asymmetric: '비대칭 비율 (0-7점) ⭐',
-          liquidity: '유동성 필터 (0-3점)',
-          drawdownPenalty: '되돌림 페널티 (-3~0점)'
+          volumeRatio: '거래량 비율 (0-3점) ⬇️',
+          obvTrend: 'OBV 추세 (0-3점) ⬇️',
+          vwapMomentum: 'VWAP 모멘텀 (0-3점) ⬇️',
+          asymmetric: '비대칭 비율 (0-4점) ⬇️',
+          liquidity: '유동성 필터 (0-2점) ⬇️',
+          drawdownPenalty: '되돌림 페널티 (-2~0점) 완화'
         },
 
-        // 2. 변화율 점수 (0-40점) ⭐ 핵심!
+        // 2. 변화율 점수 (0-45점) ⭐ v3.10.0 확대!
         momentumScore: parseFloat(momentumScore.totalScore.toFixed(2)),
         momentumComponents: {
           volumeAcceleration: {
-            name: '거래량 가속도 (0-15점)',
+            name: '거래량 가속도 (0-18점) ⬆️',
             score: momentumScore.volumeAcceleration.score,
             trend: momentumScore.volumeAcceleration.trend,
             details: `D-5: ${momentumScore.volumeAcceleration.d5Volume?.toLocaleString()}주 → D-0: ${momentumScore.volumeAcceleration.d0Volume?.toLocaleString()}주 (${momentumScore.volumeAcceleration.ratio}배)`
           },
           vpdImprovement: {
-            name: 'VPD 개선도 (0-10점)',
+            name: 'VPD 개선도 (0-12점) ⬆️',
             score: momentumScore.vpdImprovement.score,
             trend: momentumScore.vpdImprovement.trend,
             details: `D-5 VPD: ${momentumScore.vpdImprovement.d5VPD} → D-0 VPD: ${momentumScore.vpdImprovement.d0VPD} (개선도: ${momentumScore.vpdImprovement.improvement})`
@@ -891,11 +1297,11 @@ class StockScreener {
           }
         },
 
-        // 3. 추세 점수 (0-35점) ⬆️ 강화!
+        // 3. 추세 점수 (0-40점) ⬆️ v3.10.0 확대!
         trendScore: parseFloat(trendScore.totalScore.toFixed(2)),
         trendComponents: {
           volumeAcceleration: {
-            name: '거래량 점진 증가 (0-15점) ⬆️',
+            name: '거래량 점진 증가 (0-20점) ⬆️',
             score: trendScore.volumeAcceleration.score,
             trend: trendScore.volumeAcceleration.trend
           },
@@ -920,8 +1326,10 @@ class StockScreener {
 
         // 4. 최종 점수
         finalScore: parseFloat(totalScore.toFixed(2)),
-        maxScore: 100,
-        formula: 'Base(0-25) + Momentum(0-40) + Trend(0-35) = Total(0-100)' // v3.9 재조정
+        maxScore: goldenZone.detected ? 99 : 90,
+        formula: goldenZone.detected
+          ? 'Track 1: Golden Zones Pattern Score (96-99)'
+          : 'Track 2: Base(0-15) + Momentum(0-45) + Trend(0-40) = Radar(0-90)' // v3.10.0
       };
 
       // 랭킹 뱃지 가져오기
@@ -971,8 +1379,11 @@ class StockScreener {
           summary: leadingIndicators.generateSummary(leadingScore),
           points: Math.round(leadingPoints)
         } : null,
+        goldenZone, // v3.10.0: Golden Zones 패턴 감지 (Track 1)
+        radarScore, // v3.10.0: Radar Scoring 상세 (Track 2, null if Golden Zone detected)
+        overheatingV2, // v3.10.0: 과열 감지 v2 (RSI + 이격도)
         totalScore,
-        recommendation: this.getRecommendation(totalScore, advancedAnalysis.tier, overheating),
+        recommendation: this.getRecommendation(totalScore, advancedAnalysis.tier, overheating, overheatingV2),
         rankBadges: rankBadges || {}
       };
     } catch (error) {
@@ -982,125 +1393,142 @@ class StockScreener {
   }
 
   /**
-   * 기본 점수 계산 (Gemini 제안 - Base Score 재조정)
+   * 기본 점수 계산 (Base Score) v3.10.0 - Radar Scoring
    * 급등 '예정' 종목 발굴에 최적화
    *
-   * v3.9: Base 40% → 25% (후행 지표 비중 축소)
+   * v3.10.0: Base 25점 → 15점 (품질 체크만, Track 2 Radar Scoring)
+   * - 거래량 비율: 0-3점 (5→3 축소)
+   * - OBV 추세: 0-3점 (5→3 축소)
+   * - VWAP 모멘텀: 0-3점 (5→3 축소)
+   * - 비대칭 비율: 0-4점 (7→4 축소)
+   * - 유동성 필터: 0-2점 (3→2 축소)
+   * - 되돌림 페널티: -2~0점 (-3→-2 완화)
    */
   calculateTotalScore(volumeAnalysis, advancedAnalysis, trendScore = null, chartData = null, currentPrice = null) {
     let baseScore = 0;
 
-    // 1. 거래량 비율 (0-5점) ⬇️ 8→5 축소
+    // 1. 거래량 비율 (0-3점) ⬇️ 5→3 축소
     if (volumeAnalysis.current.volumeMA20) {
       const volumeRatio = volumeAnalysis.current.volume / volumeAnalysis.current.volumeMA20;
-      if (volumeRatio >= 5) baseScore += 5;       // 5배 이상 초대량
-      else if (volumeRatio >= 3) baseScore += 3;  // 3배 이상 대량
-      else if (volumeRatio >= 2) baseScore += 2;  // 2배 이상 급증
-      else if (volumeRatio >= 1.5) baseScore += 1; // 1.5배 이상 증가
+      if (volumeRatio >= 5) baseScore += 3;       // 5배 이상 초대량
+      else if (volumeRatio >= 3) baseScore += 2;  // 3배 이상 대량
+      else if (volumeRatio >= 2) baseScore += 1;  // 2배 이상 급증
     }
 
-    // 2. OBV 추세 (0-5점) ⬇️ 7→5 축소
+    // 2. OBV 추세 (0-3점) ⬇️ 5→3 축소
     const obvTrend = volumeAnalysis.signals.obvTrend;
-    if (obvTrend && obvTrend.includes('상승')) baseScore += 5;
-    else if (obvTrend && obvTrend.includes('횡보')) baseScore += 2;
+    if (obvTrend && obvTrend.includes('상승')) baseScore += 3;
+    else if (obvTrend && obvTrend.includes('횡보')) baseScore += 1;
 
-    // 3. VWAP 모멘텀 (0-5점) - 유지
-    if (volumeAnalysis.signals.priceVsVWAP === '상승세') baseScore += 5;
+    // 3. VWAP 모멘텀 (0-3점) ⬇️ 5→3 축소
+    if (volumeAnalysis.signals.priceVsVWAP === '상승세') baseScore += 3;
 
-    // 4. 비대칭 비율 (0-7점) ⬆️ 5→7 강화 ⭐
+    // 4. 비대칭 비율 (0-4점) ⬇️ 7→4 축소
     const asymmetric = advancedAnalysis?.indicators?.asymmetric;
     if (asymmetric && asymmetric.score) {
-      baseScore += Math.min(asymmetric.score / 10, 7); // 최대 7점
+      baseScore += Math.min(asymmetric.score / 10 * 0.57, 4); // 최대 4점 (7→4 scale)
     }
 
-    // 5. 유동성 필터 (0-3점) 🆕 NEW
+    // 5. 유동성 필터 (0-2점) ⬇️ 3→2 축소
     if (chartData && currentPrice) {
       // 간이 유동성: 최근 5일 평균 거래대금
       const recent5 = chartData.slice(0, 5);
       const avgTradingValue = recent5.reduce((sum, d) => sum + (d.close * d.volume), 0) / recent5.length;
 
-      if (avgTradingValue >= 10000000000) baseScore += 3;      // 100억 이상: 3점
-      else if (avgTradingValue >= 5000000000) baseScore += 2;  // 50억 이상: 2점
-      else if (avgTradingValue >= 1000000000) baseScore += 1;  // 10억 이상: 1점
+      if (avgTradingValue >= 10000000000) baseScore += 2;      // 100억 이상: 2점
+      else if (avgTradingValue >= 5000000000) baseScore += 1;  // 50억 이상: 1점
     }
 
-    // 6. 고점 대비 되돌림 페널티 (-3~0점) ⬇️ -5→-3 완화
+    // 6. 고점 대비 되돌림 페널티 (-2~0점) ⬇️ -3→-2 완화
     if (chartData && currentPrice) {
       const recentHigh = Math.max(...chartData.slice(0, 30).map(d => d.high));
       const drawdownPercent = ((recentHigh - currentPrice) / recentHigh) * 100;
 
-      if (drawdownPercent >= 20) baseScore -= 3;      // 20% 이상 되돌림: -3점
-      else if (drawdownPercent >= 15) baseScore -= 2; // 15% 이상 되돌림: -2점
-      else if (drawdownPercent >= 10) baseScore -= 1; // 10% 이상 되돌림: -1점
+      if (drawdownPercent >= 20) baseScore -= 2;      // 20% 이상 되돌림: -2점
+      else if (drawdownPercent >= 15) baseScore -= 1; // 15% 이상 되돌림: -1점
     }
 
-    // MFI 제거 (급등 예정 신호 아님 - 현재 상태 지표)
-    // 창의적 지표 제거 (선행/후행 혼재)
-
-    return Math.min(Math.max(baseScore, 0), 25); // 최대 25점
+    return Math.min(Math.max(baseScore, 0), 15); // 최대 15점
   }
 
   /**
-   * 추천 등급 산출 (100점 만점 기준, 점수가 높을수록 높은 등급)
+   * 추천 등급 산출 v3.10.0 - Dual-Track Scoring + 7-Tier Grade System
    *
-   * 백테스트 결과 (BACKTEST_RESULTS.md):
-   * - 58-88점 범위: 승률 86.67%, 평균 +24.9%
-   * - 42-57점 범위: 승률 77.78%, 평균 +27.5% ⭐ 최고 수익률
-   * - 25-41점 범위: 승률 89.33%, 평균 +24.9% ⭐ 최고 승률
-   * - 89+점 범위: 승률 100%, 평균 +8.06% (샘플 부족, 과열 가능성)
+   * Track 1 (Golden Zones): 96-99점 (Power Candle, 개미지옥, N자 눌림목, 휴화산)
+   * Track 2 (Radar Scoring): 0-90점 (Base 15 + Trend 40 + Momentum 45)
    *
-   * 등급 철학: 점수가 높을수록 높은 등급 (직관적 시스템)
+   * 7-Tier Grade System (Priority Order):
+   * - WARNING (priority 0): Overheated (RSI > 80 OR 이격도 > 115)
+   * - S+: 90+ points (Golden Zones 96-99 or perfect Radar score)
+   * - S: 75-89 points
+   * - A: 60-74 points
+   * - B: 45-59 points
+   * - C: 30-44 points
+   * - D: <30 points
    */
-  getRecommendation(score, tier, overheating) {
+  getRecommendation(score, tier, overheating, overheatingV2 = null) {
     let grade, text, color, tooltip;
 
-    // 등급 체계 (점수 내림차순, 직관적 순서)
-    // v3.9.2: 등급 체계 재설계 - 점수 순서대로 표시
-    if (score >= 89) {
-      // ⚠️ 과열 (89+점) - 이미 급등 중
-      grade = '⚠️ 과열';
-      text = '⚠️ 과열 - 단기차익 또는 조정 대기';
-      color = '#ff9900';
-      tooltip = '모든 지표 점등, 이미 급등 중 (백테스트: 승률 100%, 평균 +8.1%, 샘플 부족)';
-    } else if (score >= 58 && score <= 88) {
-      // S등급 (최우선 매수 - 거래량 폭발)
+    // Priority 0: Overheating Detection (최우선)
+    if (overheatingV2 && overheatingV2.overheated) {
+      grade = 'WARNING';
+      text = '⚠️ 과열 경고';
+      color = '#ff0000';
+      tooltip = `${overheatingV2.reason} - 단기 조정 가능성 높음`;
+      return { grade, text, color, tier, overheating: overheatingV2.reason, tooltip };
+    }
+
+    // 등급 체계 (점수 내림차순, 7-Tier System)
+    if (score >= 90) {
+      // S+ 등급 (90+점) - Golden Zones or Perfect Radar Score
+      grade = 'S+';
+      text = '🌟 최상위 매수';
+      color = '#ff0000';
+      tooltip = 'Golden Zones 패턴 또는 완벽한 Radar Score - 강력한 급등 신호';
+    } else if (score >= 75) {
+      // S 등급 (75-89점)
       grade = 'S';
       text = '🔥 최우선 매수';
       color = '#ff4444';
-      tooltip = '거래량 폭발, 기관 본격 매수 (백테스트: 승률 86.7%, 평균 +24.9%)';
-    } else if (score >= 42 && score < 58) {
-      // A등급 (적극 매수 - 진입 적기) - 42-57.99
+      tooltip = '거래량 폭발, 기관 본격 매수';
+    } else if (score >= 60) {
+      // A 등급 (60-74점)
       grade = 'A';
       text = '🟢 적극 매수';
       color = '#00cc00';
-      tooltip = '거래량 증가 시작, 기관 초기 진입 (백테스트: 승률 77.8%, 평균 +27.5% ⭐ 최고 수익!)';
-    } else if (score >= 25 && score < 42) {
-      // B등급 (매수 고려 - 선행 신호) - 25-41.99
+      tooltip = '거래량 증가 시작, 기관 초기 진입';
+    } else if (score >= 45) {
+      // B 등급 (45-59점)
       grade = 'B';
       text = '🟡 매수 고려';
       color = '#ffaa00';
-      tooltip = '선행 패턴 감지 (백테스트: 승률 89.3%, 평균 +24.9% ⭐ 최고 승률!)';
-    } else {
-      // C등급 (관망 - 신호 부족) - 25점 미만
+      tooltip = '선행 패턴 감지, 진입 검토';
+    } else if (score >= 30) {
+      // C 등급 (30-44점)
       grade = 'C';
-      text = '⚫ 관망';
+      text = '🟠 관망';
+      color = '#ff9966';
+      tooltip = '약한 신호, 관망 권장';
+    } else {
+      // D 등급 (<30점)
+      grade = 'D';
+      text = '⚫ 비추천';
       color = '#cccccc';
-      tooltip = '선행 지표 미감지, 관망 권장';
+      tooltip = '선행 지표 미감지';
     }
 
-    // Phase 4 티어 수정
+    // Phase 4 티어 수정 (기존 로직 유지)
     if (tier === 'watch') {
       text = '👁️ 관심종목 (선행지표)';
       color = '#9966ff'; // 보라색
-    } else if (tier === 'buy' && score >= 51) {
+    } else if (tier === 'buy' && score >= 60) {
       text = '🚀 매수신호 (트리거 발동)';
       color = '#ff6600'; // 주황색
     }
 
-    // 과열 경고 덮어쓰기
+    // 기존 과열 경고 (v3.9 호환성 유지)
     if (overheating.warning) {
-      text = '⚠️ 과열 - 조정 대기';
-      color = '#ff9900'; // 경고 색상
+      text = `⚠️ ${text} (과열주의)`;
     } else if (overheating.heatScore > 50) {
       text = `⚠️ ${text} (신중)`;
     }

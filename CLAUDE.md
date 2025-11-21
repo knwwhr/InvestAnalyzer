@@ -966,6 +966,186 @@ GET /api/recommendations/performance?days=30
 
 ---
 
+## 🎯 v3.10.0-beta: Golden Zones 패턴 시스템 (진행 중)
+
+### 개요
+
+**목표**: 기존 점수 체계에 **차트 패턴 기반 선행 신호**를 추가하여 "급등 1-2일 전" 포착 정확도 향상
+
+**전략**: 단계적 구현 (Option A)
+- ✅ Golden Zones 패턴 감지만 구현 (보너스 점수)
+- ✅ 기존 v3.9.2 점수 체계는 그대로 유지 (백테스트 검증된 로직)
+- ⏳ 1주일 실전 데이터 수집 및 백테스트 검증
+- ⏳ 검증 완료 후 배점 조정 또는 패턴 선별
+
+### 🎯 Golden Zones 4대 패턴 명세
+
+| Priority | 패턴명 | 보너스 | 감지 조건 | 노이즈 필터 |
+|:---:|:---|:---|:---|:---|
+| **1** | **🔥 Power Candle** | +15점 | 1. 거래량 ≥ 전일×2.0 & ≥ 20일평균×1.0<br>2. 등락률 +5~12%<br>3. 시가 ≒ 저가 (0.5% 이내) | 거래대금 ≥ 100억 |
+| **2** | **🕳️ 개미지옥** | +15점 | 1. 장중 저가 < 전일 저가 × 0.97 (-3% 이탈)<br>2. 아래꼬리 ≥ 몸통 × 2.0<br>3. 종가 ≥ 시가 (양봉) | 3일 내 최저가 갱신 |
+| **3** | **⚡ N자 눌림목** | +15점 | 1. 5일 내 +15% 이상 급등일 존재<br>2. 고점 대비 -5~-12% 조정<br>3. 금일 거래량 < 20일평균 × 0.7 | 거래량 < 기준봉 × 50% |
+| **4** | **🌋 휴화산** | +10점 | 1. 거래량 ≤ 20일평균 × 0.4<br>2. 캔들 몸통 ≤ 1.5%<br>3. Bollinger Band Width < 0.1 | 5일선 위 + 거래대금 ≥ 30억 |
+
+**공통 필터**:
+- 거래대금(당일) ≥ 30억 원 (소형주 노이즈 제거)
+- 우선순위 로직: 중복 감지 시 Priority 높은 순으로 하나만 채택
+
+### 점수 적용 방식
+
+```javascript
+// 기존 점수 계산 (v3.9.2 유지)
+const baseScore = calculateExistingScore();  // 0-100점
+
+// Golden Zone 패턴 감지
+const goldenZone = detectGoldenZones(stockData);
+
+// 보너스 점수 적용
+const finalScore = goldenZone.detected
+  ? Math.min(baseScore + goldenZone.bonus, 95)  // 최대 95점
+  : baseScore;
+
+// 등급 체계는 v3.9.2 유지
+if (finalScore >= 89) {
+  grade = '⚠️ 과열';
+} else if (finalScore >= 90 && goldenZone.detected) {
+  grade = 'S';  // Golden Zone으로 S등급 진입
+  badge = `🎯 ${goldenZone.pattern} 포착`;
+} else if (finalScore >= 58) {
+  grade = 'S';
+  // ... (기존 로직)
+}
+```
+
+### 데이터 구조
+
+```javascript
+// Golden Zone 메타데이터
+{
+  goldenZone: {
+    detected: true,
+    pattern: 'Power Candle',
+    bonus: 15,
+    confidence: 0.92,
+    tradingValue: 15000000000,  // 150억
+    details: {
+      volumeRatio: 2.5,
+      priceChange: 8.5,
+      candleType: '꽉 찬 양봉',
+      // ... 패턴별 상세 데이터
+    }
+  },
+  baseScore: 78,
+  finalScore: 93,
+  grade: 'S',
+  recommendation: {
+    text: '🎯 Power Candle 포착',
+    tooltip: '거래량 폭발 & 꽉 찬 양봉 → 내일 급등 유력'
+  }
+}
+```
+
+### 단계적 로드맵
+
+#### Phase 1: 구현 ✅ 완료 (2025-11-20)
+```
+1. backend/screening.js에 detectGoldenZones() 함수 추가 ✅
+2. 4대 패턴 로직 구현 (우선순위 + 필터) ✅
+3. 기존 점수에 보너스 추가 ✅
+4. goldenZone 메타데이터 API 반환 추가 ✅
+```
+
+#### Phase 2: 백테스트 ✅ 완료 (2025-11-20)
+```
+**백테스트 결과**:
+- 분석 종목: 51개 (KOSPI + KOSDAQ)
+- Golden Zone 감지: 0개 ✅ (과적합 방지 확인)
+
+**주요 발견사항**:
+1. ✅ 패턴 기준이 매우 보수적 (과적합 방지 성공)
+2. ✅ 노이즈 필터링 정상 작동 (거래대금 30억 이상)
+3. ⚠️ 실용성 검토 필요 (감지 빈도 낮음)
+
+**권장 전략**: Option A (현재 기준 유지) + 1~2주 실전 모니터링
+**상세 결과**: GOLDEN_ZONES_BACKTEST.md 참조
+```
+
+#### Phase 3: 배점 조정 (검증 완료 후)
+```
+// 백테스트 결과 기반 차등 배점
+const goldenBonusScore = {
+  'Power Candle': 20,    // 승률 90%+ → 20점
+  'N자 눌림목': 15,      // 승률 85%+ → 15점
+  '개미지옥': 10,        // 승률 80%+ → 10점
+  '휴화산': 5            // 승률 70%+ → 5점
+};
+
+// 또는 저조한 패턴 제거
+if (pattern === '휴화산' && 승률 < 70%) {
+  // 패턴 비활성화
+}
+```
+
+### 백테스트 계획
+
+```javascript
+// test-golden-zones.js (신규 파일 생성)
+const { screenAllStocks } = require('./backend/screening');
+
+async function testGoldenZones() {
+  // 1. 최근 30일 데이터 수집
+  const stocks = await screenAllStocks('ALL');
+
+  // 2. Golden Zone 감지된 종목 필터
+  const goldenStocks = stocks.filter(s => s.goldenZone?.detected);
+
+  // 3. 패턴별 분류
+  const byPattern = groupBy(goldenStocks, 'goldenZone.pattern');
+
+  // 4. 5일/10일 후 수익률 계산
+  for (const pattern in byPattern) {
+    const results = await backtest(byPattern[pattern], [5, 10]);
+    console.log(`${pattern}: 승률 ${results.winRate}%, 평균 ${results.avgReturn}%`);
+  }
+
+  // 5. 패턴 없는 종목과 성과 비교
+  const nonGolden = stocks.filter(s => !s.goldenZone?.detected);
+  const comparison = compare(goldenStocks, nonGolden);
+
+  return { byPattern, comparison };
+}
+```
+
+### 성공 기준
+
+✅ **검증 통과 조건**:
+- 패턴별 승률 **75% 이상**
+- 패턴 없는 종목 대비 **평균 수익률 +5% 이상**
+- 과적합 방지: 감지 빈도 **주당 5개 이내** (노이즈 아님)
+
+⚠️ **검증 실패 조건**:
+- 패턴 승률 70% 미만 → 해당 패턴 제거
+- 과도한 감지 (주당 20개+) → 필터 강화
+- 패턴 없는 종목과 성과 차이 없음 → 전체 재검토
+
+### 리스크 관리
+
+1. **브랜치 전략**:
+   ```bash
+   git checkout -b v3.10.0-beta
+   # 1주일 검증 후 main 병합
+   ```
+
+2. **롤백 계획**:
+   - 검증 실패 시 즉시 main 브랜치로 복귀
+   - 기존 v3.9.2 로직은 100% 유지 (변경 없음)
+
+3. **사용자 공지**:
+   - 프론트엔드에 "🧪 BETA 기능 테스트 중" 배지 표시
+   - Supabase에 beta_version 플래그 저장
+
+---
+
 ## 📝 변경 이력
 
 ### v3.9.2 (2025-11-20) - 🎨 등급 체계 재설계 (점수 내림차순) ⭐ UX 개선

@@ -47,10 +47,12 @@
       animation: slideIn 0.5s ease-out;
     }
 
+    .grade-WARNING { background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%); }
+    .grade-S\+ { background: linear-gradient(135deg, #ff0066 0%, #cc0044 100%); }
     .grade-S { background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }
     .grade-A { background: linear-gradient(135deg, #00cc00 0%, #008800 100%); }
     .grade-B { background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%); }
-    .grade-C { background: linear-gradient(135deg, #888888 0%, #666666 100%); }
+    .grade-C { background: linear-gradient(135deg, #ff9966 0%, #ff7744 100%); }
     .grade-D { background: linear-gradient(135deg, #cccccc 0%, #999999 100%); }
   </style>
 </head>
@@ -79,12 +81,12 @@
       // 추천 종목을 Supabase에 저장 (성과 추적용)
       const saveRecommendationsToSupabase = async (stocks) => {
         try {
-          // 점수 42점 이상(A등급 이상)만 저장 (100점 만점 체계)
-          // A등급(42-57점, 최고 수익률 +27.5%) 이상을 성과 추적
-          const stocksToSave = stocks.filter(s => s.totalScore >= 42);
+          // v3.10.0: 점수 75점 이상(S등급 이상)만 저장
+          // S등급 이상 (75-99점) = Radar 고득점 또는 Golden Zones 패턴
+          const stocksToSave = stocks.filter(s => s.totalScore >= 75);
 
           if (stocksToSave.length === 0) {
-            console.log('저장할 추천 종목 없음 (42점 이상 없음)');
+            console.log('저장할 추천 종목 없음 (75점 이상 S등급 없음)');
             return;
           }
 
@@ -448,65 +450,89 @@
               {/* 추천 등급 기준 */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-3 mt-2 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-bold text-blue-900">📌 추천 등급 기준</span>
+                  <span className="text-sm font-bold text-blue-900">📌 추천 등급 기준 (v3.10.0)</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    stock.recommendation.grade === 'WARNING' ? 'bg-red-200 text-red-800' :
+                    stock.recommendation.grade === 'S+' ? 'bg-red-100 text-red-700' :
                     stock.recommendation.grade === 'S' ? 'bg-red-100 text-red-700' :
-                    stock.recommendation.grade === 'A' ? 'bg-orange-100 text-orange-700' :
+                    stock.recommendation.grade === 'A' ? 'bg-green-100 text-green-700' :
                     stock.recommendation.grade === 'B' ? 'bg-yellow-100 text-yellow-700' :
+                    stock.recommendation.grade === 'C' ? 'bg-orange-100 text-orange-700' :
                     'bg-gray-100 text-gray-700'
                   }`}>{stock.recommendation.grade}등급</span>
                 </div>
 
+                {stock.recommendation.grade === 'WARNING' && (
+                  <div className="text-xs text-gray-800 space-y-1.5">
+                    <div className="font-semibold text-red-700">⚠️ 과열 경고 - 단기 조정 가능성</div>
+                    <div className="pl-3 space-y-0.5">
+                      <div>• RSI > 80 OR 이격도 > 115</div>
+                      <div>• 단기 조정 가능성 매우 높음</div>
+                      <div>• 신규 진입 비추천, 기존 보유자는 차익 실현 검토</div>
+                    </div>
+                  </div>
+                )}
+
+                {stock.recommendation.grade === 'S+' && (
+                  <div className="text-xs text-gray-800 space-y-1.5">
+                    <div className="font-semibold text-red-600">🌟 최상위 매수 (90+점) - Golden Zones 또는 완벽한 Radar</div>
+                    <div className="pl-3 space-y-0.5">
+                      <div>• Golden Zones 패턴 감지 OR Radar 90점</div>
+                      <div>• 강력한 급등 신호</div>
+                      <div>• 1~2일 내 급등 가능성 매우 높음</div>
+                    </div>
+                  </div>
+                )}
+
                 {stock.recommendation.grade === 'S' && (
                   <div className="text-xs text-gray-800 space-y-1.5">
-                    <div className="font-semibold text-red-600">🔥 최우선 매수 (58-88점) - 거래량 폭발</div>
+                    <div className="font-semibold text-red-600">🔥 최우선 매수 (75-89점) - 거래량 폭발</div>
                     <div className="pl-3 space-y-0.5">
                       <div>• 거래량 폭발, 기관 본격 매수</div>
-                      <div>• 백테스트: 승률 86.7%, 평균 +24.9%</div>
-                      <div>• 추세 진행 중, 최우선 매수 권장</div>
+                      <div>• Radar Scoring 고득점</div>
+                      <div>• 최우선 매수 권장</div>
                     </div>
                   </div>
                 )}
 
                 {stock.recommendation.grade === 'A' && (
                   <div className="text-xs text-gray-800 space-y-1.5">
-                    <div className="font-semibold text-green-600">🟢 적극 매수 (42-57점) - 진입 적기</div>
+                    <div className="font-semibold text-green-600">🟢 적극 매수 (60-74점) - 진입 적기</div>
                     <div className="pl-3 space-y-0.5">
                       <div>• 거래량 증가 시작, 기관 초기 진입</div>
-                      <div>• 백테스트: 승률 77.8%, 평균 +27.5% ⭐</div>
-                      <div>• 최고 수익률 구간, 적극 매수 권장</div>
+                      <div>• 진입 적기</div>
+                      <div>• 적극 매수 권장</div>
                     </div>
                   </div>
                 )}
 
                 {stock.recommendation.grade === 'B' && (
                   <div className="text-xs text-gray-800 space-y-1.5">
-                    <div className="font-semibold text-yellow-600">🟡 매수 고려 (25-41점) - 선행 신호</div>
+                    <div className="font-semibold text-yellow-600">🟡 매수 고려 (45-59점) - 선행 신호</div>
                     <div className="pl-3 space-y-0.5">
-                      <div>• 거래량/기관 진입 전 패턴 감지</div>
-                      <div>• 백테스트: 승률 89.3%, 평균 +24.9%</div>
-                      <div>• 1~2주 내 급등 가능성 높음</div>
+                      <div>• 선행 패턴 감지, 진입 검토</div>
+                      <div>• 1~2주 내 급등 가능성</div>
+                      <div>• 매수 고려 권장</div>
                     </div>
                   </div>
                 )}
 
                 {stock.recommendation.grade === 'C' && (
                   <div className="text-xs text-gray-800 space-y-1.5">
-                    <div className="font-semibold text-orange-600">⚠️ 과열 경고 (89점 이상) - 단기 차익</div>
+                    <div className="font-semibold text-orange-600">🟠 관망 (30-44점) - 약한 신호</div>
                     <div className="pl-3 space-y-0.5">
-                      <div>• 모든 지표 점등, 이미 급등 완료</div>
-                      <div>• 단기 차익 또는 조정 대기 권장</div>
-                      <div>• 신중한 접근 필요</div>
+                      <div>• 약한 신호, 관망 권장</div>
+                      <div>• 추가 신호 대기</div>
                     </div>
                   </div>
                 )}
 
                 {stock.recommendation.grade === 'D' && (
                   <div className="text-xs text-gray-800 space-y-1.5">
-                    <div className="font-semibold text-gray-600">⚫ 관망 (25점 미만) - 신호 부족</div>
+                    <div className="font-semibold text-gray-600">⚫ 비추천 (30점 미만) - 신호 부족</div>
                     <div className="pl-3 space-y-0.5">
                       <div>• 선행 지표 미감지</div>
-                      <div>• 관망 권장</div>
+                      <div>• 비추천</div>
                     </div>
                   </div>
                 )}
@@ -750,10 +776,120 @@
                 </div>
               </div>
 
+              {/* v3.10.0 Dual-Track Scoring 정보 */}
+              {(stock.goldenZone || stock.radarScore || stock.scoreBreakdown) && (
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-xl p-6">
+                  <h3 className="text-xl font-bold mb-4">🎯 v3.10.0 Dual-Track Scoring System</h3>
+
+                  {/* Scoring Track 표시 */}
+                  {stock.scoreBreakdown && stock.scoreBreakdown.scoringTrack && (
+                    <div className="mb-4 p-3 bg-white rounded-lg border-2 border-purple-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-purple-900">📌 사용된 스코어링 트랙:</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          stock.scoreBreakdown.scoringTrack.includes('Track 1') ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                        }`}>{stock.scoreBreakdown.scoringTrack}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Track 1: Golden Zones 정보 */}
+                  {stock.goldenZone && stock.goldenZone.detected && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-400 rounded-lg">
+                      <h4 className="font-bold text-orange-800 mb-3 flex items-center gap-2">
+                        <span>🎯 Golden Zone 감지!</span>
+                        <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">{stock.goldenZone.score}점</span>
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-700">패턴:</span>
+                          <span className="px-3 py-1 bg-white rounded-full border border-orange-300 font-bold text-orange-700">
+                            {stock.goldenZone.pattern}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-700">신뢰도:</span>
+                          <span className="font-bold text-green-700">{(stock.goldenZone.confidence * 100).toFixed(1)}%</span>
+                        </div>
+                        {stock.goldenZone.tradingValue && (
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-700">거래대금:</span>
+                            <span className="font-bold text-blue-700">{(stock.goldenZone.tradingValue / 100000000).toFixed(0)}억 원</span>
+                          </div>
+                        )}
+                        {stock.goldenZone.details && (
+                          <div className="mt-2 p-2 bg-white rounded border border-orange-200">
+                            <div className="text-xs text-gray-600 font-semibold mb-1">패턴 상세 정보:</div>
+                            <div className="text-xs text-gray-700 space-y-0.5">
+                              {Object.entries(stock.goldenZone.details).map(([key, value]) => (
+                                <div key={key}>• {key}: {typeof value === 'number' ? value.toFixed(2) : value}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Track 2: Radar Scoring 정보 */}
+                  {stock.radarScore && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-blue-100 to-cyan-100 border-2 border-blue-400 rounded-lg">
+                      <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                        <span>📡 Radar Scoring</span>
+                        <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full">{stock.radarScore.total}점 / 90점</span>
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div className="bg-white p-2 rounded border border-blue-200">
+                          <div className="text-xs text-gray-600">Base</div>
+                          <div className="text-lg font-bold text-blue-700">{stock.radarScore.baseScore}</div>
+                          <div className="text-xs text-gray-500">/ 15점</div>
+                        </div>
+                        <div className="bg-white p-2 rounded border border-blue-200">
+                          <div className="text-xs text-gray-600">Momentum</div>
+                          <div className="text-lg font-bold text-green-700">{stock.radarScore.momentumScore.totalScore}</div>
+                          <div className="text-xs text-gray-500">/ 45점</div>
+                        </div>
+                        <div className="bg-white p-2 rounded border border-blue-200">
+                          <div className="text-xs text-gray-600">Trend</div>
+                          <div className="text-lg font-bold text-purple-700">{stock.radarScore.trendScore.totalScore}</div>
+                          <div className="text-xs text-gray-500">/ 40점</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 과열 감지 v2 정보 */}
+                  {stock.overheatingV2 && stock.overheatingV2.overheated && (
+                    <div className="p-4 bg-red-100 border-2 border-red-400 rounded-lg">
+                      <h4 className="font-bold text-red-800 mb-2 flex items-center gap-2">
+                        <span>⚠️ 과열 감지 (v3.10.0)</span>
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-700">RSI(14):</span>
+                          <span className={`font-bold ${stock.overheatingV2.rsi > 80 ? 'text-red-700' : 'text-gray-700'}`}>
+                            {stock.overheatingV2.rsi} {stock.overheatingV2.rsi > 80 ? '⚠️ 과열' : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-700">이격도(20일):</span>
+                          <span className={`font-bold ${stock.overheatingV2.disparity > 115 ? 'text-red-700' : 'text-gray-700'}`}>
+                            {stock.overheatingV2.disparity} {stock.overheatingV2.disparity > 115 ? '⚠️ 과열' : ''}
+                          </span>
+                        </div>
+                        <div className="mt-2 p-2 bg-white rounded border border-red-200">
+                          <div className="text-xs font-semibold text-red-700">{stock.overheatingV2.reason}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* 점수 상세 분석 (scoreBreakdown) - v1.1 변화율 시스템 */}
               {stock.scoreBreakdown && (
                 <div className="bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-300 rounded-xl p-6">
-                  <h3 className="text-xl font-bold mb-4">📊 점수 상세 분석 (100점 만점)</h3>
+                  <h3 className="text-xl font-bold mb-4">📊 점수 상세 분석 (Radar Scoring 상세)</h3>
                   <p className="text-sm text-gray-600 mb-4">{stock.scoreBreakdown.formula}</p>
 
                   {/* 점수 체계 요약 */}
@@ -1678,41 +1814,51 @@
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h3 className="text-2xl font-bold mb-4">📊 등급별 성과</h3>
 
-            {/* 등급 기준 설명 (v3.7 백테스트 기반 재정의) */}
+            {/* 등급 기준 설명 (v3.10.0 Dual-Track Scoring System) */}
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-              <h4 className="font-bold text-blue-900 mb-3">🎯 등급 부여 기준 (100점 만점, 점수가 높을수록 높은 등급)</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <h4 className="font-bold text-blue-900 mb-3">🎯 등급 부여 기준 (v3.10.0 Dual-Track Scoring System)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                <div className="bg-white p-3 rounded border-l-4 border-red-600">
+                  <div className="font-bold text-red-700 mb-1">⚠️ WARNING</div>
+                  <div className="text-gray-700">과열 경고 (RSI > 80 OR 이격도 > 115)</div>
+                  <div className="text-xs text-gray-500 mt-1">단기 조정 가능성 높음</div>
+                </div>
                 <div className="bg-white p-3 rounded border-l-4 border-red-500">
-                  <div className="font-bold text-red-700 mb-1">S등급: 58-88점</div>
-                  <div className="text-gray-700">🔥 최우선 매수 (거래량 폭발)</div>
-                  <div className="text-xs text-gray-500 mt-1">승률 86.7%, 평균 +24.9%</div>
+                  <div className="font-bold text-red-700 mb-1">🌟 S+ 등급: 90+점</div>
+                  <div className="text-gray-700">최상위 매수 (Golden Zones 또는 완벽한 Radar)</div>
+                  <div className="text-xs text-gray-500 mt-1">강력한 급등 신호</div>
+                </div>
+                <div className="bg-white p-3 rounded border-l-4 border-red-400">
+                  <div className="font-bold text-red-700 mb-1">🔥 S 등급: 75-89점</div>
+                  <div className="text-gray-700">최우선 매수 (거래량 폭발, 기관 본격 매수)</div>
+                  <div className="text-xs text-gray-500 mt-1">Track 2 고득점</div>
                 </div>
                 <div className="bg-white p-3 rounded border-l-4 border-green-500">
-                  <div className="font-bold text-green-700 mb-1">A등급: 42-57점</div>
-                  <div className="text-gray-700">🟢 적극 매수 (진입 적기)</div>
-                  <div className="text-xs text-gray-500 mt-1">승률 77.8%, 평균 +27.5% ⭐</div>
+                  <div className="font-bold text-green-700 mb-1">🟢 A 등급: 60-74점</div>
+                  <div className="text-gray-700">적극 매수 (거래량 증가 시작, 기관 초기 진입)</div>
+                  <div className="text-xs text-gray-500 mt-1">진입 적기</div>
                 </div>
                 <div className="bg-white p-3 rounded border-l-4 border-yellow-500">
-                  <div className="font-bold text-yellow-700 mb-1">B등급: 25-41점</div>
-                  <div className="text-gray-700">🟡 매수 고려 (선행 신호)</div>
-                  <div className="text-xs text-gray-500 mt-1">승률 89.3%, 평균 +24.9% ⭐</div>
+                  <div className="font-bold text-yellow-700 mb-1">🟡 B 등급: 45-59점</div>
+                  <div className="text-gray-700">매수 고려 (선행 패턴 감지, 진입 검토)</div>
+                  <div className="text-xs text-gray-500 mt-1">선행 신호</div>
                 </div>
                 <div className="bg-white p-3 rounded border-l-4 border-orange-400">
-                  <div className="font-bold text-orange-700 mb-1">C등급: 89점 이상</div>
-                  <div className="text-gray-700">⚠️ 과열 경고</div>
-                  <div className="text-xs text-gray-500 mt-1">샘플 부족, 조정 가능성</div>
+                  <div className="font-bold text-orange-700 mb-1">🟠 C 등급: 30-44점</div>
+                  <div className="text-gray-700">관망 (약한 신호, 관망 권장)</div>
+                  <div className="text-xs text-gray-500 mt-1">신호 약함</div>
                 </div>
                 <div className="bg-white p-3 rounded border-l-4 border-gray-400">
-                  <div className="font-bold text-gray-700 mb-1">D등급: 25점 미만</div>
-                  <div className="text-gray-700">⚫ 관망</div>
+                  <div className="font-bold text-gray-700 mb-1">⚫ D 등급: 30점 미만</div>
+                  <div className="text-gray-700">비추천 (선행 지표 미감지)</div>
                   <div className="text-xs text-gray-500 mt-1">신호 부족</div>
                 </div>
               </div>
               <div className="mt-3 p-3 bg-blue-100 rounded text-xs text-blue-900">
-                <strong>💡 점수 구성:</strong> 기본 점수 (0-20점) + 선행 지표 (0-80점) = 총 100점<br/>
-                • 기본: 거래량 비율, OBV 추세, VWAP 모멘텀, 비대칭 비율, 고점 되돌림<br/>
-                • 선행: VPD (거래량-가격 괴리), 기관/외국인 수급, 합류점, 패턴+DNA, 당일/전일 신호, Cup&Handle, 돌파 확인<br/>
-                <strong>✨ 핵심 인사이트:</strong> 점수가 낮을수록 진짜 선행 신호 (거래량/기관 진입 전)
+                <strong>💡 Dual-Track Scoring:</strong><br/>
+                • <strong>Track 1 (Golden Zones):</strong> 96-99점 - 차트 패턴 기반 선행 신호 (Power Candle, 개미지옥, N자 눌림목, 휴화산)<br/>
+                • <strong>Track 2 (Radar Scoring):</strong> 0-90점 - Base(0-15) + Momentum(0-45) + Trend(0-40)<br/>
+                <strong>✨ v3.10.0 핵심:</strong> Golden Zones 패턴 감지 시 96-99점 (S+등급), 미감지 시 Radar Scoring (최대 90점)
               </div>
             </div>
 
@@ -2031,7 +2177,7 @@
                         {dateGroup.byGrade && Object.keys(dateGroup.byGrade).length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {Object.entries(dateGroup.byGrade).sort((a, b) => {
-                              const gradeOrder = { 'S': 0, 'A': 1, 'B': 2, 'C': 3, 'D': 4 };
+                              const gradeOrder = { 'WARNING': 0, 'S+': 1, 'S': 2, 'A': 3, 'B': 4, 'C': 5, 'D': 6 };
                               return (gradeOrder[a[0]] || 99) - (gradeOrder[b[0]] || 99);
                             }).map(([grade, stats]) => (
                               <div key={grade} className="text-xs bg-white rounded px-2 py-1 border border-gray-300">
