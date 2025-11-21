@@ -3,6 +3,7 @@
  * POST /api/recommendations/save
  *
  * 스크리닝 결과를 Supabase에 저장하여 성과 추적
+ * v3.10.0: 추천 당일 가격도 함께 저장하여 즉시 성과 집계
  */
 
 const supabase = require('../../backend/supabaseClient');
@@ -80,6 +81,32 @@ module.exports = async (req, res) => {
     }
 
     console.log(`✅ ${data.length}개 추천 종목 저장 완료 (${today})`);
+
+    // ⭐ v3.10.0: 추천 당일 가격도 함께 저장 (즉시 성과 집계)
+    if (data && data.length > 0) {
+      const dailyPrices = data.map(rec => ({
+        recommendation_id: rec.id,
+        tracking_date: today,
+        closing_price: rec.recommended_price,
+        change_rate: rec.change_rate || 0,
+        volume: rec.volume || 0,
+        cumulative_return: 0, // 추천 당일은 0%
+        days_since_recommendation: 0
+      }));
+
+      const { error: dailyError } = await supabase
+        .from('recommendation_daily_prices')
+        .upsert(dailyPrices, {
+          onConflict: 'recommendation_id,tracking_date',
+          ignoreDuplicates: false
+        });
+
+      if (dailyError) {
+        console.warn('⚠️ 당일 가격 저장 실패 (무시):', dailyError.message);
+      } else {
+        console.log(`✅ ${dailyPrices.length}개 당일 가격 저장 완료`);
+      }
+    }
 
     return res.status(200).json({
       success: true,

@@ -10,11 +10,13 @@
   "crons": [
     {
       "path": "/api/recommendations/update-prices",
-      "schedule": "0 7 * * 1-5"
+      "schedule": "0 7 * * 1-5",
+      "description": "가격 업데이트 (월-금 16:00 KST, 장마감 후 30분)"
     },
     {
       "path": "/api/cron/save-daily-recommendations",
-      "schedule": "10 7 * * 1-5"
+      "schedule": "10 7 * * 1-5",
+      "description": "추천 종목 자동 저장 (월-금 16:10 KST, 가격 업데이트 후 10분)"
     }
   ]
 }

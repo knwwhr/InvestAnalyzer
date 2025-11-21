@@ -1,8 +1,9 @@
 /**
  * 매일 추천 종목 자동 저장 Cron
  *
- * 일정: 월-금 오후 4시 (장마감 후)
- * 목적: A등급(42점) 이상 종목을 Supabase에 자동 저장
+ * 일정: 월-금 오후 4시 10분 (장마감 후 40분, 가격 업데이트 후 10분)
+ * 목적: B등급(45점) 이상 종목을 Supabase에 자동 저장
+ * v3.10.0: B등급(45-59점) 선행 신호부터 추적
  */
 
 const screener = require('../../backend/screening');
@@ -34,23 +35,22 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Step 2: S등급(58점) 이상만 필터링
+    // Step 2: B등급(45점) 이상만 필터링
     const filteredStocks = stocks.filter(stock => {
-      const grade = stock.recommendation?.grade;
       const score = stock.totalScore;
 
-      // S등급(58-88)만 저장 (보수적 기준)
-      // v3.9: 새 점수 체계 (Base 25 + Momentum 40 + Trend 35 = 100)
-      return grade === 'S' && score >= 58;
+      // v3.10.0: B등급 이상 (45-99점) - 선행 신호 단계부터 추적
+      // WARNING, S+, S, A, B 모두 저장 (C, D 제외)
+      return score >= 45;
     });
 
-    console.log(`✅ 스크리닝 완료: ${stocks.length}개 중 ${filteredStocks.length}개 (S등급만)`);
+    console.log(`✅ 스크리닝 완료: ${stocks.length}개 중 ${filteredStocks.length}개 (B등급 이상)`);
 
     if (filteredStocks.length === 0) {
       return res.status(200).json({
         success: true,
         saved: 0,
-        message: 'No S grade stocks found'
+        message: 'No B+ grade stocks found'
       });
     }
 
@@ -97,15 +97,48 @@ module.exports = async (req, res) => {
     }
 
     console.log(`✅ ${data.length}개 추천 종목 저장 완료 (${today})`);
-    console.log(`   등급: S(${filteredStocks.filter(s => s.recommendation.grade === 'S').length}개)\n`);
+
+    // ⭐ v3.10.0: 추천 당일 가격도 함께 저장 (즉시 성과 집계)
+    if (data && data.length > 0) {
+      const dailyPrices = data.map(rec => ({
+        recommendation_id: rec.id,
+        tracking_date: today,
+        closing_price: rec.recommended_price,
+        change_rate: rec.change_rate || 0,
+        volume: rec.volume || 0,
+        cumulative_return: 0, // 추천 당일은 0%
+        days_since_recommendation: 0
+      }));
+
+      const { error: dailyError } = await supabase
+        .from('recommendation_daily_prices')
+        .upsert(dailyPrices, {
+          onConflict: 'recommendation_id,tracking_date',
+          ignoreDuplicates: false
+        });
+
+      if (dailyError) {
+        console.warn('⚠️ 당일 가격 저장 실패 (무시):', dailyError.message);
+      } else {
+        console.log(`✅ ${dailyPrices.length}개 당일 가격 저장 완료`);
+      }
+    }
+
+    // 등급별 통계
+    const gradeStats = {
+      WARNING: filteredStocks.filter(s => s.recommendation.grade === 'WARNING').length,
+      'S+': filteredStocks.filter(s => s.recommendation.grade === 'S+').length,
+      S: filteredStocks.filter(s => s.recommendation.grade === 'S').length,
+      A: filteredStocks.filter(s => s.recommendation.grade === 'A').length,
+      B: filteredStocks.filter(s => s.recommendation.grade === 'B').length
+    };
+    console.log(`   등급: WARNING(${gradeStats.WARNING}) S+(${gradeStats['S+']}) S(${gradeStats.S}) A(${gradeStats.A}) B(${gradeStats.B})\n`);
 
     return res.status(200).json({
       success: true,
       saved: data.length,
       date: today,
-      grades: {
-        S: filteredStocks.filter(s => s.recommendation.grade === 'S').length
-      },
+      grades: gradeStats,
       recommendations: data.map(r => ({
         stockCode: r.stock_code,
         stockName: r.stock_name,

@@ -81,12 +81,12 @@
       // 추천 종목을 Supabase에 저장 (성과 추적용)
       const saveRecommendationsToSupabase = async (stocks) => {
         try {
-          // v3.10.0: 점수 75점 이상(S등급 이상)만 저장
-          // S등급 이상 (75-99점) = Radar 고득점 또는 Golden Zones 패턴
-          const stocksToSave = stocks.filter(s => s.totalScore >= 75);
+          // v3.10.0: 점수 45점 이상(B등급 이상)만 저장
+          // B등급 이상 (45-99점) = 선행 신호 단계부터 추적
+          const stocksToSave = stocks.filter(s => s.totalScore >= 45);
 
           if (stocksToSave.length === 0) {
-            console.log('저장할 추천 종목 없음 (75점 이상 S등급 없음)');
+            console.log('저장할 추천 종목 없음 (45점 이상 B등급 없음)');
             return;
           }
 
