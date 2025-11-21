@@ -1458,7 +1458,7 @@ class StockScreener {
    * Track 2 (Radar Scoring): 0-90점 (Base 15 + Trend 40 + Momentum 45)
    *
    * 7-Tier Grade System (Priority Order):
-   * - WARNING (priority 0): Overheated (RSI > 80 OR 이격도 > 115)
+   * - 과열 (priority 0): Overheated (RSI > 80 OR 이격도 > 115)
    * - S+: 90+ points (Golden Zones 96-99 or perfect Radar score)
    * - S: 75-89 points
    * - A: 60-74 points
@@ -1471,7 +1471,7 @@ class StockScreener {
 
     // Priority 0: Overheating Detection (최우선)
     if (overheatingV2 && overheatingV2.overheated) {
-      grade = 'WARNING';
+      grade = '과열';
       text = '⚠️ 과열 경고';
       color = '#ff0000';
       tooltip = `${overheatingV2.reason} - 단기 조정 가능성 높음`;

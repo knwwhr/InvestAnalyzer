@@ -47,7 +47,7 @@
       animation: slideIn 0.5s ease-out;
     }
 
-    .grade-WARNING { background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%); }
+    .grade-과열 { background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%); }
     .grade-S\+ { background: linear-gradient(135deg, #ff0066 0%, #cc0044 100%); }
     .grade-S { background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%); }
     .grade-A { background: linear-gradient(135deg, #00cc00 0%, #008800 100%); }
@@ -452,7 +452,7 @@
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm font-bold text-blue-900">📌 추천 등급 기준 (v3.10.0)</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                    stock.recommendation.grade === 'WARNING' ? 'bg-red-200 text-red-800' :
+                    stock.recommendation.grade === '과열' ? 'bg-red-200 text-red-800' :
                     stock.recommendation.grade === 'S+' ? 'bg-red-100 text-red-700' :
                     stock.recommendation.grade === 'S' ? 'bg-red-100 text-red-700' :
                     stock.recommendation.grade === 'A' ? 'bg-green-100 text-green-700' :
@@ -462,7 +462,7 @@
                   }`}>{stock.recommendation.grade}등급</span>
                 </div>
 
-                {stock.recommendation.grade === 'WARNING' && (
+                {stock.recommendation.grade === '과열' && (
                   <div className="text-xs text-gray-800 space-y-1.5">
                     <div className="font-semibold text-red-700">⚠️ 과열 경고 - 단기 조정 가능성</div>
                     <div className="pl-3 space-y-0.5">
@@ -1819,7 +1819,7 @@
               <h4 className="font-bold text-blue-900 mb-3">🎯 등급 부여 기준 (v3.10.0 Dual-Track Scoring System)</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                 <div className="bg-white p-3 rounded border-l-4 border-red-600">
-                  <div className="font-bold text-red-700 mb-1">⚠️ WARNING</div>
+                  <div className="font-bold text-red-700 mb-1">⚠️ 과열</div>
                   <div className="text-gray-700">과열 경고 (RSI > 80 OR 이격도 > 115)</div>
                   <div className="text-xs text-gray-500 mt-1">단기 조정 가능성 높음</div>
                 </div>
@@ -2177,7 +2177,7 @@
                         {dateGroup.byGrade && Object.keys(dateGroup.byGrade).length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-2">
                             {Object.entries(dateGroup.byGrade).sort((a, b) => {
-                              const gradeOrder = { 'WARNING': 0, 'S+': 1, 'S': 2, 'A': 3, 'B': 4, 'C': 5, 'D': 6 };
+                              const gradeOrder = { '과열': 0, 'S+': 1, 'S': 2, 'A': 3, 'B': 4, 'C': 5, 'D': 6 };
                               return (gradeOrder[a[0]] || 99) - (gradeOrder[b[0]] || 99);
                             }).map(([grade, stats]) => (
                               <div key={grade} className="text-xs bg-white rounded px-2 py-1 border border-gray-300">
@@ -2656,7 +2656,7 @@
             </div>
           )}
 
-          {/* WARNING 종목 표시 */}
+          {/* 과열 종목 표시 */}
           {recommendations.length > 0 && (() => {
             const warningStocks = recommendations.filter(stock =>
               stock.recommendation?.grade === '⚠️ 과열'
@@ -2668,7 +2668,7 @@
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-2xl">⚠️</span>
                     <h3 className="text-xl font-bold text-red-800">
-                      당일 WARNING 종목 ({warningStocks.length}개)
+                      당일 과열 종목 ({warningStocks.length}개)
                     </h3>
                   </div>
                   <p className="text-sm text-red-700 mb-4">
@@ -2693,7 +2693,7 @@
                           <div className="flex flex-col items-end ml-2">
                             <span className="inline-block px-2 py-1 text-xs font-bold rounded"
                                   style={{ backgroundColor: '#ff0000', color: 'white' }}>
-                              WARNING
+                              과열
                             </span>
                             <span className="text-xs text-gray-600 mt-1">
                               {stock.totalScore.toFixed(1)}점

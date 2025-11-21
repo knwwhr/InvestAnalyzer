@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
       const score = stock.totalScore;
 
       // v3.10.0: B등급 이상 (45-99점) - 선행 신호 단계부터 추적
-      // WARNING, S+, S, A, B 모두 저장 (C, D 제외)
+      // 과열, S+, S, A, B 모두 저장 (C, D 제외)
       return score >= 45;
     });
 
@@ -126,13 +126,13 @@ module.exports = async (req, res) => {
 
     // 등급별 통계
     const gradeStats = {
-      WARNING: filteredStocks.filter(s => s.recommendation.grade === 'WARNING').length,
+      과열: filteredStocks.filter(s => s.recommendation.grade === '과열').length,
       'S+': filteredStocks.filter(s => s.recommendation.grade === 'S+').length,
       S: filteredStocks.filter(s => s.recommendation.grade === 'S').length,
       A: filteredStocks.filter(s => s.recommendation.grade === 'A').length,
       B: filteredStocks.filter(s => s.recommendation.grade === 'B').length
     };
-    console.log(`   등급: WARNING(${gradeStats.WARNING}) S+(${gradeStats['S+']}) S(${gradeStats.S}) A(${gradeStats.A}) B(${gradeStats.B})\n`);
+    console.log(`   등급: 과열(${gradeStats.과열}) S+(${gradeStats['S+']}) S(${gradeStats.S}) A(${gradeStats.A}) B(${gradeStats.B})\n`);
 
     return res.status(200).json({
       success: true,
