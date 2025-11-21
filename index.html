@@ -2659,7 +2659,7 @@
           {/* WARNING 종목 표시 */}
           {recommendations.length > 0 && (() => {
             const warningStocks = recommendations.filter(stock =>
-              stock.recommendation?.grade === 'WARNING'
+              stock.recommendation?.grade === '⚠️ 과열'
             );
 
             if (warningStocks.length > 0) {
